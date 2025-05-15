@@ -60,4 +60,36 @@ A comprehensive backup and recovery system tailored for Linux environments, deve
 - SQLite (for metadata storage)
 - AWS CLI / Azure CLI / GCP CLI (for cloud synchronization)
 
+---
+
+## Development Setup
+
+### Prerequisites:
+
+- CMake (Build System)
+- GCC or Clang (C/C++ Compiler)
+- ...
+
+### Steps to Build and Run:
+
+1. In the Source Code Directory, run the following commands:
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+2. If you are building in a Windows machine, instead of the last command (`make`) in Step - 1, run the following command:
+```bash
+cmake --build .
+```
+
+3. Run the Executable:
+
+```bash
+./main
+```
+
 
