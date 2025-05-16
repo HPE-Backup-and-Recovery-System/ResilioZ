@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.5)
 project(HPE_Backup_Recovery_System VERSION 0.1)
 
 # CPP Standard: C++ 17
