@@ -3,17 +3,15 @@
 
 #include <string>
 
-enum class LogLevel
-{
+enum class LogLevel {
     INFO,
     WARNING,
     ERROR
 };
 
-class Logger
-{
+class Logger {
 public:
     static void log(const std::string &message, LogLevel level = LogLevel::INFO);
 };
 
-#endif // LOGGER_H
+#endif 

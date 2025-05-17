@@ -1,22 +1,24 @@
 cmake_minimum_required(VERSION 3.6)
 project(HPE_Backup_Recovery_System VERSION 0.1)
 
-# CPP Standard: C++ 17
+# C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compiler Flags
-# 1. `-O3`: Enable All Optimizations
-# 2. `-Wall`: Enable All Warnings
 set(CMAKE_CXX_FLAGS "-O3 -Wall")
 
-# Specify Non-Header Source Files that should be Compiled
-file(GLOB_RECURSE CPP_SOURCE
-    "${PROJECT_SOURCE_DIR}/src/*.cpp"
-)
-
-# Include Header Files
+# Include Directory
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# Add Executables (Uses Globbing)
+# Output Directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+# Source Files
+file(GLOB_RECURSE CPP_SOURCE
+    "${PROJECT_SOURCE_DIR}/src/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/*/*.cpp"
+)
+
+# Add Executable
 add_executable(main ${CPP_SOURCE})
