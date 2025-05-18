@@ -7,8 +7,15 @@ RemoteRepository::RemoteRepository() {}
 RemoteRepository::RemoteRepository(const std::string& ip,
                                    const std::string& username,
                                    const std::string& password,
-                                   const std::string& name)
-    : ip_(ip), username_(username), password_(password), name_(name) {}
+                                   const std::string& name,
+                                   const std::string& path,
+                                   const std::string& created_at)
+    : ip_(ip),
+      username_(username),
+      password_(password),
+      name_(name),
+      path_(path),
+      created_at_(created_at) {}
 
 bool RemoteRepository::Exists() const {
   std::cout << " *** Checking Existence via SSH NOT Implemented Yet! *** "
