@@ -21,7 +21,6 @@ class RepositoryService : public Service {
   void ListRepositories();
   void UseExistingRepository();
   void DeleteRepository();
-  std::shared_ptr<Repository> LoadFromConfig(const std::string& config_path);
 
   Repository* repository_;
   RepodataManager repodata_;

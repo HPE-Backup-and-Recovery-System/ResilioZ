@@ -8,7 +8,8 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 RepodataManager::RepodataManager() {
-  std::string base_dir = "./data";  // TODO: Fix Path Issue (data Folder is made inside Debug)...
+  std::string base_dir =
+      "./data";  // TODO: Fix Path Issue (data Folder is made inside Debug)...
   fs::create_directories(base_dir);
   data_file_ = base_dir + "/repodata.json";
   EnsureDataFileExists();
@@ -25,12 +26,12 @@ void RepodataManager::EnsureDataFileExists() {
 bool RepodataManager::Load() {
   std::ifstream file(data_file_);
   if (!file.is_open()) return false;
-
   json j;
   file >> j;
   entries_.clear();
   for (const auto& item : j) {
-    entries_.push_back({item["name"], item["path"], item["type"]});
+    entries_.push_back({item["name"], item["path"], item["type"],
+                        item["password_hash"], item["created_at"]});
   }
   return true;
 }
@@ -38,8 +39,13 @@ bool RepodataManager::Load() {
 bool RepodataManager::Save() {
   json j = json::array();
   for (const auto& entry : entries_) {
-    j.push_back(
-        {{"name", entry.name}, {"path", entry.path}, {"type", entry.type}});
+    j.push_back({
+        {"name", entry.name},
+        {"path", entry.path},
+        {"type", entry.type},
+        {"password_hash", entry.password_hash},
+        {"created_at", entry.created_at},
+    });
   }
   std::ofstream file(data_file_);
   file << j.dump(2);

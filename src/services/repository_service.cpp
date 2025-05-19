@@ -5,6 +5,7 @@
 
 #include "repositories/local_repository.h"
 #include "repositories/remote_repository.h"
+#include "utils/prompter.h"
 #include "utils/repodata_manager.h"
 #include "utils/time_util.h"
 
@@ -89,20 +90,21 @@ void RepositoryService::CreateNewRepository() {
 void RepositoryService::InitLocalRepositoryFromPrompt() {
   std::cout << "\n <<< Local Repository >>> \n\n";
   std::cin.ignore();
-  std::string path, name;
-  std::cout << " -> Enter Repository Name: ";
-  std::getline(std::cin, name);
-  std::cout << " -> Enter Base Path: ";
-  std::getline(std::cin, path);
+  std::string name, path, password;
+  name = Prompter::PromptRepoName();
+  path = Prompter::PromptLocalPath();
+  password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
   std::cout << std::endl;
   std::string timestamp = time_util::GetCurrentTimestamp();
 
-  LocalRepository* repo = new LocalRepository(path, name, timestamp);
+  LocalRepository* repo = new LocalRepository(path, name, password, timestamp);
   if (repo->Exists()) {
     std::cout << "Repository Already Exists at Given Location!\n";
   } else {
     repo->Initialize();
     std::cout << "Repository Created Successfully!\n";
+    std::cout << "\n => NOTE: Please Remember Your Password. "
+                 "Losing it means that Your Data is Irrecoverably Lost. \n";
   }
 
   repodata_.AddEntry({name, path, "local", timestamp});
@@ -114,24 +116,19 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 void RepositoryService::InitRemoteRepositoryFromPrompt() {
   std::cout << "\n <<< Remote Repository >>> \n\n";
   std::cin.ignore();
-  std::string ip, username, password, name, path;
-  std::cout << " -> Enter IP Address: ";
-  std::getline(std::cin, ip);
-  std::cout << " -> Enter Username: ";
-  std::getline(std::cin, username);
-  std::cout << " -> Enter Password: ";
-  std::getline(std::cin, password);
-  std::cout << " -> Enter Repository Name: ";
-  std::getline(std::cin, name);
-  std::cout << " -> Enter Base Path: ";
-  std::getline(std::cin, path);
+  std::string name, path, password;
+  name = Prompter::PromptRepoName();
+  path = Prompter::PromptSftpPath();
+  password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
   std::cout << std::endl;
   std::string timestamp = time_util::GetCurrentTimestamp();
 
-  RemoteRepository* repo = new RemoteRepository(ip, username, password, name, path, timestamp);
+  RemoteRepository* repo =
+      new RemoteRepository(path, name, password, timestamp);
   repo->Initialize();
 
-  repodata_.AddEntry({name, ip, "remote", timestamp});
+  repodata_.AddEntry(
+      {name, path, "remote", repo->GetHashedPassword(), timestamp});
 
   delete repository_;
   repository_ = repo;
@@ -159,30 +156,38 @@ void RepositoryService::UseExistingRepository() {
 
 void RepositoryService::DeleteRepository() {
   std::cin.ignore();
-  std::string name;
-  std::cout << "\n -> Enter Repository Name to DELETE: ";
-  std::getline(std::cin, name);
-  std::cout << " -> Confirm Repository Name to DELETE: ";
-  std::string confirm;
-  std::getline(std::cin, confirm);
+  std::string name, password;
+  name = Prompter::PromptRepoName(" -> Enter Repository Name to DELETE: ");
+  password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
 
-  if (confirm != name) {
-    std::cout << "Confirmation FAILED! Deletion Aborted.\n";
+  Repository* repo = nullptr;
+  auto entry = repodata_.FindByName(name);
+  if (!entry) {
+    std::cout << "Repository Not Found in Records! Aborting...\n";
     return;
   }
 
-  // TODO: Actual Deletion...
-
-  if (repodata_.DeleteEntry(name)) {
-    std::cout << "Repository '" << name << "' Deleted.\n";
+  if (entry->type == "local") {
+    repo = new LocalRepository(entry->path, entry->name, password,
+                               entry->created_at);
+  } else if (entry->type == "remote") {
+    repo = new RemoteRepository(entry->path, entry->name, password,
+                                entry->created_at);
   } else {
-    std::cout << "Repository Not Found! Aborting...\n";
+    std::cout << "Unknown Repository Type! Aborting...\n";
+    return;
   }
-}
 
-std::shared_ptr<Repository> RepositoryService::LoadFromConfig(
-    const std::string& config_path) {
-  std::cout << " *** LoadFromConfig() NOT Implemented Yet! *** " << std::endl;
-  return nullptr;
-}
+  if (!repo->Exists()) {
+    std::cout << "Repository Not Found in Path! Aborting...\n";
+    delete repo;
+    return;
+  }
+  repo->Delete();
+  std::cout << "Repository Deleted Successfully!\n";
 
+  repodata_.DeleteEntry(name);
+
+  delete repository_;
+  repository_ = repo;
+}

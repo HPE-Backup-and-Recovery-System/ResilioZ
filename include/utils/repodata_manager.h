@@ -9,6 +9,7 @@ struct RepoEntry {
   std::string name;
   std::string path;
   std::string type;
+  std::string password_hash = "";
   std::string created_at;
 };
 
