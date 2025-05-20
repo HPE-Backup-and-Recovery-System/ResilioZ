@@ -4,6 +4,10 @@
 
 namespace Validator {
 
+bool IsValidPath(const std::string& path) {
+  return IsValidLocalPath(path) || IsValidSftpPath(path);
+}
+
 bool IsValidLocalPath(const std::string& path) {
   std::regex pattern(
       R"(^([A-Za-z]:\\|\.{1,2}\\|\.{1,2}/|\\|/)?([A-Za-z0-9._-]+[\\/])*([A-Za-z0-9._-]+)?$)");
@@ -11,8 +15,8 @@ bool IsValidLocalPath(const std::string& path) {
 }
 
 bool IsValidSftpPath(const std::string& path) {
-  // Format: sftp:user@host:/absolute/path
-  std::regex pattern(R"(^(sftp|ssh):[\w.-]+@[\w.-]+:\/[^\s]+$)");
+  // Matches: user@hostname:/absolute/path
+  std::regex pattern(R"(^(""|(".*?")|([\w.\-]+))@([\w.\-]+):\/[^\s]+$)");
   return std::regex_match(path, pattern);
 }
 

@@ -20,9 +20,9 @@ class RepodataManager {
   bool Save();
 
   void AddEntry(const RepoEntry& entry);
-  bool DeleteEntry(const std::string& name);
+  bool DeleteEntry(const std::string& name, const std::string& path);
   std::vector<RepoEntry> GetAll() const;
-  std::optional<RepoEntry> FindByName(const std::string& name) const;
+  std::optional<RepoEntry> Find(const std::string& name, const std::string& path) const;
 
  private:
   std::vector<RepoEntry> entries_;

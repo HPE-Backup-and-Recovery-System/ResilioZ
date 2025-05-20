@@ -15,6 +15,9 @@ file(GLOB_RECURSE CPP_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
+# Compile Definitions (Similar to #define - Dynamic)
+add_compile_definitions(PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
+
 # Include Header Files
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

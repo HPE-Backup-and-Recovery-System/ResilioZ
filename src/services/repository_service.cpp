@@ -5,11 +5,10 @@
 
 #include "repositories/local_repository.h"
 #include "repositories/remote_repository.h"
+#include "repositories/repository.h"
 #include "utils/prompter.h"
 #include "utils/repodata_manager.h"
 #include "utils/time_util.h"
-
-// TODO: User Prompt Helpers...
 
 RepositoryService::RepositoryService() : repository_(nullptr) {}
 
@@ -161,14 +160,20 @@ void RepositoryService::UseExistingRepository() {
 
 void RepositoryService::DeleteRepository() {
   std::cin.ignore();
-  std::string name, password;
+  std::string name, path, password;
   name = Prompter::PromptRepoName(" -> Enter Repository Name to DELETE: ");
-  password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
+  path = Prompter::PromptPath();
+  password = Prompter::PromptPassword(" -> Enter Repository Password: ", false);
 
   Repository* repo = nullptr;
-  auto entry = repodata_.FindByName(name);
+  auto entry = repodata_.Find(name, path);
   if (!entry) {
-    std::cout << "Repository Not Found in Records! Aborting...\n";
+    std::cout << "Repository Not Found in Records!\n";
+    return;
+  }
+
+  if (entry->password_hash != Repository::GetHashedPassword(password)) {
+    std::cout << "Incorrect Password!\n";
     return;
   }
 
@@ -179,19 +184,19 @@ void RepositoryService::DeleteRepository() {
     repo = new RemoteRepository(entry->path, entry->name, password,
                                 entry->created_at);
   } else {
-    std::cout << "Unknown Repository Type! Aborting...\n";
+    std::cout << "Unknown Repository Type!\n";
     return;
   }
 
   if (!repo->Exists()) {
-    std::cout << "Repository Not Found in Path! Aborting...\n";
+    std::cout << "Repository Not Found in Path!\n";
     delete repo;
     return;
   }
   repo->Delete();
   std::cout << "Repository Deleted Successfully!\n";
 
-  repodata_.DeleteEntry(name);
+  repodata_.DeleteEntry(name, path);
 
   delete repository_;
   repository_ = repo;

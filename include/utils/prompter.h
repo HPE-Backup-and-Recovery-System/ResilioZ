@@ -15,17 +15,18 @@ std::string PromptUntilValid(
 std::string PromptRepoName(
     const std::string& prompt_msg = " -> Enter Repository Name: ",
     const bool confirm = false);
-    
+
 std::string PromptPassword(
     const std::string& prompt_msg = " -> Enter Password: ",
     const bool confirm = false);
 
+std::string PromptPath(const std::string& prompt_msg = " -> Enter Path: ");
+
 std::string PromptLocalPath(
     const std::string& prompt_msg = " -> Enter Local Path: ");
 
-std::string PromptSftpPath(
-    const std::string& prompt_msg =
-        " -> Enter SFTP Path (Ex. user@host:/path): ");
+std::string PromptSftpPath(const std::string& prompt_msg =
+                               " -> Enter SFTP Path (Ex. user@host:/path): ");
 
 std::string PromptIpAddress(
     const std::string& prompt_msg = " -> Enter IP Address: ");

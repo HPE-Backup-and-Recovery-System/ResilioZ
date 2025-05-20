@@ -42,6 +42,10 @@ std::string PromptPassword(const std::string& prompt_msg, const bool confirm) {
                           confirm);
 }
 
+std::string PromptPath(const std::string& prompt_msg) {
+  return PromptUntilValid(Validator::IsValidPassword, "Path", prompt_msg);
+}
+
 std::string PromptLocalPath(const std::string& prompt_msg) {
   return PromptUntilValid(Validator::IsValidLocalPath, "Local Path",
                           prompt_msg);

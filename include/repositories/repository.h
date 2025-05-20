@@ -18,7 +18,7 @@ class Repository {
   std::string GetPath() const;
 
   std::string GetHashedPassword() const;
-  std::string GetHashedPassword(const std::string& password) const;
+  static std::string GetHashedPassword(const std::string& password);
 
  protected:
   std::string name_;

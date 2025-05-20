@@ -1,3 +1,7 @@
+#ifndef PROJECT_ROOT_DIR
+#define PROJECT_ROOT_DIR "."
+#endif
+
 #include "utils/repodata_manager.h"
 
 #include <cstdlib>
@@ -8,8 +12,7 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 RepodataManager::RepodataManager() {
-  std::string base_dir =
-      "./data";  // TODO: Fix Path Issue (data Folder is made inside Debug)...
+  std::string base_dir = std::string(PROJECT_ROOT_DIR) + "/data";
   fs::create_directories(base_dir);
   data_file_ = base_dir + "/repodata.json";
   EnsureDataFileExists();
@@ -57,9 +60,11 @@ void RepodataManager::AddEntry(const RepoEntry& entry) {
   Save();
 }
 
-bool RepodataManager::DeleteEntry(const std::string& name) {
-  auto it = std::remove_if(entries_.begin(), entries_.end(),
-                           [&](const RepoEntry& e) { return e.name == name; });
+bool RepodataManager::DeleteEntry(const std::string& name,
+                                  const std::string& path) {
+  auto it = std::remove_if(
+      entries_.begin(), entries_.end(),
+      [&](const RepoEntry& e) { return e.name == name && e.path == path; });
   if (it == entries_.end()) return false;
   entries_.erase(it, entries_.end());
   return Save();
@@ -67,10 +72,10 @@ bool RepodataManager::DeleteEntry(const std::string& name) {
 
 std::vector<RepoEntry> RepodataManager::GetAll() const { return entries_; }
 
-std::optional<RepoEntry> RepodataManager::FindByName(
-    const std::string& name) const {
+std::optional<RepoEntry> RepodataManager::Find(const std::string& name,
+                                               const std::string& path) const {
   for (const auto& entry : entries_) {
-    if (entry.name == name) return entry;
+    if (entry.name == name && entry.path == path) return entry;
   }
   return std::nullopt;
 }

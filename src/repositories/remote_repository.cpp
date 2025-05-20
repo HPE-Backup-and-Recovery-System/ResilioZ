@@ -16,11 +16,11 @@ RemoteRepository::RemoteRepository(const std::string& sftp_path,
                                    const std::string& name,
                                    const std::string& password,
                                    const std::string& created_at) {
-  ParseSFTPPath(sftp_path);
   name_ = name;
   path_ = sftp_path;
   password_ = password;
   created_at_ = created_at;
+  ParseSFTPPath(sftp_path);
 }
 
 void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
@@ -36,8 +36,9 @@ void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
   user_ = sftp_path.substr(0, at_pos);
   host_ = sftp_path.substr(at_pos + 1, colon_pos - at_pos - 1);
   remote_dir_ = sftp_path.substr(colon_pos + 1);
-  if (remote_dir_.back() == '/')
-    remote_dir_.pop_back();  // Remove Trailing Slash
+  if (remote_dir_.back() != '/')
+    remote_dir_.push_back('/');
+  remote_dir_ += name_;
 }
 
 bool RemoteRepository::Exists() const { return RemoteDirectoryExists(); }
@@ -145,7 +146,7 @@ void RemoteRepository::RemoveRemoteDirectory() const {
 
   sftp_session sftp = sftp_new(session);
   if (!sftp || sftp_init(sftp) != SSH_OK) {
-    throw std::runtime_error("SFTP initialization failed.");
+    throw std::runtime_error("SFTP Initialization Failed...");
   }
 
   sftp_unlink(sftp, (remote_dir_ + "/config.json").c_str());
