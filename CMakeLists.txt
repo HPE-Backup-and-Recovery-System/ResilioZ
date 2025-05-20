@@ -26,7 +26,8 @@ add_executable(main ${CPP_SOURCE})
 
 # Static Linking 
 target_link_libraries(main
+    ${PROJECT_SOURCE_DIR}/libs/libssh/libssh.a
     ${PROJECT_SOURCE_DIR}/libs/openssl/libssl.a
     ${PROJECT_SOURCE_DIR}/libs/openssl/libcrypto.a
-    ${PROJECT_SOURCE_DIR}/libs/libssh/libssh.a
+    ${PROJECT_SOURCE_DIR}/libs/zlib/libz.a
 )
