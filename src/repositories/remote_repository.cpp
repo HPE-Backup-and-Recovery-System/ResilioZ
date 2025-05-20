@@ -1,4 +1,4 @@
-#include "remote_repository.h"
+#include "repositories/remote_repository.h"
 
 #include <fcntl.h>
 #include <libssh/libssh.h>
@@ -22,8 +22,6 @@ RemoteRepository::RemoteRepository(const std::string& sftp_path,
   password_ = password;
   created_at_ = created_at;
 }
-
-RemoteRepository::~RemoteRepository() {}
 
 void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
   auto at_pos = sftp_path.find('@');
