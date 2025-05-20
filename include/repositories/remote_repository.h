@@ -20,11 +20,16 @@ class RemoteRepository : public Repository {
   static RemoteRepository FromConfigJson(const nlohmann::json& config);
 
  private:
-    std::string username_;
-    std::string hostname_;
-    std::string remote_dir_;
+  std::string user_;
+  std::string host_;
+  std::string remote_dir_;
 
-  std::string GetSFTPPath() const;
+  void ParseSFTPPath(const std::string& sftp_path);
+  bool UploadFile(const std::string& local_file,
+                  const std::string& remote_path) const;
+  bool RemoteDirectoryExists() const;
+  void CreateRemoteDirectory() const;
+  void RemoveRemoteDirectory() const;
 };
 
 #endif  // REMOTE_REPOSITORY_H_

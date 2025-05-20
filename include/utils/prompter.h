@@ -25,7 +25,7 @@ std::string PromptLocalPath(
 
 std::string PromptSftpPath(
     const std::string& prompt_msg =
-        " -> Enter SFTP Path (Ex. sftp:user@host:/path): ");
+        " -> Enter SFTP Path (Ex. user@host:/path): ");
 
 std::string PromptIpAddress(
     const std::string& prompt_msg = " -> Enter IP Address: ");

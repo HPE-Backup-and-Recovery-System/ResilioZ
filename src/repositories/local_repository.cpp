@@ -50,16 +50,7 @@ void LocalRepository::WriteConfigToRepo() const {
 }
 
 LocalRepository LocalRepository::FromConfigJson(const nlohmann::json& config) {
-  std::string name = config.value("name", "");
-  std::string path = config.value("path", "");
-  std::string password_hash = config.value("password_hash", "");
-  std::string created_at = config.value("created_at", "");
-
-  LocalRepository repo;
-  repo.name_ = name;
-  repo.path_ = path;
-  repo.created_at_ = created_at;
-  repo.password_ = "";  // For Security, NOT Storing Raw Password
-
-  return repo;
+  return LocalRepository(config.at("path"), config.at("name"),
+                         config.value("password_hash", ""),
+                         config.at("created_at"));
 }

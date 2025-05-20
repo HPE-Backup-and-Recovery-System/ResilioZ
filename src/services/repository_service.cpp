@@ -104,9 +104,8 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
     repo->Initialize();
     std::cout << "Repository Created Successfully!\n";
     std::cout << "\n => NOTE: Please Remember Your Password. "
-                 "Losing it means that Your Data is Irrecoverably Lost. \n";
+                 "Losing it means that Your Data is Irrecoverably Lost. \n\n";
   }
-
   repodata_.AddEntry({name, path, "local", timestamp});
 
   delete repository_;
@@ -125,8 +124,14 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
 
   RemoteRepository* repo =
       new RemoteRepository(path, name, password, timestamp);
-  repo->Initialize();
-
+  if (repo->Exists()) {
+    std::cout << "Repository Already Exists at Given Location!\n";
+  } else {
+    repo->Initialize();
+    std::cout << "Repository Created Successfully!\n";
+    std::cout << "\n => NOTE: Please Remember Your Password. "
+                 "Losing it means that Your Data is Irrecoverably Lost. \n\n";
+  }
   repodata_.AddEntry(
       {name, path, "remote", repo->GetHashedPassword(), timestamp});
 
