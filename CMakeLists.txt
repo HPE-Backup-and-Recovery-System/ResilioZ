@@ -18,5 +18,8 @@ file(GLOB_RECURSE CPP_SOURCE
 # Include Header Files
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+# Link Dependencies
+link_directories(${PROJECT_SOURCE_DIR}/libs)
+
 # Add Executables (Uses Globbing)
 add_executable(main ${CPP_SOURCE})
