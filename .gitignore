@@ -118,3 +118,6 @@ build.ninja
 *.DS_Store
 *.directory
 Thumbs.db
+
+# Extra files
+config.json
