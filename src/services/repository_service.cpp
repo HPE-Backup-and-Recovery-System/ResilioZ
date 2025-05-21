@@ -1,5 +1,6 @@
 #include "services/repository_service.h"
 
+#include <exception>
 #include <iostream>
 #include <limits>
 
@@ -38,25 +39,29 @@ void RepositoryService::ShowMainMenu() {
       continue;
     }
 
-    switch (choice) {
-      case 1:
-        CreateNewRepository();
-        break;
-      case 2:
-        ListRepositories();
-        break;
-      case 3:
-        UseExistingRepository();
-        break;
-      case 4:
-        DeleteRepository();
-        break;
-      case 5:
-        std::cout << "Exiting...\n";
-        return;
-      default:
-        std::cout << "Invalid Option! Retry...\n";
-        break;
+    try {
+      switch (choice) {
+        case 1:
+          CreateNewRepository();
+          break;
+        case 2:
+          ListRepositories();
+          break;
+        case 3:
+          UseExistingRepository();
+          break;
+        case 4:
+          DeleteRepository();
+          break;
+        case 5:
+          std::cout << "Exiting...\n";
+          return;
+        default:
+          std::cout << "Invalid Option! Retry...\n";
+          break;
+      }
+    } catch (std::exception& e) {
+      continue;
     }
   }
 }
@@ -105,7 +110,8 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
     std::cout << "\n => NOTE: Please Remember Your Password. "
                  "Losing it means that Your Data is Irrecoverably Lost. \n\n";
   }
-  repodata_.AddEntry({name, path, "local", timestamp});
+  repodata_.AddEntry(
+      {name, path, "local", repo->GetHashedPassword(), timestamp});
 
   delete repository_;
   repository_ = repo;

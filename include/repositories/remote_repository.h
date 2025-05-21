@@ -16,7 +16,7 @@ class RemoteRepository : public Repository {
   void Initialize() override;
   void Delete() override;
 
-  void WriteConfigToRepo() const override;
+  void WriteConfig() const override;
   static RemoteRepository FromConfigJson(const nlohmann::json& config);
 
  private:

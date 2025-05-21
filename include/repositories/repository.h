@@ -12,7 +12,7 @@ class Repository {
   virtual void Initialize() = 0;
   virtual void Delete() = 0;
 
-  virtual void WriteConfigToRepo() const = 0;
+  virtual void WriteConfig() const = 0;
 
   std::string GetName() const;
   std::string GetPath() const;
