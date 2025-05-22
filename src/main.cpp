@@ -1,7 +1,13 @@
 #include <iostream>
+#include "services/backup_service.h"
 
-int main(int argc, char **argv)
-{
-    std::cout << "HPE - Backup and Recovery System in Linux..." << std::endl;
-    return 0;
+int main() {
+  std::cout << "===== Backup & Restore CLI System =====\n\n";
+
+  // Create and run the BackupService
+  services::BackupService backup_service;
+  backup_service.Run();
+
+  std::cout << "\nProgram terminated.\n";
+  return 0;
 }

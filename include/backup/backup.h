@@ -1,14 +1,20 @@
-#ifndef BACKUP_H_
-#define BACKUP_H_
+#ifndef BACKUP_BACKUP_H_
+#define BACKUP_BACKUP_H_
 
-class Backup {
+#include <string>
+
+namespace backup {
+
+    class Backup {
+    public:
+    virtual ~Backup() = default;
+
+    virtual void Execute(const std::string& source_directory_path, const std::string& destination_path)  = 0;
 
 
-};
 
+    };
+    
+}
 
-
-
-
-
-#endif // BACKUP_H_
+#endif // BACKUP_BACKUP_H_
