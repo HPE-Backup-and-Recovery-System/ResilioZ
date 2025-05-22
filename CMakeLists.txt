@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.5)
 project(HPE_Backup_Recovery_System VERSION 0.1)
 
 # CPP Standard: C++ 17
@@ -15,8 +15,22 @@ file(GLOB_RECURSE CPP_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
+# Compile Definitions (Similar to #define - Dynamic)
+add_compile_definitions(PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
+
 # Include Header Files
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+# Link Dependencies
+link_directories(${PROJECT_SOURCE_DIR}/libs)
+
 # Add Executables (Uses Globbing)
 add_executable(main ${CPP_SOURCE})
+
+# Static Linking 
+target_link_libraries(main
+    ${PROJECT_SOURCE_DIR}/libs/libssh/libssh.a
+    ${PROJECT_SOURCE_DIR}/libs/openssl/libssl.a
+    ${PROJECT_SOURCE_DIR}/libs/openssl/libcrypto.a
+    ${PROJECT_SOURCE_DIR}/libs/zlib/libz.a
+)
