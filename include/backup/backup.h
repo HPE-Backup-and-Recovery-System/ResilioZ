@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace backup {
+
 
     class Backup {
     public:
@@ -15,6 +15,5 @@ namespace backup {
 
     };
     
-}
 
 #endif // BACKUP_BACKUP_H_

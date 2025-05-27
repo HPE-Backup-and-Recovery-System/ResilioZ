@@ -5,7 +5,7 @@
 #include <string>
 #include <filesystem>
 
-namespace backup {
+
 
 class FullBackup : public Backup {
  public:
@@ -16,6 +16,6 @@ class FullBackup : public Backup {
                const std::string& destination_path) override;
 };
 
-}  // namespace backup
+ // namespace backup
 
 #endif  // BACKUP_FULL_BACKUP_H_

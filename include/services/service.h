@@ -2,7 +2,6 @@
 #define SERVICE_H_
 
 
-namespace services {
 
   class Service {
     public:
@@ -10,6 +9,6 @@ namespace services {
      virtual void Log() = 0;
      virtual ~Service() = default;
    };
-}
+
 
 #endif  // SERVICES_SERVICE_H_

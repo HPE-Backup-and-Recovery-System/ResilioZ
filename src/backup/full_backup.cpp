@@ -7,13 +7,14 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+#include <vector>
+#include <ctime>
+
+#include "utils/metadata_logger.h"
+#include "utils/backup_logger.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
-
-namespace backup {
-
-namespace {
 
 // Reads source directory from a JSON config file
 std::string GetSourcePathFromConfig(const std::string& config_path) {
@@ -27,7 +28,7 @@ std::string GetSourcePathFromConfig(const std::string& config_path) {
   return config["source_path"];
 }
 
-// Recursively writes files and directories to the archive
+// Recursively adds files/directories to the archive
 void AddDirectoryToArchive(struct archive* archive_ptr,
                            const fs::path& dir_path,
                            const fs::path& base_path) {
@@ -58,28 +59,51 @@ void AddDirectoryToArchive(struct archive* archive_ptr,
   }
 }
 
-}  // namespace
-
 void FullBackup::Execute(const std::string& config_path,
                          const std::string& destination_path) {
   try {
     std::string source_path = GetSourcePathFromConfig(config_path);
 
-    std::string output_file = destination_path + "/full_backup.tar";
+    std::time_t now = std::time(nullptr);
+    std::string timestamp = std::to_string(now);
+    std::string archive_file = destination_path + "/full_backup_" + timestamp + ".tar.zst";
+    std::string metadata_file = destination_path + "/metadata_" + timestamp + ".json";
+    std::string log_file = destination_path + "/full_backups.log";
 
+    // Setup libarchive
     struct archive* archive_ptr = archive_write_new();
-    archive_write_set_format_pax_restricted(archive_ptr);  // POSIX
-    archive_write_open_filename(archive_ptr, output_file.c_str());
+
+    if (archive_write_add_filter_zstd(archive_ptr) != ARCHIVE_OK) {
+      throw std::runtime_error("Failed to set Zstd compression: " +
+                               std::string(archive_error_string(archive_ptr)));
+    }
+
+    if (archive_write_set_format_pax_restricted(archive_ptr) != ARCHIVE_OK) {
+      throw std::runtime_error("Failed to set archive format: " +
+                               std::string(archive_error_string(archive_ptr)));
+    }
+
+    if (archive_write_open_filename(archive_ptr, archive_file.c_str()) != ARCHIVE_OK) {
+      throw std::runtime_error("Failed to open output archive: " +
+                               std::string(archive_error_string(archive_ptr)));
+    }
 
     AddDirectoryToArchive(archive_ptr, fs::path(source_path), fs::path(source_path));
 
     archive_write_close(archive_ptr);
     archive_write_free(archive_ptr);
 
-    std::cout << "Full backup completed successfully to: " << output_file << std::endl;
+    // Generate metadata
+    MetadataLogger::GenerateMetadata(source_path, metadata_file);
+
+    // Log backup archive name
+    BackupLogger::AppendToBackupLog(log_file, archive_file);
+
+    std::cout << "Full backup completed: " << archive_file << "\n";
+    std::cout << "Metadata written to: " << metadata_file << "\n";
+    std::cout << "Log updated: " << log_file << "\n";
+
   } catch (const std::exception& ex) {
     std::cerr << "Backup failed: " << ex.what() << std::endl;
   }
 }
-
-}  // namespace backup

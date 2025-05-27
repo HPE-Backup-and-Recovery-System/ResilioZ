@@ -3,7 +3,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 
-namespace services {
+
 
     // Explicit constructor and destructor definitions
     BackupService::BackupService() = default;
@@ -28,7 +28,7 @@ namespace services {
             std::cout << "Enter destination directory path: ";
             std::getline(std::cin, destination_path);
     
-            backup::FullBackup full_backup;
+            FullBackup full_backup;
             full_backup.Execute(config_path, destination_path);
             break;
           }
@@ -46,5 +46,5 @@ namespace services {
       std::cout << "[BackupService] Logging not implemented yet.\n";
     }
     
-    }  // namespace services
+  
     

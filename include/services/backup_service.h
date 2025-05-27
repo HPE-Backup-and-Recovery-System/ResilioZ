@@ -3,7 +3,6 @@
 
 #include "services/service.h"
 
-namespace services{
 
     class BackupService : public Service {
         public:
@@ -18,7 +17,7 @@ namespace services{
          void HandleFullBackup();
          void HandleDifferentialBackup();
        };
-}
+
 
 
 
