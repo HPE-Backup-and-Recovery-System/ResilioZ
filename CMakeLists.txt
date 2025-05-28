@@ -13,15 +13,17 @@ set(CMAKE_CXX_FLAGS "-O3 -Wall")
 # Specify Non-Header Source Files that should be Compiled
 file(GLOB_RECURSE CPP_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
-    "${PROJECT_SOURCE_DIR}/include/libcron/libcron/src/*.cpp"
 )
 
 # Include Header Files
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/include/libcron/libcron/include
-    ${PROJECT_SOURCE_DIR}/include/date/include
 )
 
 # Add Executables (Uses Globbing)
 add_executable(main ${CPP_SOURCE})
+
+# Static Linking 
+target_link_libraries(main
+    ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
+)
