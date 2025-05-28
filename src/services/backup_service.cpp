@@ -2,13 +2,13 @@
 #include "backup/full_backup.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
-
+#include <filesystem>
 
 
     // Explicit constructor and destructor definitions
     BackupService::BackupService() = default;
     BackupService::~BackupService() = default;
-    
+    namespace fs = std::filesystem;
     void BackupService::Run() {
       while (true) {
         std::cout << "\n ==== Backup Service ==== \n";
@@ -23,11 +23,12 @@
           case 1: {
             std::string config_path, destination_path;
             std::cin.ignore();
-            std::cout << "Enter config file path: ";
-            std::getline(std::cin, config_path);
+            //std::cout << "Enter config file path: ";
+            //config_path = "/home/lalithmint/Desktop/Linux-Backup-and-Recovery/config.json";
+            //std::getline(std::cin, config_path);
             std::cout << "Enter destination directory path: ";
             std::getline(std::cin, destination_path);
-    
+            config_path = (fs::current_path().parent_path() / "config.json").string();
             FullBackup full_backup;
             full_backup.Execute(config_path, destination_path);
             break;

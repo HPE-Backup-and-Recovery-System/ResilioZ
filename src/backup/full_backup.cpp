@@ -28,6 +28,15 @@ std::string GetSourcePathFromConfig(const std::string& config_path) {
   return config["source_path"];
 }
 
+std::string GetCurrentTimestamp() {
+  auto now = std::chrono::system_clock::now();
+  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d_%H-%M-%S");
+  return ss.str();
+}
+
 // Recursively adds files/directories to the archive
 void AddDirectoryToArchive(struct archive* archive_ptr,
                            const fs::path& dir_path,
@@ -63,11 +72,11 @@ void FullBackup::Execute(const std::string& config_path,
                          const std::string& destination_path) {
   try {
     std::string source_path = GetSourcePathFromConfig(config_path);
-
-    std::time_t now = std::time(nullptr);
-    std::string timestamp = std::to_string(now);
+    std::string timestamp = GetCurrentTimestamp();
+    //std::time_t now = std::time(nullptr);
+    //std::string timestamp = std::to_string(now);
     std::string archive_file = destination_path + "/full_backup_" + timestamp + ".tar.zst";
-    std::string metadata_file = destination_path + "/metadata_" + timestamp + ".json";
+    std::string metadata_file = destination_path + "/full_backup_metadata_" + timestamp + ".json";
     std::string log_file = destination_path + "/full_backups.log";
 
     // Setup libarchive
