@@ -17,6 +17,7 @@ class RepositoryService : public Service {
   void ShowMainMenu();
   void CreateNewRepository();
   void InitLocalRepositoryFromPrompt();
+  void InitNFSRepositoryFromPrompt();
   void InitRemoteRepositoryFromPrompt();
   void ListRepositories();
   void UseExistingRepository();

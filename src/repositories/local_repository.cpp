@@ -60,6 +60,7 @@ void LocalRepository::Initialize() {
     WriteConfig();
   } catch (const std::exception& e) {
     std::cerr << "ERROR Initializing Repository: " << e.what() << "\n";
+    throw;
   }
 }
 
@@ -89,6 +90,7 @@ void LocalRepository::WriteConfig() const {
     }
   } catch (const std::exception& e) {
     std::cerr << "ERROR Writing Config File: " << e.what() << "\n";
+    throw;
   }
 }
 
