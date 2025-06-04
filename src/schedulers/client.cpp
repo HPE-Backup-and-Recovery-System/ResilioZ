@@ -23,7 +23,8 @@ void Client::Run(){
         std::cout << "Enter 2 to add a schedule\n";
         std::cout << "Enter 3 to remove a schedule\n";
         std::cout << "Enter 4 to edit a schedule\n";
-        std::cout << "Enter 5 to exit\n";
+        std::cout << "Enter 5 to terminate scheduler\n";
+        std::cout << "Enter 6 to exit\n";
 
         int main_menu_input;
         std::cin >> main_menu_input;
@@ -80,15 +81,27 @@ void Client::Run(){
             break;
         }
         
-        else {
+        else if (main_menu_input == 5){
+            // Making sure server shuts down
+            char confirm;
+            std::cout << "Enter Y to confirm termination of scheduler\n";
+            std::cin >> confirm; 
+            std::cin.ignore();
+
+            if (confirm == 'Y' || confirm == 'y'){
+                nlohmann::json reqBody;
+                reqBody["action"] = "exit";
+                Send(reqBody.dump().c_str());
+                break;
+            }
+        }
+
+        else{
             break;
         }
     }
 
-    // Making sure server shuts down
-    nlohmann::json reqBody;
-    reqBody["action"] = "exit";
-    Send(reqBody.dump().c_str());
+
 }
 
 void Client::Send(const char *message){

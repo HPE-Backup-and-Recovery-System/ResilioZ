@@ -56,6 +56,8 @@ void Server::Run(){
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     });
+
+    std::cout << "Scheduler server active.\n";
     
     while (running){
         // Accept incoming connection
@@ -113,6 +115,7 @@ void Server::Run(){
 
     // Stop the scheduler
     scheduler_thread.join(); 
+    std::cout << "Shutting down scheduler server...\n";
     
     return;
 } 

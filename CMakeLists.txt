@@ -15,15 +15,30 @@ file(GLOB_RECURSE CPP_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
+list(REMOVE_ITEM CPP_SOURCE
+    "${PROJECT_SOURCE_DIR}/src/scheduler_server.cpp"
+    "${PROJECT_SOURCE_DIR}/src/scheduler_client.cpp"
+)
+
 # Include Header Files
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
 )
 
 # Add Executables (Uses Globbing)
-add_executable(main ${CPP_SOURCE})
+add_executable(
+    scheduler_server src/scheduler_server.cpp ${CPP_SOURCE}
+)
+
+add_executable(
+    scheduler_client src/scheduler_client.cpp ${CPP_SOURCE}
+)
 
 # Static Linking 
-target_link_libraries(main
+target_link_libraries(scheduler_server
+    ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
+)
+
+target_link_libraries(scheduler_client
     ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
 )
