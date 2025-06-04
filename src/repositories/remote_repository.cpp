@@ -72,6 +72,7 @@ void RemoteRepository::Delete() {
     RemoveRemoteDirectory();
   } catch (const std::exception& e) {
     std::cerr << "ERROR Deleting Repository: " << e.what() << "\n";
+    throw;
   }
 }
 
@@ -187,6 +188,7 @@ void RemoteRepository::CreateRemoteDirectory() const {
     ssh_free(session);
   } catch (const std::exception& e) {
     std::cerr << "ERROR Creating Directory: " << e.what() << "\n";
+    throw;
   }
 }
 

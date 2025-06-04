@@ -5,7 +5,7 @@
 *.ko
 
 # Compiled Static Libraries
-*.a
+# *.a
 *.lib
 
 # Compiled Dynamic Libraries
