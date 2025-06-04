@@ -3,23 +3,64 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <map>
-#include <vector>
 #include <thread>
 #include <chrono>
 #include <atomic>
 
 #include <nlohmann/json.hpp>
 
-#include <schedulers/server.h>
+#include "schedulers/scheduler.h"
 
-Server::Server(){
+Scheduler::Scheduler(){
     int port = 8080;
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 }
 
-void Server::Run(){
+std::string Scheduler::addSchedule(nlohmann::json reqBody){
+    // Validation pending
+    
+    // REPLACE with backup logic            
+    cron.add_schedule("Schedule id #" + std::to_string(conn_id), reqBody["payload"], [=](auto&) {
+        std::cout << "Schduled task id: " << conn_id << " - " << reqBody["type"] << "\n";
+    }); 
+
+    nlohmann::json metaData;
+    metaData["schedule"] = std::string(reqBody["payload"]);
+    metaData["type"] = std::string(reqBody["type"]);
+
+    schedules[conn_id] = metaData.dump();
+    std::string message = "Schedule #" + std::to_string(conn_id) + " added!";
+    conn_id = conn_id + 1;   
+    return message;
+}
+
+std::string Scheduler::viewSchedules(){
+    std::string message;
+    for (auto p: schedules){
+        int id = p.first;
+        nlohmann::json metaData = nlohmann::json::parse(p.second);
+        
+        std::string schedule = metaData["schedule"].get<std::string>();
+        std::string type = metaData["type"].get<std::string>();
+
+        message += std::to_string(id) + " - " + schedule + " - " + type + "\n";
+    }
+
+    return message;
+}
+
+std::string Scheduler::removeSchedule(nlohmann::json reqBody){
+    std::string name = "Schedule id #" + std::to_string(reqBody["payload"].get<int>());
+    
+    cron.remove_schedule(name);
+    schedules.erase(reqBody["payload"].get<int>());
+
+    return name + " removed!";
+}
+
+void Scheduler::Run(){
     // Socket creation
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == 0){
@@ -111,7 +152,7 @@ void Server::Run(){
 
     // Close the server socket
     close(server_fd);
-    // std::cout << "Server socket closed!\n";
+    // std::cout << "Scheduler socket closed!\n";
 
     // Stop the scheduler
     scheduler_thread.join(); 

@@ -11,15 +11,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "-O3 -Wall")
 
 # Specify Non-Header Source Files that should be Compiled
-file(GLOB_RECURSE SCHEDULER_CPP_SOURCE
+file(GLOB_RECURSE CPP_SOURCE
+    "${PROJECT_SOURCE_DIR}/src/*.cpp"
+)
+
+file(GLOB_RECURSE SCHEDULER_SOURCE
     "${PROJECT_SOURCE_DIR}/src/schedulers/*.cpp"
 )
 
-file(GLOB_RECURSE REPOSITORY_CPP_SOURCE
-    "${PROJECT_SOURCE_DIR}/src/repositories/*.cpp"
-    "${PROJECT_SOURCE_DIR}/src/services/*.cpp"
-    "${PROJECT_SOURCE_DIR}/src/utils/*.cpp"
+set(EXCLUDE_FILES
+    "${PROJECT_SOURCE_DIR}/src/main.cpp"
+    "${PROJECT_SOURCE_DIR}/src/scheduler.cpp"
 )
+
+list(REMOVE_ITEM CPP_SOURCE ${EXCLUDE_FILES})
 
 # Compile Definitions (Similar to #define - Dynamic)
 add_compile_definitions(PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
@@ -33,26 +38,17 @@ include_directories(
 link_directories(${PROJECT_SOURCE_DIR}/libs)
 
 # Add Executables (Uses Globbing)
-add_executable(main src/main.cpp ${REPOSITORY_CPP_SOURCE})
+add_executable(main src/main.cpp ${CPP_SOURCE})
 
-add_executable(
-    scheduler_server src/scheduler_server.cpp ${SCHEDULER_CPP_SOURCE}
-)
-
-add_executable(
-    scheduler_client src/scheduler_client.cpp ${SCHEDULER_CPP_SOURCE}
-)
+add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
 
 # Static Linking 
-target_link_libraries(scheduler_server
-    ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
-)
-
-target_link_libraries(scheduler_client
+target_link_libraries(scheduler
     ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
 )
 
 target_link_libraries(main
+    ${PROJECT_SOURCE_DIR}/libs/libcron/liblibcron.a
     ${PROJECT_SOURCE_DIR}/libs/libssh/libssh.a
     ${PROJECT_SOURCE_DIR}/libs/openssl/libssl.a
     ${PROJECT_SOURCE_DIR}/libs/openssl/libcrypto.a
