@@ -1,9 +1,11 @@
-#include <iostream>
 #include <schedulers/scheduler.h>
+
+#include <iostream>
+
 int main() {
-    Scheduler s;
-    std::cout << "Starting up scheduler server at port 8080...\n";
-    s.Run();
-    std::cout << "Scheduler server terminated.\n";
-    return 0;
+  Scheduler schedule;
+  std::cout << "Starting up scheduler server at port 8080...\n";
+  schedule.Run();
+  std::cout << "Scheduler server terminated.\n";
+  return 0;
 }
