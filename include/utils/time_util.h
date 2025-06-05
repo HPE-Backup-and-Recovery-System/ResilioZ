@@ -3,10 +3,10 @@
 
 #include <string>
 
-namespace time_util {
+namespace TimeUtil {
 
 std::string GetCurrentTimestamp();  // Timestamp in ISO 8601 Format (UTC)
 
-}  // namespace time_util
+}  // namespace TimeUtil
 
 #endif  // TIME_UTIL_H

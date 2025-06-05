@@ -106,7 +106,7 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   path = Prompter::PromptLocalPath();
   password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
   std::cout << std::endl;
-  std::string timestamp = time_util::GetCurrentTimestamp();
+  std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   LocalRepository* repo = new LocalRepository(path, name, password, timestamp);
   if (repo->Exists()) {
@@ -132,7 +132,7 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   path = Prompter::PromptMountPath();
   password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
   std::cout << std::endl;
-  std::string timestamp = time_util::GetCurrentTimestamp();
+  std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   NFSRepository* repo = new NFSRepository(path, name, password, timestamp);
   if (repo->Exists()) {
@@ -162,7 +162,7 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
   path = Prompter::PromptSftpPath();
   password = Prompter::PromptPassword(" -> Enter Repository Password: ", true);
   std::cout << std::endl;
-  std::string timestamp = time_util::GetCurrentTimestamp();
+  std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   RemoteRepository* repo =
       new RemoteRepository(path, name, password, timestamp);

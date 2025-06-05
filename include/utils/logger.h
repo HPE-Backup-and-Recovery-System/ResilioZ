@@ -3,17 +3,14 @@
 
 #include <string>
 
-enum class LogLevel
-{
-    INFO,
-    WARNING,
-    ERROR
-};
+enum class LogLevel { INFO, WARNING, ERROR };
 
-class Logger
-{
-public:
-    static void log(const std::string &message, LogLevel level = LogLevel::INFO);
-};
+namespace Logger {
+std::string GetLogLevelString(const LogLevel level, bool color = false);
+void TerminalLog(const std::string& message,
+                 const LogLevel level = LogLevel::INFO);
+void SystemLog(const std::string& message,
+               const LogLevel level = LogLevel::INFO);
+};  // namespace Logger
 
-#endif // LOGGER_H
+#endif  // LOGGER_H
