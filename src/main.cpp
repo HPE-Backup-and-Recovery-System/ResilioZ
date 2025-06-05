@@ -3,16 +3,17 @@
 
 #include "services/repository_service.h"
 #include "services/scheduler_service.h"
+#include "utils/logger.h"
 
 int main(int argc, char** argv) {
-  std::cout << "HPE - Backup and Recovery System in Linux..." << std::endl;
+  Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
 
   while (true) {
     std::cout << "Enter 1 for Repository Management\n";
     std::cout << "Enter 2 for Schedule Management\n";
 
     int userin;
-    
+
     std::cin >> userin;
     std::cin.ignore();
 

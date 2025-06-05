@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <sstream>
 
-std::string time_util::GetCurrentTimestamp() {
+std::string TimeUtil::GetCurrentTimestamp() {
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
   std::ostringstream oss;

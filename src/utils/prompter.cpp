@@ -2,12 +2,10 @@
 
 #include <iostream>
 
-#include "utils/input.h"
+#include "utils/user_io.h"
 #include "utils/validator.h"
 
-namespace Prompter {
-
-std::string PromptUntilValid(
+std::string Prompter::PromptUntilValid(
     const std::function<bool(const std::string&)>& validator,
     const std::string& field_name, const std::string& prompt_msg,
     const bool confirm, const bool hide) {
@@ -15,7 +13,7 @@ std::string PromptUntilValid(
   do {
     std::cout << prompt_msg;
     if (hide) {
-      input = input::GetHiddenInput();
+      input = UserIO::GetHiddenInput();
     } else {
       std::getline(std::cin, input);
     }
@@ -29,7 +27,7 @@ std::string PromptUntilValid(
       std::string confirmation;
       std::cout << " -> Confirm " << field_name << ": ";
       if (hide) {
-        confirmation = input::GetHiddenInput();
+        confirmation = UserIO::GetHiddenInput();
       } else {
         std::getline(std::cin, confirmation);
       }
@@ -46,37 +44,39 @@ std::string PromptUntilValid(
   return input;
 }
 
-std::string PromptRepoName(const std::string& prompt_msg, const bool confirm) {
-  return PromptUntilValid(Validator::IsValidRepoName, "Repository Name",
-                          prompt_msg, confirm);
+std::string Prompter::PromptRepoName(const std::string& prompt_msg,
+                                     const bool confirm) {
+  return Prompter::PromptUntilValid(Validator::IsValidRepoName,
+                                    "Repository Name", prompt_msg, confirm);
 }
 
-std::string PromptPassword(const std::string& prompt_msg, const bool confirm) {
-  return PromptUntilValid(Validator::IsValidPassword, "Password", prompt_msg,
-                          confirm, true);
+std::string Prompter::PromptPassword(const std::string& prompt_msg,
+                                     const bool confirm) {
+  return Prompter::PromptUntilValid(Validator::IsValidPassword, "Password",
+                                    prompt_msg, confirm, true);
 }
 
-std::string PromptPath(const std::string& prompt_msg) {
-  return PromptUntilValid(Validator::IsValidPassword, "Path", prompt_msg);
+std::string Prompter::PromptPath(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::IsValidPassword, "Path",
+                                    prompt_msg);
 }
 
-std::string PromptLocalPath(const std::string& prompt_msg) {
-  return PromptUntilValid(Validator::IsValidLocalPath, "Local Path",
-                          prompt_msg);
+std::string Prompter::PromptLocalPath(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::IsValidLocalPath, "Local Path",
+                                    prompt_msg);
 }
 
-std::string PromptMountPath(const std::string& prompt_msg) {
-  return PromptUntilValid(Validator::IsValidMountPath, "Mount Path",
-                          prompt_msg);
+std::string Prompter::PromptMountPath(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::IsValidMountPath, "Mount Path",
+                                    prompt_msg);
 }
 
-std::string PromptSftpPath(const std::string& prompt_msg) {
-  return PromptUntilValid(Validator::IsValidSftpPath, "SFTP Path", prompt_msg);
+std::string Prompter::PromptSftpPath(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::IsValidSftpPath, "SFTP Path",
+                                    prompt_msg);
 }
 
-std::string PromptIpAddress(const std::string& prompt_msg) {
-  return PromptUntilValid(Validator::IsValidIpAddress, "IP Address",
-                          prompt_msg);
+std::string Prompter::PromptIpAddress(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::IsValidIpAddress, "IP Address",
+                                    prompt_msg);
 }
-
-}  // namespace Prompter
