@@ -1,11 +1,17 @@
-#include <schedulers/scheduler.h>
+#include "schedulers/scheduler.h"
 
 #include <iostream>
 
+#include "utils/logger.h"
+
 int main() {
   Scheduler schedule;
-  std::cout << "Starting up scheduler server at port 8080...\n";
+
+  Logger::Log("Starting up scheduler server at Port 8080...");
+
   schedule.Run();
-  std::cout << "Scheduler server terminated.\n";
+
+  Logger::Log("Scheduler server terminated.");
+
   return 0;
 }

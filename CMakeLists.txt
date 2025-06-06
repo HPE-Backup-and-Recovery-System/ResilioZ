@@ -29,6 +29,12 @@ set(EXCLUDE_FILES
 )
 list(REMOVE_ITEM CPP_SOURCE ${EXCLUDE_FILES})
 
+# Separating & Building Target utils (Common for Main and Scheduler)
+file(GLOB_RECURSE UTILS_SOURCE 
+    "${PROJECT_SOURCE_DIR}/src/utils/*.cpp"
+)
+add_library(utils STATIC ${UTILS_SOURCE})
+
 # Include Header Files
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -77,6 +83,7 @@ target_include_directories(scheduler PRIVATE ${libcron_SOURCE_DIR})
 
 # Link Libraries for Main
 target_link_libraries(main PRIVATE
+    utils
     libcron
     ${LIBSSH_LIBRARIES}
     ${ZLIB_LIBRARIES}
@@ -85,4 +92,4 @@ target_link_libraries(main PRIVATE
 )
 
 # Link Libraries for Scheduler
-target_link_libraries(scheduler PRIVATE libcron)
+target_link_libraries(scheduler PRIVATE utils libcron)

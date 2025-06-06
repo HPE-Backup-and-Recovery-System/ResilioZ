@@ -11,6 +11,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "utils/error_util.h"
+
 RemoteRepository::RemoteRepository() {}
 
 RemoteRepository::RemoteRepository(const std::string& sftp_path,
@@ -22,12 +24,7 @@ RemoteRepository::RemoteRepository(const std::string& sftp_path,
   password_ = password;
   created_at_ = created_at;
 
-  try {
-    ParseSFTPPath(sftp_path);
-  } catch (const std::exception& e) {
-    std::cerr << "SFTP Path Parsing Failed: " << e.what() << "\n";
-    throw;
-  }
+  ParseSFTPPath(sftp_path);
 }
 
 void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
@@ -36,8 +33,8 @@ void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
 
   if (at_pos == std::string::npos || colon_pos == std::string::npos ||
       colon_pos < at_pos) {
-    throw std::runtime_error(
-        "Invalid SFTP Path Format! Expected: user@host:/path...");
+    ErrorUtil::ThrowError(
+        "Invalid SFTP path format. Expected: user@host:/path");
   }
 
   user_ = sftp_path.substr(0, at_pos);
@@ -48,91 +45,62 @@ void RemoteRepository::ParseSFTPPath(const std::string& sftp_path) {
   remote_dir_ += name_;
 }
 
-bool RemoteRepository::Exists() const {
-  try {
-    return RemoteDirectoryExists();
-  } catch (const std::exception& e) {
-    std::cerr << "Error Checking Remote Directory: " << e.what() << "\n";
-    return false;
-  }
-}
+bool RemoteRepository::Exists() const { return RemoteDirectoryExists(); }
 
 void RemoteRepository::Initialize() {
-  try {
-    CreateRemoteDirectory();
-    WriteConfig();
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Initializing Repository: " << e.what() << "\n";
-    throw;
-  }
+  CreateRemoteDirectory();
+  WriteConfig();
 }
 
-void RemoteRepository::Delete() {
-  try {
-    RemoveRemoteDirectory();
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Deleting Repository: " << e.what() << "\n";
-    throw;
-  }
-}
+void RemoteRepository::Delete() { RemoveRemoteDirectory(); }
 
 void RemoteRepository::WriteConfig() const {
-  try {
-    nlohmann::json config = {{"name", name_},
-                             {"type", "remote"},
-                             {"path", path_},
-                             {"created_at", created_at_},
-                             {"password_hash", GetHashedPassword()}};
+  nlohmann::json config = {{"name", name_},
+                           {"type", "remote"},
+                           {"path", path_},
+                           {"created_at", created_at_},
+                           {"password_hash", GetHashedPassword()}};
 
-    std::string temp_file = "/tmp/repo_config_temp.json";
-    std::ofstream out(temp_file);
-    if (!out) {
-      throw std::runtime_error("Failed to Create: temp config file.");
-    }
-    out << config.dump(4);
-    out.close();
-
-    if (!UploadFile(temp_file, remote_dir_ + "/config.json")) {
-      throw std::runtime_error("Failed to Upload Config File to Remote.");
-    }
-
-    std::filesystem::remove(temp_file);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Writing Config File: " << e.what() << "\n";
-    throw;
+  std::string temp_file = "/tmp/repo_config_temp.json";
+  std::ofstream out(temp_file);
+  if (!out) {
+    ErrorUtil::ThrowError("Failed to create temporary config file");
   }
+
+  out << config.dump(4);
+  out.close();
+
+  if (!UploadFile(temp_file, remote_dir_ + "/config.json")) {
+    ErrorUtil::ThrowError("Failed to upload config to remote");
+  }
+
+  std::filesystem::remove(temp_file);
 }
 
 RemoteRepository RemoteRepository::FromConfigJson(
     const nlohmann::json& config) {
-  try {
-    return RemoteRepository(config.at("path"), config.at("name"),
-                            config.value("password_hash", ""),
-                            config.at("created_at"));
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Parsing Config JSON: " << e.what() << "\n";
-    return RemoteRepository();
-  }
+  return RemoteRepository(config.at("path"), config.at("name"),
+                          config.value("password_hash", ""),
+                          config.at("created_at"));
 }
 
 bool RemoteRepository::RemoteDirectoryExists() const {
-  ssh_session session = nullptr;
+  ssh_session session = ssh_new();
   sftp_session sftp = nullptr;
 
   try {
-    session = ssh_new();
     ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
     ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
 
     if (ssh_connect(session) != SSH_OK ||
         ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
             SSH_AUTH_SUCCESS) {
-      throw std::runtime_error("SSH Connection or Authentication Failed.");
+      ErrorUtil::ThrowError("SSH connection or authentication failed");
     }
 
     sftp = sftp_new(session);
     if (!sftp || sftp_init(sftp) != SSH_OK) {
-      throw std::runtime_error("SFTP Initialization Failed.");
+      ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
     sftp_attributes attr = sftp_stat(sftp, remote_dir_.c_str());
@@ -144,72 +112,69 @@ bool RemoteRepository::RemoteDirectoryExists() const {
     ssh_free(session);
 
     return exists;
-
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << "\n";
+  } catch (...) {
     if (sftp) sftp_free(sftp);
     if (session) {
       ssh_disconnect(session);
       ssh_free(session);
     }
-    return false;
+    throw;
   }
 }
 
 void RemoteRepository::CreateRemoteDirectory() const {
+  ssh_session session = ssh_new();
+  sftp_session sftp = nullptr;
+
   try {
-    ssh_session session = ssh_new();
     ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
     ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
 
     if (ssh_connect(session) != SSH_OK ||
         ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
             SSH_AUTH_SUCCESS) {
-      ssh_free(session);
-      throw std::runtime_error("SSH Connection or Authentication Failed...");
+      ErrorUtil::ThrowError("SSH connection or authentication failed");
     }
 
-    sftp_session sftp = sftp_new(session);
+    sftp = sftp_new(session);
     if (!sftp || sftp_init(sftp) != SSH_OK) {
-      ssh_disconnect(session);
-      ssh_free(session);
-      throw std::runtime_error("SFTP Initialization Failed...");
+      ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
     if (sftp_mkdir(sftp, remote_dir_.c_str(), S_IRWXU) < 0) {
-      sftp_free(sftp);
-      ssh_disconnect(session);
-      ssh_free(session);
-      throw std::runtime_error("Remote Directory Creation Failure!");
+      ErrorUtil::ThrowError("Remote directory creation failed");
     }
 
     sftp_free(sftp);
     ssh_disconnect(session);
     ssh_free(session);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Creating Directory: " << e.what() << "\n";
+  } catch (...) {
+    if (sftp) sftp_free(sftp);
+    if (session) {
+      ssh_disconnect(session);
+      ssh_free(session);
+    }
     throw;
   }
 }
 
 void RemoteRepository::RemoveRemoteDirectory() const {
+  ssh_session session = ssh_new();
+  sftp_session sftp = nullptr;
+
   try {
-    ssh_session session = ssh_new();
     ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
     ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
 
     if (ssh_connect(session) != SSH_OK ||
         ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
             SSH_AUTH_SUCCESS) {
-      ssh_free(session);
-      throw std::runtime_error("SSH Connection or Authentication Failed...");
+      ErrorUtil::ThrowError("SSH connection or authentication failed");
     }
 
-    sftp_session sftp = sftp_new(session);
+    sftp = sftp_new(session);
     if (!sftp || sftp_init(sftp) != SSH_OK) {
-      ssh_disconnect(session);
-      ssh_free(session);
-      throw std::runtime_error("SFTP Initialization Failed...");
+      ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
     sftp_unlink(sftp, (remote_dir_ + "/config.json").c_str());
@@ -218,42 +183,46 @@ void RemoteRepository::RemoveRemoteDirectory() const {
     sftp_free(sftp);
     ssh_disconnect(session);
     ssh_free(session);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Removing Directory: " << e.what() << "\n";
+  } catch (...) {
+    if (sftp) sftp_free(sftp);
+    if (session) {
+      ssh_disconnect(session);
+      ssh_free(session);
+    }
+    throw;
   }
 }
 
 bool RemoteRepository::UploadFile(const std::string& local_file,
                                   const std::string& remote_path) const {
-  ssh_session session = nullptr;
+  ssh_session session = ssh_new();
   sftp_session sftp = nullptr;
 
   try {
-    session = ssh_new();
     ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
     ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
 
     if (ssh_connect(session) != SSH_OK ||
         ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
             SSH_AUTH_SUCCESS) {
-      throw std::runtime_error("SSH Connection/Authentication Failed...");
+      ErrorUtil::ThrowError("SSH connection or authentication failed");
     }
 
     sftp = sftp_new(session);
     if (!sftp || sftp_init(sftp) != SSH_OK) {
-      throw std::runtime_error("SFTP Initialization Failed...");
+      ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
     sftp_file file = sftp_open(sftp, remote_path.c_str(),
                                O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (!file) {
-      throw std::runtime_error("Unable to Open Remote Path for Writing.");
+      ErrorUtil::ThrowError("Unable to open remote file path for writing");
     }
 
     std::ifstream input(local_file, std::ios::binary);
     if (!input) {
       sftp_close(file);
-      throw std::runtime_error("Failed to Open Local File: " + local_file);
+      ErrorUtil::ThrowError("Failed to open local file: " + local_file);
     }
 
     std::ostringstream buffer;
@@ -262,7 +231,7 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
 
     if (sftp_write(file, content.c_str(), content.size()) < 0) {
       sftp_close(file);
-      throw std::runtime_error("Failed to Write File to Remote Path.");
+      ErrorUtil::ThrowError("Failed to write to remote path");
     }
 
     sftp_close(file);
@@ -271,13 +240,12 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
     ssh_free(session);
 
     return true;
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR in UploadFile: " << e.what() << "\n";
+  } catch (...) {
     if (sftp) sftp_free(sftp);
     if (session) {
       ssh_disconnect(session);
       ssh_free(session);
     }
-    return false;
+    throw;
   }
 }

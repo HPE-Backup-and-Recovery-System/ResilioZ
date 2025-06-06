@@ -9,6 +9,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "utils/error_util.h"
+#include "utils/logger.h"
+
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
@@ -19,10 +22,8 @@ RepodataManager::RepodataManager() {
     data_file_ = base_dir + "/repodata.json";
     EnsureDataFileExists();
     Load();
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR in FileSystem: " << e.what() << std::endl;
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
+  } catch (...) {
+    ErrorUtil::ThrowNested("Failed to initialize local repository database");
   }
 }
 
@@ -31,13 +32,13 @@ void RepodataManager::EnsureDataFileExists() {
     if (!fs::exists(data_file_)) {
       std::ofstream ofs(data_file_);
       if (!ofs) {
-        throw std::runtime_error("Failed to Create: repodata.json");
+        ErrorUtil::ThrowError("Unable to create repository data file");
       }
       ofs << "[]";
       ofs.close();
     }
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR in EnsureDataFileExists: " << e.what() << std::endl;
+  } catch (...) {
+    ErrorUtil::ThrowNested("Could not ensure presence of repository data file");
   }
 }
 
@@ -45,8 +46,7 @@ bool RepodataManager::Load() {
   try {
     std::ifstream file(data_file_);
     if (!file.is_open()) {
-      std::cerr << "Failed to Open repodata.json for Reading." << std::endl;
-      return false;
+      ErrorUtil::ThrowError("Could not read repository data file");
     }
 
     json j;
@@ -58,11 +58,8 @@ bool RepodataManager::Load() {
                           item.at("created_at")});
     }
     return true;
-  } catch (const json::exception& e) {
-    std::cerr << "ERROR in JSON Parcing: " << e.what() << std::endl;
-    return false;
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR in Load(): " << e.what() << std::endl;
+  } catch (...) {
+    ErrorUtil::ThrowNested("Failed to load existing repositories");
     return false;
   }
 }
@@ -82,14 +79,13 @@ bool RepodataManager::Save() {
 
     std::ofstream file(data_file_);
     if (!file.is_open()) {
-      std::cerr << "Failed to Open repodata.json for Writing." << std::endl;
-      return false;
+      ErrorUtil::ThrowError("Unable to write to repository data file");
     }
 
     file << j.dump(2);
     return true;
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Saving repodata.json: " << e.what() << std::endl;
+  } catch (...) {
+    ErrorUtil::ThrowNested("Failed to save repository information");
     return false;
   }
 }
@@ -97,8 +93,8 @@ bool RepodataManager::Save() {
 void RepodataManager::AddEntry(const RepoEntry& entry) {
   entries_.push_back(entry);
   if (!Save()) {
-    std::cerr << "ERROR: Failed to Save after Add Entry of Repo Data."
-              << std::endl;
+    ErrorUtil::ThrowError(
+        "Could not update repository data after adding new entry");
   }
 }
 
@@ -112,8 +108,8 @@ bool RepodataManager::DeleteEntry(const std::string& name,
 
   entries_.erase(it, entries_.end());
   if (!Save()) {
-    std::cerr << "ERROR: Failed to Save after Delete Entry of Repo Data."
-              << std::endl;
+    ErrorUtil::ThrowError(
+        "Could not update repository data after deleting entry");
     return false;
   }
   return true;
@@ -127,4 +123,12 @@ std::optional<RepoEntry> RepodataManager::Find(const std::string& name,
     if (entry.name == name && entry.path == path) return entry;
   }
   return std::nullopt;
+}
+
+std::string RepodataManager::GetFormattedTypeString(const std::string& type,
+                                                    bool upper) {
+  if (type == "local") return (upper ? "LOCAL" : "Local");
+  if (type == "nfs") return "NFS";
+  if (type == "remote") return (upper ? "REMOTE" : "Remote");
+  return (upper ? "UNKNOWN" : "Unknown");
 }

@@ -2,16 +2,17 @@
 
 #include <iostream>
 
+#include "utils/logger.h"
 #include "utils/user_io.h"
 #include "utils/validator.h"
 
 std::string Prompter::PromptUntilValid(
     const std::function<bool(const std::string&)>& validator,
-    const std::string& field_name, const std::string& prompt_msg,
+    const std::string& field_name, const std::string& field_prompt,
     const bool confirm, const bool hide) {
   std::string input;
   do {
-    std::cout << prompt_msg;
+    std::cout << " -> Enter " << field_prompt << ": ";
     if (hide) {
       input = UserIO::GetHiddenInput();
     } else {
@@ -19,7 +20,8 @@ std::string Prompter::PromptUntilValid(
     }
 
     if (!validator(input)) {
-      std::cout << "Invalid " << field_name << "! Please Try Again...\n";
+      Logger::TerminalLog("Invalid " + field_name + "! Please try again...\n",
+                          LogLevel::ERROR);
       continue;
     }
 
@@ -33,7 +35,9 @@ std::string Prompter::PromptUntilValid(
       }
 
       if (input != confirmation) {
-        std::cout << field_name << "s do not Match! Please Try Again...\n";
+        Logger::TerminalLog(
+            field_name + "s do not match! Please try again...\n",
+            LogLevel::ERROR);
         continue;
       }
     }

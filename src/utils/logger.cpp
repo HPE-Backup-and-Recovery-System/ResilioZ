@@ -5,14 +5,19 @@
 #include "utils/logger.h"
 
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
+#include "utils/time_util.h"
+
+namespace fs = std::filesystem;
+
 std::string Logger::GetLogLevelString(const LogLevel level, bool color) {
   std::ostringstream oss;
-  const int width = 5;
+  const int8_t width = 5;
 
   if (color) {
     switch (level) {
@@ -55,15 +60,33 @@ std::string Logger::GetLogLevelString(const LogLevel level, bool color) {
   return oss.str();
 }
 
+void Logger::Log(const std::string& message, const LogLevel level) {
+  Logger::TerminalLog(message, level);
+  Logger::SystemLog(message, level);
+}
+
 void Logger::TerminalLog(const std::string& message, const LogLevel level) {
-  std::cout << GetLogLevelString(level, true) << " " << message << std::endl;
+  std::string prefix = GetLogLevelString(level, true) + " ";
+  std::istringstream msgStream(message);
+  std::string line;
+
+  if (std::getline(msgStream, line)) {
+    std::cout << prefix << line << std::endl;
+  }
+
+  std::string indent(8, ' ');
+  while (std::getline(msgStream, line)) {
+    std::cout << indent << line << std::endl;
+  }
 }
 
 void Logger::SystemLog(const std::string& message, const LogLevel level) {
-  std::ofstream logFile(std::string(PROJECT_ROOT_DIR) + "/logs/sys.log",
-                        std::ios::app);
-  std::time_t now = std::time(nullptr);
-  std::string logEntry = std::string(std::ctime(&now)) + " - " +
+  std::string base_dir = std::string(PROJECT_ROOT_DIR) + "/logs";
+  fs::create_directories(base_dir);
+  std::string log_file_path = base_dir + "/sys.log";
+
+  std::ofstream logFile(log_file_path, std::ios::app);
+  std::string logEntry = TimeUtil::GetCurrentTimestamp() + " - " +
                          GetLogLevelString(level) + " " + message;
 
   if (logFile.is_open()) {

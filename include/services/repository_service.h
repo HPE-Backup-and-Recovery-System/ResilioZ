@@ -20,8 +20,9 @@ class RepositoryService : public Service {
   void InitNFSRepositoryFromPrompt();
   void InitRemoteRepositoryFromPrompt();
   void ListRepositories();
-  void UseExistingRepository();
+  Repository* UseExistingRepository();
   void DeleteRepository();
+  void SetRepository(Repository* new_repo);
 
   Repository* repository_;
   RepodataManager repodata_;
