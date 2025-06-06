@@ -1,52 +1,41 @@
 #include <exception>
 #include <iostream>
+#include <vector>
 
 #include "services/repository_service.h"
 #include "services/scheduler_service.h"
+#include "utils/error_util.h"
 #include "utils/logger.h"
+#include "utils/user_io.h"
 
 int main(int argc, char** argv) {
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
 
+  std::vector<std::string> main_menu = {"EXIT...", "Repository Service",
+                                        "Schedule Service"};
   while (true) {
-    std::cout << "Enter 1 for Repository Management\n";
-    std::cout << "Enter 2 for Schedule Management\n";
+    int choice = UserIO::HandleMenuWithInput(
+        UserIO::DisplayMaxTitle("SYSTEM SERVICES", false), main_menu);
 
-    int userin;
-
-    std::cin >> userin;
-    std::cin.ignore();
-
-    switch (userin) {
+    switch (choice) {
+      case 0: {
+        std::cout << "\n - Exiting...\n";
+        return EXIT_SUCCESS;
+      }
       case 1: {
-        try {
-          RepositoryService service;
-          service.Run();
-        } catch (const std::exception& e) {
-          std::cerr << "ERROR in a Service: " << e.what() << std::endl;
-          return EXIT_FAILURE;
-        } catch (...) {
-          std::cerr << "Unknown ERROR Occurred in a Service." << std::endl;
-          return EXIT_FAILURE;
-        }
+        RepositoryService service;
+        service.Run();
         break;
       }
       case 2: {
-        try {
-          SchedulerService service;
-          service.Run();
-        } catch (const std::exception& e) {
-          std::cerr << "Error in scheduler service: " << e.what() << std::endl;
-          return EXIT_FAILURE;
-        } catch (...) {
-          std::cerr << "Unknown error Occurred in scheduler service."
-                    << std::endl;
-          return EXIT_FAILURE;
-        }
+        SchedulerService service;
+        service.Run();
         break;
       }
+      default: {
+        Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
+      }
     }
-
-    return EXIT_SUCCESS;
   }
+  return EXIT_FAILURE;
 }

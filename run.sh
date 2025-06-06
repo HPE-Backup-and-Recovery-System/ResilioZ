@@ -1,7 +1,8 @@
 #!/bin/bash
+mkdir -p build
 
-# Clear Previous Build
-rm -rf build
+# Clear Previous Build Targets
+cmake --build build --target clean
 
 # Build with Options
 cmake -S . -B build \

@@ -8,32 +8,31 @@ namespace Prompter {
 
 std::string PromptUntilValid(
     const std::function<bool(const std::string&)>& validator,
-    const std::string& field_name = "Input",
-    const std::string& prompt_msg = "Enter Input: ",
-    const bool confirm = false,
-    const bool hide = false);
+    const std::string& field_name = "input",
+    const std::string& field_prompt = "value",
+    const bool confirm = false, const bool hide = false);
 
 std::string PromptRepoName(
-    const std::string& prompt_msg = " -> Enter Repository Name: ",
+    const std::string& prompt_msg = "Repository Name",
     const bool confirm = false);
 
 std::string PromptPassword(
-    const std::string& prompt_msg = " -> Enter Password: ",
+    const std::string& prompt_msg = "Password",
     const bool confirm = false);
 
-std::string PromptPath(const std::string& prompt_msg = " -> Enter Path: ");
+std::string PromptPath(const std::string& prompt_msg = "Path");
 
 std::string PromptLocalPath(
-    const std::string& prompt_msg = " -> Enter Local Path: ");
+    const std::string& prompt_msg = "Local Path");
 
 std::string PromptMountPath(
-    const std::string& prompt_msg = " -> Enter Mount Path (Ex. /mnt/path): ");
+    const std::string& prompt_msg = "Mount Path (Ex. /mnt/path)");
 
 std::string PromptSftpPath(const std::string& prompt_msg =
-                               " -> Enter SFTP Path (Ex. user@host:/path): ");
+                               "SFTP Path (Ex. user@host:/path)");
 
 std::string PromptIpAddress(
-    const std::string& prompt_msg = " -> Enter IP Address: ");
+    const std::string& prompt_msg = "IP Address");
 
 }  // namespace Prompter
 

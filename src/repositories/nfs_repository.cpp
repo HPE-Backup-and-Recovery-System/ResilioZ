@@ -2,8 +2,9 @@
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <nlohmann/json.hpp>
+
+#include "utils/error_util.h"
 
 namespace fs = std::filesystem;
 
@@ -23,117 +24,69 @@ std::string NFSRepository::GetNFSPath() const { return path_ + "/" + name_; }
 
 bool NFSRepository::UploadFile(const std::string& local_file,
                                const std::string& remote_path) const {
-  try {
-    if (!fs::exists(local_file)) {
-      std::cerr << "Source File Not Found: " << local_file << "\n";
-      return false;
-    }
-
-    if (!fs::exists(remote_path)) {
-      fs::create_directories(remote_path);
-    }
-
-    fs::path src_path(local_file);
-    fs::path dest_path = fs::path(remote_path) / src_path.filename();
-
-    fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
-    return true;
-
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR in NFS FileSystem: " << e.what() << "\n";
-    return false;
-
-  } catch (const std::exception& e) {
-    std::cerr << "GENERAL ERROR: " << e.what() << "\n";
-    return false;
+  if (!fs::exists(local_file)) {
+    ErrorUtil::ThrowError("Source file not found: " + local_file);
   }
+
+  if (!fs::exists(remote_path)) {
+    fs::create_directories(remote_path);
+  }
+
+  fs::path src_path(local_file);
+  fs::path dest_path = fs::path(remote_path) / src_path.filename();
+  fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
+
+  return true;
 }
 
 bool NFSRepository::Exists() const {
-  try {
-    return NFSMountExists() && fs::exists(GetNFSPath());
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR Checking NFS Existence: " << e.what() << "\n";
-    return false;
-  }
+  return NFSMountExists() && fs::exists(GetNFSPath());
 }
 
 void NFSRepository::Initialize() {
-  try {
-    EnsureNFSMounted();
-    CreateRemoteDirectory(); 
-    WriteConfig();
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Initializing NFS Repo: " << e.what() << "\n";
-    throw;
-  }
+  EnsureNFSMounted();
+  CreateRemoteDirectory();
+  WriteConfig();
 }
 
-void NFSRepository::Delete() {
-  try {
-    RemoveRemoteDirectory();
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR Deleting NFS Repo: " << e.what() << "\n";
-    throw;
-  }
-}
+void NFSRepository::Delete() { RemoveRemoteDirectory(); }
 
 void NFSRepository::WriteConfig() const {
   std::string config_path = GetNFSPath() + "/config.json";
-  try {
-    nlohmann::json config = {{"name", name_},
-                             {"type", "nfs"},
-                             {"path", path_},
-                             {"created_at", created_at_},
-                             {"password_hash", GetHashedPassword()}};
 
-    std::ofstream file(config_path);
-    if (file.is_open()) {
-      file << config.dump(4);
-      file.close();
-    } else {
-      std::cerr << "Failed to Write NFS Config to: " << config_path << "\n";
-    }
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Writing NFS Config: " << e.what() << "\n";
+  nlohmann::json config = {{"name", name_},
+                           {"type", "nfs"},
+                           {"path", path_},
+                           {"created_at", created_at_},
+                           {"password_hash", GetHashedPassword()}};
+
+  std::ofstream file(config_path);
+  if (!file.is_open()) {
+    ErrorUtil::ThrowError("Failed to write config to: " + config_path);
   }
+
+  file << config.dump(4);
+  file.close();
 }
 
 NFSRepository NFSRepository::FromConfigJson(const nlohmann::json& config) {
-  try {
-    return NFSRepository(config.at("path"), config.at("name"),
-                         config.value("password_hash", ""),
-                         config.at("created_at"));
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR Parsing NFS Config JSON: " << e.what() << "\n";
-    return NFSRepository();
-  }
+  return NFSRepository(config.at("path"), config.at("name"),
+                       config.value("password_hash", ""),
+                       config.at("created_at"));
 }
 
-bool NFSRepository::NFSMountExists() const {
-  return fs::exists(path_);  
-}
+bool NFSRepository::NFSMountExists() const { return fs::exists(path_); }
 
 void NFSRepository::EnsureNFSMounted() const {
   if (!NFSMountExists()) {
-    throw std::runtime_error("NFS Mount Path Not Available: " + path_);
+    ErrorUtil::ThrowError("NFS mount path not available: " + path_);
   }
 }
 
 void NFSRepository::CreateRemoteDirectory() const {
-  try {
-    fs::create_directories(GetNFSPath());
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR Creating NFS Directory: " << e.what() << "\n";
-    throw;
-  }
+  fs::create_directories(GetNFSPath());
 }
 
 void NFSRepository::RemoveRemoteDirectory() const {
-  try {
-    fs::remove_all(GetNFSPath());
-  } catch (const fs::filesystem_error& e) {
-    std::cerr << "ERROR Removing NFS Directory: " << e.what() << "\n";
-    throw;
-  }
+  fs::remove_all(GetNFSPath());
 }
