@@ -1,9 +1,14 @@
-#ifndef BACKUP_LOGGER_H
-#define BACKUP_LOGGER_H
+#ifndef UTILS_BACKUP_LOGGER_H
+#define UTILS_BACKUP_LOGGER_H
 
 #include <filesystem>
 #include <string>
 
+namespace utils {
+
+   /**
+    * @brief A utility class for logging backup operations.
+    */
 
 class BackupLogger {
  public:
@@ -13,4 +18,5 @@ class BackupLogger {
 
 
  
-#endif  // BACKUP_LOGGER_H
+}  // namespace utils
+#endif  // UTILS_BACKUP_LOGGER_H

@@ -3,17 +3,18 @@
 
 #include <string>
 
-
+namespace backup {
 
     class Backup {
     public:
     virtual ~Backup() = default;
 
-    virtual void Execute(const std::string& source_directory_path, const std::string& destination_path)  = 0;
+    virtual void PerformBackup(const std::string& source_directory_path, const std::string& destination_path)  = 0;
 
 
 
     };
     
+}       // namespace backup
 
 #endif // BACKUP_BACKUP_H_

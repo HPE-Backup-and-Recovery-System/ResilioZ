@@ -3,21 +3,23 @@
 
 #include "services/service.h"
 
+namespace services{
 
-    class BackupService : public Service {
-        public:
-         BackupService();
-         ~BackupService() override;
-       
-         void Run() override;
-         void Log() override;
-       
-        private:
-         void ShowMainMenu();
-         void HandleFullBackup();
-         void HandleDifferentialBackup();
-       };
+  class BackupService : public Service {
+    public:
+     BackupService();
+     ~BackupService() override;
+   
+     void Run() override;
+     void Log() override;
+   
+    private:
+     void ShowMainMenu();
+     void HandleFullBackup();
+     void HandleDifferentialBackup();
+   };
 
+}
 
 
 

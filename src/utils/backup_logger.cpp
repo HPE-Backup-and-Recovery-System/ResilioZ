@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 
-
+namespace utils { 
 void BackupLogger::AppendToBackupLog(const std::string& log_file_path, const std::string& backup_filename) {
   std::ofstream ofs(log_file_path, std::ios::app);
   if (!ofs.is_open()) {
@@ -13,5 +13,7 @@ void BackupLogger::AppendToBackupLog(const std::string& log_file_path, const std
   ofs << backup_filename << '\n';
   ofs.close();
 }
+
+}  // namespace utils
 
 
