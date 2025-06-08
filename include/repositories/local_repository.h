@@ -20,7 +20,6 @@ class LocalRepository : public Repository {
   static LocalRepository FromConfigJson(const nlohmann::json& config);
 
  private:
-  std::string GetFullPath() const;
   bool UploadFile(const std::string& local_file,
                   const std::string& local_path) const;
   bool LocalDirectoryExists() const;

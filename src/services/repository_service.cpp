@@ -36,7 +36,7 @@ void RepositoryService::ShowMainMenu() {
       "Use Existing Repository", "Delete a Repository"};
 
   while (true) {
-    int choice = UserIO::HandleMenuWithInput(
+    int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMaxTitle("Repository Service", false), main_menu);
 
     try {
@@ -70,7 +70,7 @@ void RepositoryService::CreateNewRepository() {
                                    "NFS Repository", "Remote Repository"};
 
   while (true) {
-    int choice = UserIO::HandleMenuWithInput(
+    int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository Type", false), menu);
 
     try {
@@ -109,16 +109,18 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   try {
     repo = new LocalRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " + path);
+      ErrorUtil::ThrowError("Repository already exists at location: " +
+                            repo->GetPath());
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name + " created at location: " + path);
-      std::cout << "=> Note: Please remember your password. "
-                   "Losing it means that your data is irrecoverably lost. \n"
-                << std::endl;
+      Logger::Log("Repository: " + name +
+                  " created at location: " + repo->GetPath());
+      Logger::TerminalLog(
+          "=> Note: Please remember your password. \n"
+          "Losing it means that your data is irrecoverably lost.");
     }
     repodata_.AddEntry(
-        {name, path, "local", repo->GetHashedPassword(), timestamp});
+        {name, repo->GetPath(), "local", repo->GetHashedPassword(), timestamp});
 
     delete repository_;
     repository_ = repo;
@@ -144,16 +146,18 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   try {
     repo = new NFSRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " + path);
+      ErrorUtil::ThrowError("Repository already exists at location: " +
+                            repo->GetPath());
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name + " created at location: " + path);
-      std::cout << "=> Note: Please remember your password. "
-                   "Losing it means that your data is irrecoverably lost. \n"
-                << std::endl;
+      Logger::Log("Repository: " + name +
+                  " created at location: " + repo->GetPath());
+      Logger::TerminalLog(
+          "=> Note: Please remember your password. \n"
+          "Losing it means that your data is irrecoverably lost.");
     }
     repodata_.AddEntry(
-        {name, path, "nfs", repo->GetHashedPassword(), timestamp});
+        {name, repo->GetPath(), "nfs", repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
   } catch (const std::exception& e) {
@@ -178,16 +182,18 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
   try {
     repo = new RemoteRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " + path);
+      ErrorUtil::ThrowError("Repository already exists at location: " +
+                            repo->GetPath());
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name + " created at location: " + path);
-      std::cout << "=> Note: Please remember your password. "
-                   "Losing it means that your data is irrecoverably lost. \n"
-                << std::endl;
+      Logger::Log("Repository: " + name +
+                  " created at location: " + repo->GetPath());
+      Logger::TerminalLog(
+          "=> Note: Please remember your password. \n"
+          "Losing it means that your data is irrecoverably lost.");
     }
-    repodata_.AddEntry(
-        {name, path, "remote", repo->GetHashedPassword(), timestamp});
+    repodata_.AddEntry({name, repo->GetPath(), "remote",
+                        repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
   } catch (const std::exception& e) {
@@ -225,10 +231,12 @@ Repository* RepositoryService::UseExistingRepository() {
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
-  auto entry = repodata_.Find(name, path);
+  auto entry = repodata_.GetEntry(name, path);
   try {
     if (!entry) {
-      ErrorUtil::ThrowError("Repository not found in repository data file");
+      Logger::TerminalLog("Please verify repository name and path...",
+                          LogLevel::WARNING);
+      ErrorUtil::ThrowError("Repository not found in data file");
     }
 
     if (entry->password_hash != Repository::GetHashedPassword(password)) {
@@ -251,12 +259,12 @@ Repository* RepositoryService::UseExistingRepository() {
 
     if (!repo->Exists()) {
       delete repo;
-      ErrorUtil::ThrowError("Repository not found in path: " + entry->path);
+      ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
     }
 
     Logger::Log("Repository: " + name + " [" +
                 RepodataManager::GetFormattedTypeString(entry->type) +
-                "] loaded from: " + path);
+                "] loaded from: " + repo->GetPath());
     SetRepository(repo);
     return repo;
 
@@ -274,10 +282,12 @@ void RepositoryService::DeleteRepository() {
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
-  auto entry = repodata_.Find(name, path);
+  auto entry = repodata_.GetEntry(name, path);
   try {
     if (!entry) {
-      ErrorUtil::ThrowError("Repository not found");
+      Logger::TerminalLog("Please verify repository name and path...",
+                          LogLevel::WARNING);
+      ErrorUtil::ThrowError("Repository not found in data file");
     }
 
     if (entry->password_hash != Repository::GetHashedPassword(password)) {
@@ -300,14 +310,14 @@ void RepositoryService::DeleteRepository() {
 
     if (!repo->Exists()) {
       delete repo;
-      ErrorUtil::ThrowError("Repository not found in path: " + entry->path);
+      ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
     }
     repo->Delete();
 
     repodata_.DeleteEntry(name, path);
     Logger::Log("Repository: " + name + " [" +
                 RepodataManager::GetFormattedTypeString(entry->type) +
-                "] deleted from location: " + path);
+                "] deleted from location: " + repo->GetPath());
 
     SetRepository(repo);
   } catch (const std::exception& e) {

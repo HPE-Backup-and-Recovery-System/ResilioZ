@@ -15,10 +15,11 @@ LocalRepository::LocalRepository(const std::string& path,
                                  const std::string& name,
                                  const std::string& password,
                                  const std::string& created_at) {
-  path_ = path, name_ = name, password_ = password, created_at_ = created_at;
+  path_ = fs::weakly_canonical(fs::absolute(path));
+  name_ = name;
+  password_ = password;
+  created_at_ = created_at;
 }
-
-std::string LocalRepository::GetFullPath() const { return path_ + "/" + name_; }
 
 bool LocalRepository::UploadFile(const std::string& local_file,
                                  const std::string& local_path) const {

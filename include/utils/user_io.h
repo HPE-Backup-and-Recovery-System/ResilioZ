@@ -6,30 +6,41 @@
 
 namespace UserIO {
 
-std::string GetHiddenInput();
+void ClearTerminal();
+
+char ReadRawKey();
+
+std::string ReadHiddenInput();
 
 std::string DisplayTitle(const std::string& message,
                          bool print = true);  // <<< Title >>>
 
 std::string DisplayMinTitle(const std::string& message,
                             bool print = true);  // --- MinTitle ---
-                            
+
 std::string DisplayMaxTitle(const std::string& message,
                             bool print = true);  // === MaxTitle ===
 
-void DisplayMenu(const std::string& menu_header,
-                 const std::vector<std::string>& menu_options,
-                 const std::string& menu_footer);
+void DisplayMenu(const std::string& header,
+                 const std::vector<std::string>& options,
+                 const std::string& footer = "", bool index_mode = true,
+                 int active_option = 0);
 
-int HandleMenuWithInput(const std::string& menu_header,
-                        const std::vector<std::string>& menu_options =
+int HandleMenuWithInput(const std::string& header,
+                        const std::vector<std::string>& options =
                             std::vector<std::string>(1, "Back..."),
-                        const std::string& menu_footer = "Choice");
+                        const std::string& footer = "Choice");
 
-int HandleMenuWithSelect(const std::string& menu_header,
-                         const std::vector<std::string>& menu_options =
+int HandleMenuWithSelect(const std::string& header,
+                         const std::vector<std::string>& options =
                              std::vector<std::string>(1, "Back..."),
-                         const std::string& menu_footer = "");
+                         const std::string& footer = "");
+
+void ClearPreviousMenuLines(int count);
+
+int CountMenuLines(const std::string& header,
+                   const std::vector<std::string>& options,
+                   const std::string& footer);
 
 }  // namespace UserIO
 

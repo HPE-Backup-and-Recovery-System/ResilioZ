@@ -9,17 +9,18 @@
 #include "utils/user_io.h"
 
 int main(int argc, char** argv) {
+  UserIO::ClearTerminal();
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
 
   std::vector<std::string> main_menu = {"EXIT...", "Repository Service",
                                         "Schedule Service"};
   while (true) {
-    int choice = UserIO::HandleMenuWithInput(
+    int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMaxTitle("SYSTEM SERVICES", false), main_menu);
 
     switch (choice) {
       case 0: {
-        std::cout << "\n - Exiting...\n";
+        std::cout << "\n - Exiting...\n\n";
         return EXIT_SUCCESS;
       }
       case 1: {
