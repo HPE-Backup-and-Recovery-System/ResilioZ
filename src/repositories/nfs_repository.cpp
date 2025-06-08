@@ -14,13 +14,11 @@ NFSRepository::NFSRepository(const std::string& nfs_mount_path,
                              const std::string& name,
                              const std::string& password,
                              const std::string& created_at) {
-  path_ = nfs_mount_path;
+  path_ = path_ = fs::weakly_canonical(fs::absolute(nfs_mount_path));
   name_ = name;
   password_ = password;
   created_at_ = created_at;
 }
-
-std::string NFSRepository::GetNFSPath() const { return path_ + "/" + name_; }
 
 bool NFSRepository::UploadFile(const std::string& local_file,
                                const std::string& remote_path) const {
@@ -40,7 +38,7 @@ bool NFSRepository::UploadFile(const std::string& local_file,
 }
 
 bool NFSRepository::Exists() const {
-  return NFSMountExists() && fs::exists(GetNFSPath());
+  return NFSMountExists() && fs::exists(GetFullPath());
 }
 
 void NFSRepository::Initialize() {
@@ -52,7 +50,7 @@ void NFSRepository::Initialize() {
 void NFSRepository::Delete() { RemoveRemoteDirectory(); }
 
 void NFSRepository::WriteConfig() const {
-  std::string config_path = GetNFSPath() + "/config.json";
+  std::string config_path = GetFullPath() + "/config.json";
 
   nlohmann::json config = {{"name", name_},
                            {"type", "nfs"},
@@ -84,9 +82,9 @@ void NFSRepository::EnsureNFSMounted() const {
 }
 
 void NFSRepository::CreateRemoteDirectory() const {
-  fs::create_directories(GetNFSPath());
+  fs::create_directories(GetFullPath());
 }
 
 void NFSRepository::RemoveRemoteDirectory() const {
-  fs::remove_all(GetNFSPath());
+  fs::remove_all(GetFullPath());
 }

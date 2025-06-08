@@ -21,9 +21,11 @@ class RepodataManager {
 
   void AddEntry(const RepoEntry& entry);
   bool DeleteEntry(const std::string& name, const std::string& path);
+  std::optional<RepoEntry> GetEntry(const std::string& name,
+                                const std::string& path) const;
   std::vector<RepoEntry> GetAll() const;
-  std::optional<RepoEntry> Find(const std::string& name, const std::string& path) const;
 
+  static std::string GetResolvedPath(const std::string& path);
   static std::string GetFormattedTypeString(const std::string& type, bool upper = true);
 
  private:

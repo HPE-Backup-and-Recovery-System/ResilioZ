@@ -14,7 +14,7 @@ std::string Prompter::PromptUntilValid(
   do {
     std::cout << " -> Enter " << field_prompt << ": ";
     if (hide) {
-      input = UserIO::GetHiddenInput();
+      input = UserIO::ReadHiddenInput();
     } else {
       std::getline(std::cin, input);
     }
@@ -29,7 +29,7 @@ std::string Prompter::PromptUntilValid(
       std::string confirmation;
       std::cout << " -> Confirm " << field_name << ": ";
       if (hide) {
-        confirmation = UserIO::GetHiddenInput();
+        confirmation = UserIO::ReadHiddenInput();
       } else {
         std::getline(std::cin, confirmation);
       }

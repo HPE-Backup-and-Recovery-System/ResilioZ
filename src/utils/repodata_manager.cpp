@@ -11,6 +11,7 @@
 
 #include "utils/error_util.h"
 #include "utils/logger.h"
+#include "utils/validator.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -100,13 +101,15 @@ void RepodataManager::AddEntry(const RepoEntry& entry) {
 
 bool RepodataManager::DeleteEntry(const std::string& name,
                                   const std::string& path) {
-  auto it = std::remove_if(
-      entries_.begin(), entries_.end(),
-      [&](const RepoEntry& e) { return e.name == name && e.path == path; });
+  std::string resolved_path = GetResolvedPath(path);
+  auto it =
+      std::remove_if(entries_.begin(), entries_.end(), [&](const RepoEntry& e) {
+        return e.name == name && e.path == resolved_path;
+      });
 
   if (it == entries_.end()) return false;
-
   entries_.erase(it, entries_.end());
+
   if (!Save()) {
     ErrorUtil::ThrowError(
         "Could not update repository data after deleting entry");
@@ -115,14 +118,21 @@ bool RepodataManager::DeleteEntry(const std::string& name,
   return true;
 }
 
-std::vector<RepoEntry> RepodataManager::GetAll() const { return entries_; }
-
-std::optional<RepoEntry> RepodataManager::Find(const std::string& name,
-                                               const std::string& path) const {
+std::optional<RepoEntry> RepodataManager::GetEntry(
+    const std::string& name, const std::string& path) const {
+  std::string resolved_path = GetResolvedPath(path);
   for (const auto& entry : entries_) {
-    if (entry.name == name && entry.path == path) return entry;
+    if (entry.name == name && entry.path == resolved_path) return entry;
   }
   return std::nullopt;
+}
+
+std::vector<RepoEntry> RepodataManager::GetAll() const { return entries_; }
+
+std::string RepodataManager::GetResolvedPath(const std::string& path) {
+  return Validator::IsValidSftpPath(path)
+             ? path
+             : fs::weakly_canonical(fs::absolute(path)).string();
 }
 
 std::string RepodataManager::GetFormattedTypeString(const std::string& type,

@@ -9,6 +9,8 @@ std::string Repository::GetName() const { return name_; }
 
 std::string Repository::GetPath() const { return path_; }
 
+std::string Repository::GetFullPath() const { return path_ + "/" + name_; }
+
 std::string Repository::GetHashedPassword() const {
   return GetHashedPassword(password_);
 }

@@ -20,7 +20,6 @@ class NFSRepository : public Repository {
   static NFSRepository FromConfigJson(const nlohmann::json& config);
 
  private:
-  std::string GetNFSPath() const;
   bool UploadFile(const std::string& local_file,
                   const std::string& remote_path) const;
   bool NFSMountExists() const;
