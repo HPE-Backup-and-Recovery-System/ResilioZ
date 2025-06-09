@@ -9,7 +9,7 @@
 #include "utils/user_io.h"
 
 int main(int argc, char** argv) {
-  UserIO::ClearTerminal();
+  // UserIO::ClearTerminal();
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
 
   std::vector<std::string> main_menu = {"EXIT...", "Repository Service",

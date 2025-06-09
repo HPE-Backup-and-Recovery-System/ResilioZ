@@ -1,11 +1,16 @@
 #include "backup/chunker.hpp"
-#include <fstream>
-#include <algorithm>
+
 #include <openssl/sha.h>
-#include <sstream>
+
+#include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <random>
+#include <sstream>
 
+#include "utils/error_util.h"
+
+namespace fs = std::filesystem;
 
 // Gear hash table - precomputed random values for FastCDC
 static const uint64_t GEAR_TABLE[256] = {
@@ -51,280 +56,285 @@ static const uint64_t GEAR_TABLE[256] = {
     0x82e8993e, 0xa2d35adf, 0xf87827c5, 0x00172b3e, 0xa284d80b, 0x8d536c67,
     0xd63cb52d, 0xc6db6dbb, 0x523e1ba5, 0x557c6536, 0x4168f166, 0xd7acfd41,
     0xde089e30, 0xbf167903, 0x551a3200, 0xa330b700, 0x917e3ebf, 0x5a794e62,
-    0xe44d3356, 0x9fcd9417, 0x30eb9b8b, 0x6e33ef51
-};
+    0xe44d3356, 0x9fcd9417, 0x30eb9b8b, 0x6e33ef51};
 
-Chunker::Chunker(size_t average_size)
-    : average_chunk_size_(average_size) {
-    // Initialize gear table if needed (shown abbreviated above)
+Chunker::Chunker(size_t average_size) : average_chunk_size_(average_size) {
+  // Initialize gear table if needed (shown abbreviated above)
 }
 
-std::vector<Chunk> Chunker::split_file(const std::filesystem::path& file_path) {
-    std::ifstream file(file_path, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Could not open file: " + file_path.string());
-    }
-    
-    // Read entire file into memory
-    std::vector<uint8_t> data(
-        (std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>()
-    );
-    file.close();
+std::vector<Chunk> Chunker::SplitFile(const fs::path& file_path) {
+  std::ifstream file(file_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not open file: " + file_path.string());
+  }
 
-    std::vector<Chunk> chunks;
-    size_t pos = 0;
-    
-    while (pos < data.size()) {
-        size_t chunk_end = find_chunk_boundary_fastcdc(data, pos);
-        if (chunk_end == pos) {
-            chunk_end = std::min(pos + average_chunk_size_, data.size());
-        }
-        
-        Chunk chunk;
-        chunk.data = std::vector<uint8_t>(data.begin() + pos, data.begin() + chunk_end);
-        chunk.size = chunk.data.size();
-        
-        // Calculate SHA-256 hash of the chunk
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, chunk.data.data(), chunk.data.size());
-        SHA256_Final(hash, &sha256);
-        
-        // Convert hash to hex string
-        std::stringstream ss;
-        for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
-        }
-        chunk.hash = ss.str();
-        
-        chunks.push_back(std::move(chunk));
-        pos = chunk_end;
-    }
-    
-    return chunks;
-}
+  // Read entire file into memory
+  std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)),
+                            std::istreambuf_iterator<char>());
+  file.close();
 
-void Chunker::combine_chunks(const std::vector<Chunk>& chunks,
-                           const std::filesystem::path& output_path) {
-    std::ofstream file(output_path, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Could not create output file: " + output_path.string());
-    }
-    
-    for (const auto& chunk : chunks) {
-        file.write(reinterpret_cast<const char*>(chunk.data.data()), chunk.data.size());
-    }
-}
+  std::vector<Chunk> chunks;
+  size_t pos = 0;
 
-uint64_t Chunker::calculate_gear_hash(const std::vector<uint8_t>& data,
-                                    size_t start,
-                                    size_t length) {
-    uint64_t hash = 0;
-    for (size_t i = 0; i < length && (start + i) < data.size(); ++i) {
-        hash = (hash << 1) + GEAR_TABLE[data[start + i]];
+  while (pos < data.size()) {
+    size_t chunk_end = FindChunkBoundaryWithFastCDC(data, pos);
+    if (chunk_end == pos) {
+      chunk_end = std::min(pos + average_chunk_size_, data.size());
     }
-    return hash;
-}
 
-size_t Chunker::find_chunk_boundary_fastcdc(const std::vector<uint8_t>& data,
-                                           size_t start_pos) {
-    const size_t MIN_SIZE = average_chunk_size_ / 2;      // FastCDC uses smaller min
-    const size_t NORMAL_SIZE = average_chunk_size_;
-    const size_t MAX_SIZE = average_chunk_size_ * 8;      // FastCDC uses larger max
-    
-    // FastCDC uses different masks for different regions
-    const uint64_t MASK_S = (1ULL << 13) - 1;  // Small mask for first region
-    const uint64_t MASK_L = (1ULL << 11) - 1;  // Large mask for second region
-    
-    size_t pos = start_pos + MIN_SIZE;
-    size_t end = std::min(start_pos + MAX_SIZE, data.size());
-    
-    if (pos >= end) {
-        return end;
-    }
-    
-    // Initialize gear hash for the first window
-    const size_t WINDOW_SIZE = 64;  // FastCDC typically uses larger windows
-    uint64_t hash = 0;
-    
-    // Calculate initial hash
-    size_t window_start = pos - WINDOW_SIZE;
-    if (window_start < start_pos) {
-        window_start = start_pos;
-    }
-    
-    for (size_t i = window_start; i < pos && i < data.size(); ++i) {
-        hash = (hash << 1) + GEAR_TABLE[data[i]];
-    }
-    
-    // FastCDC optimization: skip two bytes at a time in the first region
-    while (pos < std::min(start_pos + NORMAL_SIZE, end)) {
-        // Update hash by removing old byte and adding new bytes
-        if (pos >= WINDOW_SIZE) {
-            // Remove the byte that's now outside the window
-            uint64_t old_contribution = GEAR_TABLE[data[pos - WINDOW_SIZE]] << (WINDOW_SIZE - 1);
-            hash -= old_contribution;
-        }
-        
-        // Add new byte(s) - FastCDC processes 2 bytes at a time when possible
-        if (pos < data.size()) {
-            hash = (hash << 1) + GEAR_TABLE[data[pos]];
-        }
-        if (pos + 1 < data.size() && pos + 1 < end) {
-            hash = (hash << 1) + GEAR_TABLE[data[pos + 1]];
-            pos += 2;  // FastCDC optimization: skip 2 bytes
-        } else {
-            pos += 1;
-        }
-        
-        // Check boundary condition with small mask
-        if ((hash & MASK_S) == 0) {
-            return pos;
-        }
-    }
-    
-    // Second region: use larger mask, process byte by byte
-    while (pos < end) {
-        // Update hash
-        if (pos >= WINDOW_SIZE) {
-            uint64_t old_contribution = GEAR_TABLE[data[pos - WINDOW_SIZE]] << (WINDOW_SIZE - 1);
-            hash -= old_contribution;
-        }
-        
-        if (pos < data.size()) {
-            hash = (hash << 1) + GEAR_TABLE[data[pos]];
-        }
-        pos++;
-        
-        // Check boundary condition with large mask
-        if ((hash & MASK_L) == 0) {
-            return pos;
-        }
-    }
-    
-    return end;
-}
-
-void Chunker::stream_split_file(const std::filesystem::path& file_path,
-                              std::function<void(const Chunk&)> chunk_callback) {
-    std::ifstream file(file_path, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Could not open file: " + file_path.string());
-    }
-    
-    // Get file size
-    file.seekg(0, std::ios::end);
-    size_t file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
-    
-    // If file is smaller than minimum chunk size, process it as a single chunk
-    if (file_size <= average_chunk_size_ / 2) {
-        std::vector<uint8_t> data(file_size);
-        file.read(reinterpret_cast<char*>(data.data()), file_size);
-        process_chunk(data, chunk_callback);
-        return;
-    }
-    
-    const size_t buffer_size = average_chunk_size_ * 1024;  // Buffer size for reading
-    std::vector<uint8_t> buffer(buffer_size);
-    std::vector<uint8_t> current_chunk;
-    current_chunk.reserve(average_chunk_size_);
-    size_t total_bytes_processed = 0;
-    
-    while (file) {
-        file.read(reinterpret_cast<char*>(buffer.data()), buffer_size);
-        size_t bytes_read = file.gcount();
-        
-        if (bytes_read == 0) break;
-        
-        size_t pos = 0;
-        while (pos < bytes_read) {
-            size_t chunk_end = find_chunk_boundary_fastcdc(buffer, pos);
-            if (chunk_end == pos) {
-                chunk_end = std::min(pos + average_chunk_size_, bytes_read);
-            }
-            
-            // Add data to current chunk
-            current_chunk.insert(current_chunk.end(),
-                               buffer.begin() + pos,
-                               buffer.begin() + chunk_end);
-            
-            total_bytes_processed += (chunk_end - pos);
-            
-            // Process the chunk if:
-            // 1. It's large enough (>= MIN_SIZE)
-            // 2. It's the last chunk in the file
-            bool is_last_chunk = (total_bytes_processed == file_size);
-            
-            if (current_chunk.size() >= average_chunk_size_ / 2 || 
-                is_last_chunk) {
-                process_chunk(current_chunk, chunk_callback);
-                current_chunk.clear();
-            }
-            
-            pos = chunk_end;
-        }
-    }
-    
-    // Process any remaining data
-    if (!current_chunk.empty()) {
-        process_chunk(current_chunk, chunk_callback);
-    }
-}
-
-void Chunker::stream_combine_chunks(std::function<Chunk()> chunk_provider,
-                                  const std::filesystem::path& output_path,
-                                  size_t original_size) {
-    std::ofstream file(output_path, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Could not create output file: " + output_path.string());
-    }
-    
-    size_t total_bytes_written = 0;
-    
-    while (true) {
-        Chunk chunk = chunk_provider();
-        if (chunk.data.empty()) break;  // End of chunks
-        
-        // Calculate how many bytes we can write
-        size_t bytes_to_write = std::min(chunk.size, original_size - total_bytes_written);
-        
-        if (bytes_to_write > 0) {
-            file.write(reinterpret_cast<const char*>(chunk.data.data()), bytes_to_write);
-            total_bytes_written += bytes_to_write;
-        }
-        
-        // if (total_bytes_written >= original_size) {
-        //     break;
-        // }
-    }
-    
-    // Ensure the file is exactly the original size
-    file.close();
-    // std::filesystem::resize_file(output_path, original_size);
-}
-
-void Chunker::process_chunk(const std::vector<uint8_t>& chunk_data,
-                          std::function<void(const Chunk&)> chunk_callback) {
     Chunk chunk;
-    chunk.data = chunk_data;
-    chunk.size = chunk_data.size();
-    
+    chunk.data =
+        std::vector<uint8_t>(data.begin() + pos, data.begin() + chunk_end);
+    chunk.size = chunk.data.size();
+
     // Calculate SHA-256 hash of the chunk
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256, chunk.data.data(), chunk.data.size());
     SHA256_Final(hash, &sha256);
-    
+
     // Convert hash to hex string
     std::stringstream ss;
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+      ss << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(hash[i]);
     }
     chunk.hash = ss.str();
-    
-    chunk_callback(chunk);
+
+    chunks.push_back(std::move(chunk));
+    pos = chunk_end;
+  }
+
+  return chunks;
+}
+
+void Chunker::CombineChunks(const std::vector<Chunk>& chunks,
+                            const fs::path& output_path) {
+  std::ofstream file(output_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not create output file: " +
+                          output_path.string());
+  }
+
+  for (const auto& chunk : chunks) {
+    file.write(reinterpret_cast<const char*>(chunk.data.data()),
+               chunk.data.size());
+  }
+}
+
+uint64_t Chunker::CalculateGearHash(const std::vector<uint8_t>& data,
+                                    size_t start, size_t length) {
+  uint64_t hash = 0;
+  for (size_t i = 0; i < length && (start + i) < data.size(); ++i) {
+    hash = (hash << 1) + GEAR_TABLE[data[start + i]];
+  }
+  return hash;
+}
+
+size_t Chunker::FindChunkBoundaryWithFastCDC(const std::vector<uint8_t>& data,
+                                             size_t start_pos) {
+  const size_t MIN_SIZE = average_chunk_size_ / 2;  // FastCDC uses smaller min
+  const size_t NORMAL_SIZE = average_chunk_size_;
+  const size_t MAX_SIZE = average_chunk_size_ * 8;  // FastCDC uses larger max
+
+  // FastCDC uses different masks for different regions
+  const uint64_t MASK_S = (1ULL << 13) - 1;  // Small mask for first region
+  const uint64_t MASK_L = (1ULL << 11) - 1;  // Large mask for second region
+
+  size_t pos = start_pos + MIN_SIZE;
+  size_t end = std::min(start_pos + MAX_SIZE, data.size());
+
+  if (pos >= end) {
+    return end;
+  }
+
+  // Initialize gear hash for the first window
+  const size_t WINDOW_SIZE = 64;  // FastCDC typically uses larger windows
+  uint64_t hash = 0;
+
+  // Calculate initial hash
+  size_t window_start = pos - WINDOW_SIZE;
+  if (window_start < start_pos) {
+    window_start = start_pos;
+  }
+
+  for (size_t i = window_start; i < pos && i < data.size(); ++i) {
+    hash = (hash << 1) + GEAR_TABLE[data[i]];
+  }
+
+  // FastCDC optimization: skip two bytes at a time in the first region
+  while (pos < std::min(start_pos + NORMAL_SIZE, end)) {
+    // Update hash by removing old byte and adding new bytes
+    if (pos >= WINDOW_SIZE) {
+      // Remove the byte that's now outside the window
+      uint64_t old_contribution = GEAR_TABLE[data[pos - WINDOW_SIZE]]
+                                  << (WINDOW_SIZE - 1);
+      hash -= old_contribution;
+    }
+
+    // Add new byte(s) - FastCDC processes 2 bytes at a time when possible
+    if (pos < data.size()) {
+      hash = (hash << 1) + GEAR_TABLE[data[pos]];
+    }
+    if (pos + 1 < data.size() && pos + 1 < end) {
+      hash = (hash << 1) + GEAR_TABLE[data[pos + 1]];
+      pos += 2;  // FastCDC optimization: skip 2 bytes
+    } else {
+      pos += 1;
+    }
+
+    // Check boundary condition with small mask
+    if ((hash & MASK_S) == 0) {
+      return pos;
+    }
+  }
+
+  // Second region: use larger mask, process byte by byte
+  while (pos < end) {
+    // Update hash
+    if (pos >= WINDOW_SIZE) {
+      uint64_t old_contribution = GEAR_TABLE[data[pos - WINDOW_SIZE]]
+                                  << (WINDOW_SIZE - 1);
+      hash -= old_contribution;
+    }
+
+    if (pos < data.size()) {
+      hash = (hash << 1) + GEAR_TABLE[data[pos]];
+    }
+    pos++;
+
+    // Check boundary condition with large mask
+    if ((hash & MASK_L) == 0) {
+      return pos;
+    }
+  }
+
+  return end;
+}
+
+void Chunker::StreamSplitFile(
+    const fs::path& file_path,
+    std::function<void(const Chunk&)> chunk_callback) {
+  std::ifstream file(file_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not open file: " + file_path.string());
+  }
+
+  // Get file size
+  file.seekg(0, std::ios::end);
+  size_t file_size = file.tellg();
+  file.seekg(0, std::ios::beg);
+
+  // If file is smaller than minimum chunk size, process it as a single chunk
+  if (file_size <= average_chunk_size_ / 2) {
+    std::vector<uint8_t> data(file_size);
+    file.read(reinterpret_cast<char*>(data.data()), file_size);
+    ProcessChunk(data, chunk_callback);
+    return;
+  }
+
+  const size_t buffer_size =
+      average_chunk_size_ * 1024;  // Buffer size for reading
+  std::vector<uint8_t> buffer(buffer_size);
+  std::vector<uint8_t> current_chunk;
+  current_chunk.reserve(average_chunk_size_);
+  size_t total_bytes_processed = 0;
+
+  while (file) {
+    file.read(reinterpret_cast<char*>(buffer.data()), buffer_size);
+    size_t bytes_read = file.gcount();
+
+    if (bytes_read == 0) break;
+
+    size_t pos = 0;
+    while (pos < bytes_read) {
+      size_t chunk_end = FindChunkBoundaryWithFastCDC(buffer, pos);
+      if (chunk_end == pos) {
+        chunk_end = std::min(pos + average_chunk_size_, bytes_read);
+      }
+
+      // Add data to current chunk
+      current_chunk.insert(current_chunk.end(), buffer.begin() + pos,
+                           buffer.begin() + chunk_end);
+
+      total_bytes_processed += (chunk_end - pos);
+
+      // Process the chunk if:
+      // 1. It's large enough (>= MIN_SIZE)
+      // 2. It's the last chunk in the file
+      bool is_last_chunk = (total_bytes_processed == file_size);
+
+      if (current_chunk.size() >= average_chunk_size_ / 2 || is_last_chunk) {
+        ProcessChunk(current_chunk, chunk_callback);
+        current_chunk.clear();
+      }
+
+      pos = chunk_end;
+    }
+  }
+
+  // Process any remaining data
+  if (!current_chunk.empty()) {
+    ProcessChunk(current_chunk, chunk_callback);
+  }
+}
+
+void Chunker::StreamCombineChunks(std::function<Chunk()> chunk_provider,
+                                  const fs::path& output_path,
+                                  size_t original_size) {
+  std::ofstream file(output_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not create output file: " +
+                          output_path.string());
+  }
+
+  size_t total_bytes_written = 0;
+
+  while (true) {
+    Chunk chunk = chunk_provider();
+    if (chunk.data.empty()) break;  // End of chunks
+
+    // Calculate how many bytes we can write
+    size_t bytes_to_write =
+        std::min(chunk.size, original_size - total_bytes_written);
+
+    if (bytes_to_write > 0) {
+      file.write(reinterpret_cast<const char*>(chunk.data.data()),
+                 bytes_to_write);
+      total_bytes_written += bytes_to_write;
+    }
+
+    // if (total_bytes_written >= original_size) {
+    //     break;
+    // }
+  }
+
+  // Ensure the file is exactly the original size
+  file.close();
+  // fs::resize_file(output_path, original_size);
+}
+
+void Chunker::ProcessChunk(const std::vector<uint8_t>& chunk_data,
+                           std::function<void(const Chunk&)> chunk_callback) {
+  Chunk chunk;
+  chunk.data = chunk_data;
+  chunk.size = chunk_data.size();
+
+  // Calculate SHA-256 hash of the chunk
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, chunk.data.data(), chunk.data.size());
+  SHA256_Final(hash, &sha256);
+
+  // Convert hash to hex string
+  std::stringstream ss;
+  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+    ss << std::hex << std::setw(2) << std::setfill('0')
+       << static_cast<int>(hash[i]);
+  }
+  chunk.hash = ss.str();
+
+  chunk_callback(chunk);
 }

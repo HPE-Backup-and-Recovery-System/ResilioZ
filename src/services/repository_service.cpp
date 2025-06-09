@@ -212,7 +212,8 @@ void RepositoryService::ListRepositories() {
       UserIO::DisplayMinTitle("No repositories found");
       return;
     }
-    UserIO::DisplayMinTitle("Available repositories");
+
+    UserIO::DisplayMinTitle("Repository List");
     for (const auto& repo : repos) {
       std::cout << " - Name: " << repo.name << " ["
                 << RepodataManager::GetFormattedTypeString(repo.type) << "]"
