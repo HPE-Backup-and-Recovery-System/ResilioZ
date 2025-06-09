@@ -18,6 +18,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
 file(GLOB_RECURSE CPP_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
+
+file(GLOB_RECURSE BACKUP_SOURCE
+    "${PROJECT_SOURCE_DIR}/src/backup/*.cpp"
+)
+
 file(GLOB_RECURSE SCHEDULER_SOURCE
     "${PROJECT_SOURCE_DIR}/src/schedulers/*.cpp"
 )
@@ -26,7 +31,9 @@ file(GLOB_RECURSE SCHEDULER_SOURCE
 set(EXCLUDE_FILES
     "${PROJECT_SOURCE_DIR}/src/main.cpp"
     "${PROJECT_SOURCE_DIR}/src/scheduler.cpp"
+    "${PROJECT_SOURCE_DIR}/src/backup-ui.cpp"
 )
+
 list(REMOVE_ITEM CPP_SOURCE ${EXCLUDE_FILES})
 
 # Separating & Building Target utils (Common for Main and Scheduler)
@@ -48,12 +55,42 @@ add_compile_definitions(
 # Add Executables (Uses Globbing)
 add_executable(main src/main.cpp ${CPP_SOURCE})
 add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
-
+add_executable(backup-ui src/backup-ui.cpp ${BACKUP_SOURCE})
 # Dependencies...
 
 # Find Packages which Contain FindLib.cmake - Install: libssh-dev, zlib1g-dev, pkg-config, libssh-dev
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
+
+find_package(PkgConfig QUIET)
+pkg_check_modules(PC_ZSTD QUIET libzstd)
+
+find_path(ZSTD_INCLUDE_DIR
+    NAMES zstd.h
+    PATHS ${PC_ZSTD_INCLUDEDIR}
+    PATH_SUFFIXES zstd
+)
+
+find_library(ZSTD_LIBRARY
+    NAMES zstd
+    PATHS ${PC_ZSTD_LIBDIR}
+)
+
+set(ZSTD_VERSION ${PC_ZSTD_VERSION})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(ZSTD
+    REQUIRED_VARS ZSTD_LIBRARY ZSTD_INCLUDE_DIR
+    VERSION_VAR ZSTD_VERSION
+)
+
+if(ZSTD_FOUND)
+    set(ZSTD_LIBRARIES ${ZSTD_LIBRARY})
+    set(ZSTD_INCLUDE_DIRS ${ZSTD_INCLUDE_DIR})
+endif()
+
+mark_as_advanced(ZSTD_INCLUDE_DIR ZSTD_LIBRARY) 
+
 
 # To Find Packages without FindLib.cmake
 find_package(PkgConfig REQUIRED)
@@ -75,11 +112,18 @@ target_include_directories(main PRIVATE
     ${libcron_SOURCE_DIR}
     ${LIBSSH_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
+    ${ZSTD_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
 )
 
 # Include Directories for Libraries in Scheduler
 target_include_directories(scheduler PRIVATE ${libcron_SOURCE_DIR})
+
+target_include_directories(backup-ui PRIVATE 
+    ${OPENSSL_INCLUDE_DIR}
+    ${ZSTD_INCLUDE_DIRS}
+)
+
 
 # Link Libraries for Main
 target_link_libraries(main PRIVATE
@@ -87,9 +131,16 @@ target_link_libraries(main PRIVATE
     libcron
     ${LIBSSH_LIBRARIES}
     ${ZLIB_LIBRARIES}
+    ${ZSTD_LIBRARIES}
     OpenSSL::SSL 
     OpenSSL::Crypto
 )
 
 # Link Libraries for Scheduler
 target_link_libraries(scheduler PRIVATE utils libcron)
+
+target_link_libraries(backup-ui PRIVATE 
+    utils
+    ${OPENSSL_LIBRARIES}
+    ${ZSTD_LIBRARIES}
+)
