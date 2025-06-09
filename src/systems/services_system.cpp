@@ -11,14 +11,21 @@ ServicesSystem::ServicesSystem() {
   services_.push_back(new SchedulerService());
 }
 
-void ServicesSystem::Start() {
-  Logger::Log("Starting Services System...");
+ServicesSystem::~ServicesSystem() {
+  for (auto* service : services_) {
+    if (service) {
+      delete service;
+    }
+  }
+  services_.clear();
+}
 
-  std::vector<std::string> main_menu = {"Go BACK... ", "Repository Service",
-                                        "Schedule Service"};
+void ServicesSystem::Run() {
+  std::vector<std::string> system_menu = {"Go BACK... ", "Repository Service",
+                                          "Schedule Service"};
   while (true) {
     int choice = UserIO::HandleMenuWithSelect(
-        UserIO::DisplayMaxTitle("SYSTEM - SERVICES", false), main_menu);
+        UserIO::DisplayMaxTitle("SYSTEM - SERVICES", false), system_menu);
 
     switch (choice) {
       case 0: {
@@ -38,17 +45,6 @@ void ServicesSystem::Start() {
       }
     }
   }
-}
-
-void ServicesSystem::Shutdown() {
-  Logger::Log("Shutting down Services System...");
-
-  for (auto* service : services_) {
-    if (service) {
-      delete service;
-    }
-  }
-  services_.clear();
 }
 
 void ServicesSystem::Log() {

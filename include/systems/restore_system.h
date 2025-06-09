@@ -8,8 +8,7 @@ class RestoreSystem : public System {
   RestoreSystem();
   ~RestoreSystem() {};
 
-  void Start() override;
-  void Shutdown() override;
+  void Run() override;
   void Log() override;
 };
 

@@ -90,6 +90,6 @@ void ProgressBar::PrintProgress(float progress, size_t processed_bytes,
     first_update_ = false;
   }
 
-  std::cout << progress_line << std::flush;
+  std::cout << progress_line << "\n" << std::flush;
   last_line_length_ = progress_line.length();
 }

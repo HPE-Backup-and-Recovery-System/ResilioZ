@@ -22,21 +22,18 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
       }
       case 1: {
-        system = new ServicesSystem();
-        system->Start();
-        system->Shutdown();
+        system = new BackupSystem();
+        system->Run();
         break;
       }
       case 2: {
-        system = new ServicesSystem();
-        system->Start();
-        system->Shutdown();
+        system = new RestoreSystem();
+        system->Run();
         break;
       }
       case 3: {
         system = new ServicesSystem();
-        system->Start();
-        system->Shutdown();
+        system->Run();
         break;
       }
       default: {

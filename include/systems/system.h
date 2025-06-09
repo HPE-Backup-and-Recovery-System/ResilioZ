@@ -5,8 +5,7 @@
 
 class System {
  public:
-  virtual void Start() = 0;
-  virtual void Shutdown() = 0;
+  virtual void Run() = 0;
   virtual void Log() = 0;
 
   virtual ~System() = default;

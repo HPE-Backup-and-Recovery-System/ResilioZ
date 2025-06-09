@@ -13,6 +13,8 @@
 
 #include "utils/error_util.h"
 
+namespace fs = std::filesystem;
+
 RemoteRepository::RemoteRepository() {}
 
 RemoteRepository::RemoteRepository(const std::string& sftp_path,
@@ -23,6 +25,7 @@ RemoteRepository::RemoteRepository(const std::string& sftp_path,
   path_ = sftp_path;
   password_ = password;
   created_at_ = created_at;
+  type_ = RepositoryType::REMOTE;
 
   ParseSFTPPath(sftp_path);
 }
@@ -74,7 +77,7 @@ void RemoteRepository::WriteConfig() const {
     ErrorUtil::ThrowError("Failed to upload config to remote");
   }
 
-  std::filesystem::remove(temp_file);
+  fs::remove(temp_file);
 }
 
 RemoteRepository RemoteRepository::FromConfigJson(
@@ -195,6 +198,8 @@ void RemoteRepository::RemoveRemoteDirectory() const {
 
 bool RemoteRepository::UploadFile(const std::string& local_file,
                                   const std::string& remote_path) const {
+  std::string remote_path_ = remote_path.empty() ? remote_dir_ : remote_path;
+
   ssh_session session = ssh_new();
   sftp_session sftp = nullptr;
 
@@ -213,7 +218,7 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
       ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
-    sftp_file file = sftp_open(sftp, remote_path.c_str(),
+    sftp_file file = sftp_open(sftp, remote_path_.c_str(),
                                O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (!file) {
       ErrorUtil::ThrowError("Unable to open remote file path for writing");
@@ -242,6 +247,101 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
     return true;
   } catch (...) {
     if (sftp) sftp_free(sftp);
+    if (session) {
+      ssh_disconnect(session);
+      ssh_free(session);
+    }
+    throw;
+  }
+}
+
+bool RemoteRepository::UploadDirectory(const std::string& local_dir,
+                                       const std::string& remote_dir) const {
+
+  std::string remote_path_ = remote_dir.empty() ? remote_dir_ : remote_dir;
+  
+  ssh_session session = ssh_new();
+  ssh_scp scp = nullptr;
+
+  try {
+    ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
+    ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
+
+    if (ssh_connect(session) != SSH_OK ||
+        ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
+            SSH_AUTH_SUCCESS) {
+      ErrorUtil::ThrowError("SSH connection or authentication failed");
+    }
+
+    scp = ssh_scp_new(session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE,
+                      remote_path_.c_str());
+    if (!scp) {
+      ErrorUtil::ThrowError("Failed to create SCP session");
+    }
+
+    if (ssh_scp_init(scp) != SSH_OK) {
+      ErrorUtil::ThrowError("Failed to initialize SCP session");
+    }
+
+    std::function<void(const fs::path&, const std::string&)> push_recursive;
+    push_recursive = [&](const fs::path& local_path,
+                         const std::string& remote_path) {
+      if (fs::is_directory(local_path)) {
+        if (ssh_scp_push_directory(scp, local_path.filename().c_str(), 0755) !=
+            SSH_OK) {
+          ErrorUtil::ThrowError("Failed to push remote directory: " +
+                                remote_path);
+        }
+        for (const auto& entry : fs::directory_iterator(local_path)) {
+          push_recursive(entry.path(),
+                         remote_path + "/" + entry.path().filename().string());
+        }
+        if (ssh_scp_leave_directory(scp) != SSH_OK) {
+          ErrorUtil::ThrowError("Failed to leave remote directory: " +
+                                remote_path);
+        }
+      } else if (fs::is_regular_file(local_path)) {
+        std::ifstream file(local_path, std::ios::binary);
+        if (!file) {
+          ErrorUtil::ThrowError("Failed to open local file: " +
+                                local_path.string());
+        }
+
+        auto filesize = fs::file_size(local_path);
+        if (ssh_scp_push_file(scp, local_path.filename().c_str(), filesize,
+                              0644) != SSH_OK) {
+          ErrorUtil::ThrowError("Failed to push remote file: " + remote_path);
+        }
+
+        constexpr size_t buffer_size = 16384;
+        char buffer[buffer_size];
+        while (file) {
+          file.read(buffer, buffer_size);
+          std::streamsize bytes_read = file.gcount();
+          if (bytes_read > 0) {
+            if (ssh_scp_write(scp, buffer, static_cast<size_t>(bytes_read)) !=
+                SSH_OK) {
+              ErrorUtil::ThrowError("Failed to write remote file data: " +
+                                    remote_path);
+            }
+          }
+        }
+      }
+    };
+
+    push_recursive(fs::path(local_dir), remote_dir);
+
+    ssh_scp_close(scp);
+    ssh_scp_free(scp);
+    ssh_disconnect(session);
+    ssh_free(session);
+
+    return true;
+  } catch (...) {
+    if (scp) {
+      ssh_scp_close(scp);
+      ssh_scp_free(scp);
+    }
     if (session) {
       ssh_disconnect(session);
       ssh_free(session);

@@ -84,3 +84,7 @@ std::string Prompter::PromptIpAddress(const std::string& prompt_msg) {
   return Prompter::PromptUntilValid(Validator::IsValidIpAddress, "IP Address",
                                     prompt_msg);
 }
+
+std::string Prompter::PromptInput(const std::string& prompt_msg) {
+  return Prompter::PromptUntilValid(Validator::Any, "Input", prompt_msg);
+}

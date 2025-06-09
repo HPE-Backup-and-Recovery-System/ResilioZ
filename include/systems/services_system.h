@@ -11,10 +11,9 @@
 class ServicesSystem : public System {
  public:
   ServicesSystem();
-  ~ServicesSystem() {};
+  ~ServicesSystem();
 
-  void Start() override;
-  void Shutdown() override;
+  void Run() override;
   void Log() override;
 
  private:

@@ -5,6 +5,7 @@
 
 namespace Validator {
 
+bool Any(const std::string& str);
 bool IsValidPath(const std::string& path);
 bool IsValidLocalPath(const std::string& path);
 bool IsValidMountPath(const std::string& path);
@@ -12,6 +13,7 @@ bool IsValidSftpPath(const std::string& path);
 bool IsValidPassword(const std::string& password);
 bool IsValidRepoName(const std::string& name);
 bool IsValidIpAddress(const std::string& ip);
+bool IsValidBackupType(const std::string& type);
 
 }  // namespace Validator
 

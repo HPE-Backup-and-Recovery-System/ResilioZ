@@ -57,11 +57,11 @@ void RepositoryService::ShowMainMenu() {
   }
 }
 
-void RepositoryService::CreateNewRepository() {
+void RepositoryService::CreateNewRepository(bool loop) {
   std::vector<std::string> menu = {"Go BACK...", "Local Repository",
                                    "NFS Repository", "Remote Repository"};
 
-  while (true) {
+  while (loop) {
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository Type", false), menu);
 
@@ -317,6 +317,8 @@ void RepositoryService::DeleteRepository() {
     ErrorUtil::ThrowNested("Repository deletion failure");
   }
 }
+
+Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
   delete repository_;

@@ -18,6 +18,7 @@ NFSRepository::NFSRepository(const std::string& nfs_mount_path,
   name_ = name;
   password_ = password;
   created_at_ = created_at;
+  type_ = RepositoryType::NFS;
 }
 
 bool NFSRepository::UploadFile(const std::string& local_file,
