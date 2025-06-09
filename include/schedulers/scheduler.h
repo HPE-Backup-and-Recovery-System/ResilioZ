@@ -15,7 +15,7 @@ class Scheduler {
 
  private:
   libcron::Cron<> cron;
-  std::map<int, std::string> schedules;
+  std::map<std::string, std::string> schedules;
   sockaddr_in address;
   int conn_id = 1;
 

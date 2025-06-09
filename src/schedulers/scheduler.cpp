@@ -10,6 +10,8 @@
 #include <nlohmann/json.hpp>
 
 #include "schedulers/scheduler.h"
+#include "utils/logger.h"
+#include "utils/time_util.h"
 
 Scheduler::Scheduler(){
     int port = 8080;
@@ -19,45 +21,70 @@ Scheduler::Scheduler(){
 }
 
 std::string Scheduler::addSchedule(nlohmann::json reqBody){
-    // Validation pending
-    
-    // REPLACE with backup logic            
-    cron.add_schedule("Schedule id #" + std::to_string(conn_id), reqBody["payload"], [=](auto&) {
-        std::cout << "Schduled task id: " << conn_id << " - " << reqBody["type"] << "\n";
+    cron.add_schedule("Schedule #" + std::to_string(conn_id), reqBody["payload"], [=](auto&) {
+        std::string timestamp = TimeUtil::GetCurrentTimestamp();
+        std::string schedule_id = "#" + std::to_string(conn_id);
+        std::string schedule_name = "Schedule " + schedule_id;
+        std::string backup_type = reqBody["type"];
+        std::string schedule_string = reqBody["payload"];
+        
+        // Add backup logic here
+
+        std::string message;
+        message += schedule_name + " at " + timestamp + "\n";
+        message += "-- Backup Type: " + backup_type + "\n" ;
+        message += "-- Backup Schedule: " + schedule_string + "\n" ;
+        
+        std::cout << message << "\n";
     }); 
 
     nlohmann::json metaData;
     metaData["schedule"] = std::string(reqBody["payload"]);
     metaData["type"] = std::string(reqBody["type"]);
 
-    schedules[conn_id] = metaData.dump();
-    std::string message = "Schedule #" + std::to_string(conn_id) + " added!";
+    schedules["#" + std::to_string(conn_id)] = metaData.dump();
+    std::string message = "Schedule #" + std::to_string(conn_id) + " added!\n";
     conn_id = conn_id + 1;   
     return message;
 }
 
 std::string Scheduler::viewSchedules(){
     std::string message;
+    auto count = schedules.size();
+
+    if (count == 0){
+        message += "No schedules set!\n";
+        return message;
+    }
+
     for (auto p: schedules){
-        int id = p.first;
+        count--;
+        std::string id = p.first;
         nlohmann::json metaData = nlohmann::json::parse(p.second);
         
         std::string schedule = metaData["schedule"].get<std::string>();
         std::string type = metaData["type"].get<std::string>();
 
-        message += std::to_string(id) + " - " + schedule + " - " + type + "\n";
+        message += "Schedule " + id + "\n";
+        message += "-- Backup Type: " + type + "\n" ;
+        message += "-- Backup Schedule: " + schedule + "\n" ;
+
+        if (count != 0){
+            message += "\n";
+        }
     }
 
     return message;
 }
 
 std::string Scheduler::removeSchedule(nlohmann::json reqBody){
-    std::string name = "Schedule id #" + std::to_string(reqBody["payload"].get<int>());
+    std::string schedule_id = reqBody["payload"].get<std::string>();
+    std::string name = "Schedule id " + schedule_id;
     
     cron.remove_schedule(name);
-    schedules.erase(reqBody["payload"].get<int>());
+    schedules.erase(schedule_id);
 
-    return name + " removed!";
+    return name + " removed!\n";
 }
 
 void Scheduler::Run(){

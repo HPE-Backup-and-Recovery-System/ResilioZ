@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
 
   std::vector<std::string> main_menu = {"EXIT...", "Repository Service",
-                                        "Schedule Service"};
+                                        "Scheduler Service"};
   while (true) {
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMaxTitle("SYSTEM SERVICES", false), main_menu);

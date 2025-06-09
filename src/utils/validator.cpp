@@ -43,3 +43,18 @@ bool Validator::IsValidIpAddress(const std::string& ip) {
       R"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
   return std::regex_match(ip, pattern);
 }
+
+bool Validator::isValidCronString(const std::string& cron_string){
+  // To be changed!
+  return true;
+}
+
+bool Validator::isValidBackupType(const std::string& backup_type){
+  std::regex pattern(R"((^[Ff]ull$)|(^[Ii]ncremental$)|(^[Dd]ifferential$))");
+  return std::regex_match(backup_type, pattern);
+}
+
+bool Validator::isValidScheduleId(const std::string& schedule_id){
+  std::regex pattern(R"(^#[1-9][0-9]*$)");
+  return std::regex_match(schedule_id, pattern);
+}
