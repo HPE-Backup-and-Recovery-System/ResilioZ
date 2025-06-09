@@ -1,6 +1,9 @@
 #include "utils/validator.h"
 
+#include <algorithm>
 #include <regex>
+
+bool Validator::Any(const std::string& str) { return true; }
 
 bool Validator::IsValidPath(const std::string& path) {
   return IsValidLocalPath(path) || IsValidSftpPath(path);
@@ -42,4 +45,10 @@ bool Validator::IsValidIpAddress(const std::string& ip) {
       R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
       R"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
   return std::regex_match(ip, pattern);
+}
+
+bool Validator::IsValidBackupType(const std::string& type) {
+  std::string lower = type;
+  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+  return lower == "full" || lower == "incremental" || lower == "differential";
 }

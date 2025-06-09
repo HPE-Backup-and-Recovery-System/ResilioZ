@@ -5,6 +5,7 @@ class Service {
  public:
   virtual void Run() = 0;
   virtual void Log() = 0;
+
   virtual ~Service() = default;
 };
 

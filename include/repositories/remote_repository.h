@@ -3,7 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "repositories/repository.h"
+#include "repository.h"
 
 class RemoteRepository : public Repository {
  public:
@@ -19,14 +19,18 @@ class RemoteRepository : public Repository {
   void WriteConfig() const override;
   static RemoteRepository FromConfigJson(const nlohmann::json& config);
 
+  bool UploadFile(const std::string& local_file,
+                  const std::string& remote_path = "") const;
+
+  bool UploadDirectory(const std::string& local_dir,
+                       const std::string& remote_path = "") const;
+
  private:
   std::string user_;
   std::string host_;
   std::string remote_dir_;
 
   void ParseSFTPPath(const std::string& sftp_path);
-  bool UploadFile(const std::string& local_file,
-                  const std::string& remote_path) const;
   bool RemoteDirectoryExists() const;
   void CreateRemoteDirectory() const;
   void RemoveRemoteDirectory() const;

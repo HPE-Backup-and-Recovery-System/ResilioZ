@@ -3,6 +3,8 @@
 
 #include <string>
 
+enum class RepositoryType { LOCAL, NFS, REMOTE };
+
 class Repository {
  public:
   Repository() = default;
@@ -17,6 +19,7 @@ class Repository {
   std::string GetName() const;
   std::string GetPath() const;
   std::string GetFullPath() const;
+  RepositoryType GetType() const;
 
   std::string GetHashedPassword() const;
   static std::string GetHashedPassword(const std::string& password);
@@ -26,6 +29,7 @@ class Repository {
   std::string path_;
   std::string password_;
   std::string created_at_;
+  RepositoryType type_;
 };
 
 #endif  // REPOSITORY_H_

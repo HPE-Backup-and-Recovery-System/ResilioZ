@@ -4,16 +4,8 @@
 #include <iostream>
 #include <limits>
 
-#include "repositories/local_repository.h"
-#include "repositories/nfs_repository.h"
-#include "repositories/remote_repository.h"
-#include "repositories/repository.h"
-#include "utils/error_util.h"
-#include "utils/logger.h"
-#include "utils/prompter.h"
-#include "utils/repodata_manager.h"
-#include "utils/time_util.h"
-#include "utils/user_io.h"
+#include "repositories/all.h"
+#include "utils/utils.h"
 
 RepositoryService::RepositoryService() : repository_(nullptr) {
   try {
@@ -33,7 +25,7 @@ void RepositoryService::Log() {
 void RepositoryService::ShowMainMenu() {
   std::vector<std::string> main_menu = {
       "Go BACK...", "Create New Repository", "List All Repositories",
-      "Use Existing Repository", "Delete a Repository"};
+      "Fetch Existing Repository", "Delete a Repository"};
 
   while (true) {
     int choice = UserIO::HandleMenuWithSelect(
@@ -42,7 +34,7 @@ void RepositoryService::ShowMainMenu() {
     try {
       switch (choice) {
         case 0:
-          std::cout << "\n - Going Back...\n";
+          std::cout << " - Going Back...\n";
           return;
         case 1:
           CreateNewRepository();
@@ -51,7 +43,7 @@ void RepositoryService::ShowMainMenu() {
           ListRepositories();
           break;
         case 3:
-          UseExistingRepository();
+          FetchExistingRepository();
           break;
         case 4:
           DeleteRepository();
@@ -65,18 +57,18 @@ void RepositoryService::ShowMainMenu() {
   }
 }
 
-void RepositoryService::CreateNewRepository() {
+void RepositoryService::CreateNewRepository(bool loop) {
   std::vector<std::string> menu = {"Go BACK...", "Local Repository",
                                    "NFS Repository", "Remote Repository"};
 
-  while (true) {
+  while (loop) {
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository Type", false), menu);
 
     try {
       switch (choice) {
         case 0:
-          std::cout << "\n - Going Back...\n";
+          std::cout << " - Going Back...\n";
           return;
         case 1:
           InitLocalRepositoryFromPrompt();
@@ -212,7 +204,8 @@ void RepositoryService::ListRepositories() {
       UserIO::DisplayMinTitle("No repositories found");
       return;
     }
-    UserIO::DisplayMinTitle("Available repositories");
+
+    UserIO::DisplayMinTitle("Repository List");
     for (const auto& repo : repos) {
       std::cout << " - Name: " << repo.name << " ["
                 << RepodataManager::GetFormattedTypeString(repo.type) << "]"
@@ -224,7 +217,7 @@ void RepositoryService::ListRepositories() {
   }
 }
 
-Repository* RepositoryService::UseExistingRepository() {
+Repository* RepositoryService::FetchExistingRepository() {
   std::string name, path, password;
   name = Prompter::PromptRepoName("Existing Repository Name");
   path = Prompter::PromptPath();
@@ -269,7 +262,7 @@ Repository* RepositoryService::UseExistingRepository() {
     return repo;
 
   } catch (const std::exception& e) {
-    ErrorUtil::ThrowNested("Repository usage failure");
+    ErrorUtil::ThrowNested("Unable to fetch repository");
     delete repo;
     return nullptr;
   }
@@ -324,6 +317,8 @@ void RepositoryService::DeleteRepository() {
     ErrorUtil::ThrowNested("Repository deletion failure");
   }
 }
+
+Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
   delete repository_;
