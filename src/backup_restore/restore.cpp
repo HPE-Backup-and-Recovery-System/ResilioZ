@@ -1,4 +1,4 @@
-#include "backup/restore.hpp"
+#include "backup_restore/restore.hpp"
 
 #include <zstd.h>
 
@@ -9,10 +9,9 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 
-#include "backup/chunker.hpp"
-#include "backup/progress.hpp"
-#include "utils/error_util.h"
-#include "utils/logger.h"
+#include "backup_restore/chunker.hpp"
+#include "backup_restore/progress.hpp"
+#include "utils/utils.h"
 
 namespace fs = std::filesystem;
 

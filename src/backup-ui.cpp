@@ -2,8 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "backup/backup.hpp"
-#include "backup/restore.hpp"
+#include "backup_restore/all.h"
 
 namespace fs = std::filesystem;
 

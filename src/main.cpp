@@ -2,35 +2,41 @@
 #include <iostream>
 #include <vector>
 
-#include "services/repository_service.h"
-#include "services/scheduler_service.h"
-#include "utils/error_util.h"
-#include "utils/logger.h"
-#include "utils/user_io.h"
+#include "systems/all.h"
+#include "utils/utils.h"
 
 int main(int argc, char** argv) {
   // UserIO::ClearTerminal();
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
+  System* system = nullptr;
 
-  std::vector<std::string> main_menu = {"EXIT...", "Repository Service",
-                                        "Schedule Service"};
+  std::vector<std::string> main_menu = {
+      "EXIT...", "Backup System", "Restore System", "Others (Services System)"};
   while (true) {
     int choice = UserIO::HandleMenuWithSelect(
-        UserIO::DisplayMaxTitle("SYSTEM SERVICES", false), main_menu);
+        UserIO::DisplayMaxTitle("SYSTEMS", false), main_menu);
 
     switch (choice) {
       case 0: {
-        std::cout << "\n - Exiting...\n\n";
+        std::cout << " - Exiting...\n\n";
         return EXIT_SUCCESS;
       }
       case 1: {
-        RepositoryService service;
-        service.Run();
+        system = new ServicesSystem();
+        system->Start();
+        system->Shutdown();
         break;
       }
       case 2: {
-        SchedulerService service;
-        service.Run();
+        system = new ServicesSystem();
+        system->Start();
+        system->Shutdown();
+        break;
+      }
+      case 3: {
+        system = new ServicesSystem();
+        system->Start();
+        system->Shutdown();
         break;
       }
       default: {

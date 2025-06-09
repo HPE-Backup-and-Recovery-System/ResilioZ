@@ -21,7 +21,7 @@ file(GLOB_RECURSE CPP_SOURCE
 )
 
 file(GLOB_RECURSE BACKUP_SOURCE
-    "${PROJECT_SOURCE_DIR}/src/backup/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
 )
 
 file(GLOB_RECURSE SCHEDULER_SOURCE

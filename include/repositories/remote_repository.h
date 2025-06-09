@@ -3,7 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "repositories/repository.h"
+#include "repository.h"
 
 class RemoteRepository : public Repository {
  public:

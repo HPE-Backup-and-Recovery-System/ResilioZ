@@ -1,4 +1,4 @@
-#include "backup/backup.hpp"
+#include "backup_restore/backup.hpp"
 
 #include <openssl/sha.h>
 #include <zstd.h>
@@ -13,7 +13,7 @@
 #include <set>
 #include <sstream>
 
-#include "backup/progress.hpp"
+#include "backup_restore/progress.hpp"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/user_io.h"

@@ -2,13 +2,13 @@
 #define REPO_SERVICE_H_
 
 #include "repositories/repository.h"
-#include "utils/repodata_manager.h"
 #include "service.h"
+#include "utils/repodata_manager.h"
 
 class RepositoryService : public Service {
  public:
   RepositoryService();
-  ~RepositoryService() {}
+  ~RepositoryService() {};
 
   void Run() override;
   void Log() override;
@@ -20,7 +20,7 @@ class RepositoryService : public Service {
   void InitNFSRepositoryFromPrompt();
   void InitRemoteRepositoryFromPrompt();
   void ListRepositories();
-  Repository* UseExistingRepository();
+  Repository* FetchExistingRepository();
   void DeleteRepository();
   void SetRepository(Repository* new_repo);
 
