@@ -1,5 +1,6 @@
 #include "utils/validator.h"
 
+#include "libcron/CronData.h"
 #include <regex>
 
 bool Validator::IsValidPath(const std::string& path) {
@@ -46,7 +47,12 @@ bool Validator::IsValidIpAddress(const std::string& ip) {
 
 bool Validator::isValidCronString(const std::string& cron_string){
   // To be changed!
-  return true;
+  auto cron = libcron::CronData::create(cron_string);
+  bool res = cron.is_valid();
+  if (res){
+    return true;
+  }
+  return false;
 }
 
 bool Validator::isValidBackupType(const std::string& backup_type){

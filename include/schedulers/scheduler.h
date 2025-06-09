@@ -22,6 +22,9 @@ class Scheduler {
   std::string addSchedule(nlohmann::json reqBody);
   std::string viewSchedules();
   std::string removeSchedule(nlohmann::json reqBody);
+
+  std::string generateScheduleName(std::string schedule_id);
+  std::string generateScheduleId(int conn_id);
 };
 
 #endif
