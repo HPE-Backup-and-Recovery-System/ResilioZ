@@ -1,7 +1,10 @@
 #include "utils/validator.h"
 
+#include <algorithm>
 #include "libcron/CronData.h"
 #include <regex>
+
+bool Validator::Any(const std::string& str) { return true; }
 
 bool Validator::IsValidPath(const std::string& path) {
   return IsValidLocalPath(path) || IsValidSftpPath(path);
@@ -45,7 +48,13 @@ bool Validator::IsValidIpAddress(const std::string& ip) {
   return std::regex_match(ip, pattern);
 }
 
-bool Validator::isValidCronString(const std::string& cron_string){
+bool Validator::IsValidBackupType(const std::string& type) {
+  std::string lower = type;
+  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+  return lower == "full" || lower == "incremental" || lower == "differential";
+}
+
+bool Validator::IsValidCronString(const std::string& cron_string){
   // To be changed!
   auto cron = libcron::CronData::create(cron_string);
   bool res = cron.is_valid();
@@ -55,12 +64,7 @@ bool Validator::isValidCronString(const std::string& cron_string){
   return false;
 }
 
-bool Validator::isValidBackupType(const std::string& backup_type){
-  std::regex pattern(R"((^[Ff]ull$)|(^[Ii]ncremental$)|(^[Dd]ifferential$))");
-  return std::regex_match(backup_type, pattern);
-}
-
-bool Validator::isValidScheduleId(const std::string& schedule_id){
+bool Validator::IsValidScheduleId(const std::string& schedule_id){
   std::regex pattern(R"(^#[1-9][0-9]*$)");
   return std::regex_match(schedule_id, pattern);
 }

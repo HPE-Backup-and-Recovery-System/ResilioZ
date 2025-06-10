@@ -19,6 +19,7 @@ LocalRepository::LocalRepository(const std::string& path,
   name_ = name;
   password_ = password;
   created_at_ = created_at;
+  type_ = RepositoryType::LOCAL;
 }
 
 bool LocalRepository::UploadFile(const std::string& local_file,

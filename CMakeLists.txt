@@ -6,8 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compile Options
-# 1. `-O3`: Enable All Optimizations
-# 2. `-Wall`: Enable All Warnings
+# `-O3`: Enable All Optimizations
+# `-Wall`: Enable All Warnings
+# `-w`: Disable All Warnings
 add_compile_options(-O3 -Wall)
 
 # Other Required Options...
@@ -20,7 +21,7 @@ file(GLOB_RECURSE CPP_SOURCE
 )
 
 file(GLOB_RECURSE BACKUP_SOURCE
-    "${PROJECT_SOURCE_DIR}/src/backup/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
 )
 
 file(GLOB_RECURSE SCHEDULER_SOURCE
@@ -62,43 +63,14 @@ add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
 add_executable(backup-ui src/backup-ui.cpp ${BACKUP_SOURCE})
 # Dependencies...
 
-# Find Packages which Contain FindLib.cmake - Install: libssh-dev, zlib1g-dev, pkg-config, libssh-dev
+# Find Packages which Contain FindLib.cmake - Install: libssh-dev, libzstd-dev, zlib1g-dev, pkg-config
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
-
-find_package(PkgConfig QUIET)
-pkg_check_modules(PC_ZSTD QUIET libzstd)
-
-find_path(ZSTD_INCLUDE_DIR
-    NAMES zstd.h
-    PATHS ${PC_ZSTD_INCLUDEDIR}
-    PATH_SUFFIXES zstd
-)
-
-find_library(ZSTD_LIBRARY
-    NAMES zstd
-    PATHS ${PC_ZSTD_LIBDIR}
-)
-
-set(ZSTD_VERSION ${PC_ZSTD_VERSION})
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ZSTD
-    REQUIRED_VARS ZSTD_LIBRARY ZSTD_INCLUDE_DIR
-    VERSION_VAR ZSTD_VERSION
-)
-
-if(ZSTD_FOUND)
-    set(ZSTD_LIBRARIES ${ZSTD_LIBRARY})
-    set(ZSTD_INCLUDE_DIRS ${ZSTD_INCLUDE_DIR})
-endif()
-
-mark_as_advanced(ZSTD_INCLUDE_DIR ZSTD_LIBRARY) 
-
 
 # To Find Packages without FindLib.cmake
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBSSH REQUIRED libssh) 
+pkg_check_modules(ZSTD REQUIRED libzstd)
 
 # Packages which can only be Installed via Git Repos or URLs
 include(FetchContent)
@@ -132,7 +104,6 @@ target_include_directories(backup-ui PRIVATE
     ${ZSTD_INCLUDE_DIRS}
 )
 
-
 # Link Libraries for Main
 target_link_libraries(main PRIVATE
     utils
@@ -154,6 +125,7 @@ target_link_libraries(scheduler PRIVATE
 
 target_link_libraries(backup-ui PRIVATE 
     utils
-    ${OPENSSL_LIBRARIES}
+    OpenSSL::SSL 
+    OpenSSL::Crypto
     ${ZSTD_LIBRARIES}
 )
