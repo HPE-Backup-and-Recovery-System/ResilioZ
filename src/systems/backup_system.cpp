@@ -106,7 +106,7 @@ void BackupSystem::CreateBackup() {
         UserIO::DisplayMinTitle("Automate Backup?", false), menu);
 
     if (choice == 0) {
-      // TODO: Schedule Backup
+      ScheduleBackup();
     }
 
     Logger::Log("Backup creation success");

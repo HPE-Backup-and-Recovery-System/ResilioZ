@@ -37,7 +37,7 @@ void RepositoryService::ShowMainMenu() {
           std::cout << " - Going Back...\n";
           return;
         case 1:
-          CreateNewRepository();
+          CreateNewRepository(true);
           break;
         case 2:
           ListRepositories();
@@ -60,8 +60,7 @@ void RepositoryService::ShowMainMenu() {
 void RepositoryService::CreateNewRepository(bool loop) {
   std::vector<std::string> menu = {"Go BACK...", "Local Repository",
                                    "NFS Repository", "Remote Repository"};
-
-  while (loop) {
+  do {
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository Type", false), menu);
 
@@ -85,7 +84,7 @@ void RepositoryService::CreateNewRepository(bool loop) {
     } catch (...) {
       ErrorUtil::ThrowNested("Repository creation failure");
     }
-  }
+  } while (loop);
 }
 
 void RepositoryService::InitLocalRepositoryFromPrompt() {
