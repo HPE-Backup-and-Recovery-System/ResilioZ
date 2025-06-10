@@ -54,28 +54,34 @@ void BackupSystem::CreateBackup() {
   BackupType type;
   std::vector<std::string> menu;
   int choice;
-  try {
-    menu = {"Go BACK... ", "Create New Repository", "Use Existing Repository"};
-    choice = UserIO::HandleMenuWithSelect(
-        UserIO::DisplayMinTitle("Repository for Backup", false), menu);
 
-    switch (choice) {
-      case 0:
-        std::cout << " - Going Back...\n";
-        return;
-      case 1: {
-        repo_service_->CreateNewRepository();
-        repository_ = repo_service_->GetRepository();
-        break;
+  bool loop = true;
+  try {
+    do {
+      menu = {"Go BACK... ", "Create New Repository",
+              "Use Existing Repository"};
+      choice = UserIO::HandleMenuWithSelect(
+          UserIO::DisplayMinTitle("Repository for Backup", false), menu);
+
+      switch (choice) {
+        case 0:
+          std::cout << " - Going Back...\n";
+          return;
+        case 1: {
+          loop = !repo_service_->CreateNewRepository();
+          repository_ = repo_service_->GetRepository();
+          break;
+        }
+        case 2: {
+          repo_service_->ListRepositories();
+          repository_ = repo_service_->FetchExistingRepository();
+          loop = false;
+          break;
+        }
+        default:
+          Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
       }
-      case 2: {
-        repo_service_->ListRepositories();
-        repository_ = repo_service_->FetchExistingRepository();
-        break;
-      }
-      default:
-        Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
-    }
+    } while (loop);
 
     bool new_repo = choice == 1;
     source = Prompter::PromptPath("Path to Backup Source");
