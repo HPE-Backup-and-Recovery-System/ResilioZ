@@ -1,5 +1,5 @@
-#ifndef REPO_SERVICE_H_
-#define REPO_SERVICE_H_
+#ifndef REPOSITORY_SERVICE_H_
+#define REPOSITORY_SERVICE_H_
 
 #include "repositories/all.h"
 #include "service.h"
@@ -13,7 +13,7 @@ class RepositoryService : public Service {
   void Run() override;
   void Log() override;
 
-  void CreateNewRepository(bool loop = false);
+  bool CreateNewRepository(bool loop = false);
   void ListRepositories();
   Repository* FetchExistingRepository();
 
@@ -31,4 +31,4 @@ class RepositoryService : public Service {
   RepodataManager repodata_;
 };
 
-#endif  // REPO_SERVICE_H_
+#endif  // REPOSITORY_SERVICE_H_
