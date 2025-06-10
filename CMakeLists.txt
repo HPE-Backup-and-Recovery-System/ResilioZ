@@ -43,6 +43,10 @@ file(GLOB_RECURSE UTILS_SOURCE
 )
 add_library(utils STATIC ${UTILS_SOURCE})
 
+# Linking libcron as dependency for utils (Can be removed if external cron string validation added)
+target_link_libraries(utils PRIVATE libcron)
+target_include_directories(utils PRIVATE ${libcron_SOURCE_DIR})
+
 # Include Header Files
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -89,7 +93,11 @@ target_include_directories(main PRIVATE
 )
 
 # Include Directories for Libraries in Scheduler
-target_include_directories(scheduler PRIVATE ${libcron_SOURCE_DIR})
+target_include_directories(scheduler PRIVATE 
+    ${libcron_SOURCE_DIR}
+    ${ZSTD_INCLUDE_DIRS}
+    ${OPENSSL_INCLUDE_DIR}
+)
 
 target_include_directories(backup-ui PRIVATE 
     ${OPENSSL_INCLUDE_DIR}
@@ -108,7 +116,12 @@ target_link_libraries(main PRIVATE
 )
 
 # Link Libraries for Scheduler
-target_link_libraries(scheduler PRIVATE utils libcron)
+target_link_libraries(scheduler PRIVATE 
+    utils 
+    libcron
+    ${OPENSSL_LIBRARIES}
+    ${ZSTD_LIBRARIES}
+)
 
 target_link_libraries(backup-ui PRIVATE 
     utils
