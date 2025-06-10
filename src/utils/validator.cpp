@@ -1,6 +1,7 @@
 #include "utils/validator.h"
 
 #include <algorithm>
+#include "libcron/CronData.h"
 #include <regex>
 
 bool Validator::Any(const std::string& str) { return true; }
@@ -51,4 +52,19 @@ bool Validator::IsValidBackupType(const std::string& type) {
   std::string lower = type;
   std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
   return lower == "full" || lower == "incremental" || lower == "differential";
+}
+
+bool Validator::IsValidCronString(const std::string& cron_string){
+  // To be changed!
+  auto cron = libcron::CronData::create(cron_string);
+  bool res = cron.is_valid();
+  if (res){
+    return true;
+  }
+  return false;
+}
+
+bool Validator::IsValidScheduleId(const std::string& schedule_id){
+  std::regex pattern(R"(^#[1-9][0-9]*$)");
+  return std::regex_match(schedule_id, pattern);
 }

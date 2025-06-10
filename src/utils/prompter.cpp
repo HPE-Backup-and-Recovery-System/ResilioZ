@@ -85,6 +85,22 @@ std::string Prompter::PromptIpAddress(const std::string& prompt_msg) {
                                     prompt_msg);
 }
 
+std::string Prompter::PromptCronString(const std::string& prompt_msg){
+  return Prompter::PromptUntilValid(Validator::IsValidCronString, "Cron String",
+                                    prompt_msg);
+}
+
+std::string Prompter::PromptBackupType(const std::string& prompt_msg){
+  return Prompter::PromptUntilValid(Validator::IsValidBackupType, "Backup Type",
+                                    prompt_msg);
+}
+
+std::string Prompter::PromptScheduleId(const std::string& prompt_msg){
+  return Prompter::PromptUntilValid(Validator::IsValidScheduleId, "Schedule ID",
+                                    prompt_msg);
+}
+
+
 std::string Prompter::PromptInput(const std::string& prompt_msg) {
   return Prompter::PromptUntilValid(Validator::Any, "Input", prompt_msg);
 }

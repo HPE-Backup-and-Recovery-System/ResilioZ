@@ -32,6 +32,15 @@ std::string PromptIpAddress(const std::string& prompt_msg = "IP Address");
 
 std::string PromptInput(const std::string& prompt_msg = "Input");
 
+std::string PromptCronString(
+    const std::string& prompt_msg = "Cron String (Ex. 0/5 * * * * ?)");
+
+std::string PromptBackupType(
+    const std::string& prompt_msg = "Backup type (Ex. full)");
+
+std::string PromptScheduleId(
+    const std::string& prompt_msg = "Schedule ID (Ex. #4)");
+
 }  // namespace Prompter
 
 #endif  // PROMPTER_H_
