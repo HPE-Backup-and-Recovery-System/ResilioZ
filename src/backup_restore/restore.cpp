@@ -102,18 +102,18 @@ fs::path Restore::PrepareOutputPath(const std::string& filename,
   // Get the parent path from the original file path
   fs::path parent_path = fs::path(original_path).parent_path();
 
-  // Create the parent directories inside the output path
-  fs::path output_parent = output_path_;
+  // If output path is a directory, use it directly
+  if (fs::is_directory(output_path_)) {
+    return output_path_ / filename;
+  }
 
-  // Modify parent path to remove beginning /
-  std::string path = parent_path.string();
-  output_parent.append(path.substr(1, path.size() - 1));
+  // If output path doesn't exist, create it
+  if (!fs::exists(output_path_)) {
+    fs::create_directories(output_path_);
+  }
 
-  // Create parent path in output path
-  fs::create_directories(output_parent);
-
-  // Create the final output path using the original filename
-  return output_parent / filename;
+  // Return the output path with the filename
+  return output_path_ / filename;
 }
 
 Chunk Restore::GetNextChunk(const FileMetadata& file_metadata,
@@ -271,8 +271,7 @@ void Restore::RestoreBackup(const fs::path& backup_path,
   backup_name_ = backup_name;
   LoadMetadata();
 
-  // Create restore directory if it doesn't exist
-  fs::create_directories(restore_path);
+  // Set output path
   output_path_ = restore_path;
 
   // Process each file in the backup
@@ -281,9 +280,6 @@ void Restore::RestoreBackup(const fs::path& backup_path,
       // Create the full restore path for this file
       auto file_restore_path =
           PrepareOutputPath(file_metadata.original_filename, file_path);
-
-      // Create parent directories if they don't exist
-      fs::create_directories(file_restore_path.parent_path());
 
       // Initialize progress tracking
       ProgressBar progress(file_metadata.total_size,
