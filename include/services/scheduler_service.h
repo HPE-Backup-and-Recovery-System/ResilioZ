@@ -17,12 +17,12 @@ class SchedulerService : public Service {
 
     
     private:
-        void sendRequest(const char* message);
-        void showMainMenu();
-        void addSchedule();
-        void removeSchedule();
-        void viewSchedules();
-        void terminateScheduler();
+        void SendRequest(const char* message);
+        void ShowMainMenu();
+        void AddSchedule();
+        void RemoveSchedule();
+        void ViewSchedules();
+        void TerminateScheduler();
         
         sockaddr_in serv_addr;
 };

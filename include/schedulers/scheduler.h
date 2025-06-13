@@ -19,12 +19,14 @@ class Scheduler {
   sockaddr_in address;
   int conn_id = 1;
 
-  std::string addSchedule(nlohmann::json reqBody);
-  std::string viewSchedules();
-  std::string removeSchedule(nlohmann::json reqBody);
+  std::string AddSchedule(nlohmann::json reqBody);
+  std::string ViewSchedules();
+  std::string RemoveSchedule(nlohmann::json reqBody);
 
-  std::string generateScheduleName(std::string schedule_id);
-  std::string generateScheduleId(int conn_id);
+  // Utility functions
+  std::string GenerateScheduleName(std::string schedule_id);
+  std::string GenerateScheduleId(int conn_id);
+  std::string GenerateScheduleInfoString(std::string schedule_id);
 };
 
 #endif

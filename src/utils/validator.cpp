@@ -48,12 +48,6 @@ bool Validator::IsValidIpAddress(const std::string& ip) {
   return std::regex_match(ip, pattern);
 }
 
-bool Validator::IsValidBackupType(const std::string& type) {
-  std::string lower = type;
-  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-  return lower == "full" || lower == "incremental" || lower == "differential";
-}
-
 bool Validator::IsValidCronString(const std::string& cron_string){
   // To be changed!
   auto cron = libcron::CronData::create(cron_string);
