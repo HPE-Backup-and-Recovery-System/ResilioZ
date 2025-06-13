@@ -20,8 +20,18 @@ std::string Prompter::PromptUntilValid(
     }
 
     if (!validator(input)) {
-      Logger::TerminalLog("Invalid " + field_name + "! Please try again...\n",
+      if (field_name == "Password") {
+        Logger::TerminalLog("Password requirements not met. Password must contain:\n"
+                          "- At least 8 characters and no more than 64 characters\n"
+                          "- At least one uppercase letter (A-Z)\n"
+                          "- At least one lowercase letter (a-z)\n"
+                          "- At least one number (0-9)\n"
+                          "- At least one special character (!@#$%^&* etc.)\n",
                           LogLevel::ERROR);
+      } else {
+        Logger::TerminalLog("Invalid " + field_name + "! Please try again...\n",
+                          LogLevel::ERROR);
+      }
       continue;
     }
 
@@ -94,7 +104,6 @@ std::string Prompter::PromptScheduleId(const std::string& prompt_msg){
   return Prompter::PromptUntilValid(Validator::IsValidScheduleId, "Schedule ID",
                                     prompt_msg);
 }
-
 
 std::string Prompter::PromptInput(const std::string& prompt_msg) {
   return Prompter::PromptUntilValid(Validator::Any, "Input", prompt_msg);

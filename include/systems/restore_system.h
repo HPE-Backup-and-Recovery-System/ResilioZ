@@ -13,7 +13,7 @@ class RestoreSystem : public System {
   void Log() override;
 
  private:
-  void RestoreFromBackup();
+  void RestoreFromBackup(); 
   void ListBackups();
   void CompareBackups();
   void ResumeFailedRestore();
