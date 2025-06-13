@@ -39,6 +39,7 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
   metadata_.type = type;
   metadata_.timestamp = std::chrono::system_clock::now();
   metadata_.remarks = remarks;
+  metadata_.original_path = input_path_.string();
 
   // For incremental/differential backups, load previous metadata
   if (type != BackupType::FULL) {
@@ -188,6 +189,7 @@ void Backup::SaveMetadata() {
       std::chrono::system_clock::to_time_t(metadata_.timestamp);
   metadata_json["previous_backup"] = metadata_.previous_backup;
   metadata_json["remarks"] = metadata_.remarks;
+  metadata_json["original_path"] = metadata_.original_path;
 
   nlohmann::json files_json;
   for (const auto& [file_path, file_metadata] : metadata_.files) {

@@ -25,6 +25,7 @@ struct FileMetadata {
 struct BackupMetadata {
   BackupType type;
   std::chrono::system_clock::time_point timestamp;
+  std::string original_path;
   std::string previous_backup;
   std::string remarks;
   std::map<std::string, FileMetadata> files;
