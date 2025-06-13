@@ -7,13 +7,13 @@
 class RestoreSystem : public System {
  public:
   RestoreSystem();
-  ~RestoreSystem();
+  ~RestoreSystem(); 
 
   void Run() override;
   void Log() override;
 
  private:
-  void RestoreFromBackup();
+  void RestoreFromBackup(); 
   void ListBackups();
   void CompareBackups();
 

@@ -31,6 +31,26 @@ Restore::Restore(const fs::path& input_path, const fs::path& output_path,
   LoadMetadata();
 }
 
+std::string Restore::LoadOriginalPath(const fs::path& input_path, 
+                                     const std::string& backup_name) {
+  fs::path metadata_path = input_path / "backup" / backup_name;
+  if (!fs::exists(metadata_path)) {
+    ErrorUtil::ThrowError("Backup metadata not found: " + metadata_path.string());
+  }
+
+  std::ifstream metadata_file(metadata_path);
+  nlohmann::json metadata_json;
+  metadata_file >> metadata_json;
+
+  // Check if original_path exists and is not null
+  if (!metadata_json.contains("original_path") || metadata_json["original_path"].is_null()) {
+    ErrorUtil::ThrowError("Original path not found in backup metadata.");
+  }
+
+  std::string original_path = metadata_json["original_path"].get<std::string>();
+  return original_path;
+}
+
 void Restore::LoadMetadata() {
   fs::path metadata_path = input_path_ / "backup" / backup_name_;
   if (!fs::exists(metadata_path)) {
@@ -99,8 +119,6 @@ std::optional<std::pair<std::string, FileMetadata>> Restore::FindFileMetadata(
 
 fs::path Restore::PrepareOutputPath(const std::string& filename,
                                     const std::string& original_path) {
-  // Get the parent path from the original file path
-  fs::path parent_path = fs::path(original_path).parent_path();
 
   // If output path is a directory, use it directly
   if (fs::is_directory(output_path_)) {

@@ -7,6 +7,7 @@
 
 #include "backup_restore/all.h"
 #include "utils/utils.h"
+#include "utils/validator.h"
 
 namespace fs = std::filesystem;
 
@@ -54,16 +55,32 @@ void RestoreSystem::RestoreFromBackup() {
     // Show available repositories
     repo_service_->ListRepositories();
     
-    // Get backup source path
-    std::string backup_path = Prompter::PromptPath("Path to Backup Source");
-    
-    // Get restore destination path
-    std::string restore_path = Prompter::PromptPath("Path to Restore Destination");
+    // Get backup source path and validate it
+    std::string backup_path = Prompter::PromptPath("Enter Path to Backup Source(Repository Path)");
 
-    // Create a restore directory with timestamp
-    std::string timestamp = TimeUtil::GetCurrentTimestamp();
-    fs::path restore_dir = fs::path(restore_path) / ("restore_" + timestamp);
-    fs::create_directories(restore_dir);
+    // Ask for repository type
+    std::vector<std::string> repo_types = {"LOCAL", "Remote (SFTP)", "NFS MOUNT"};
+    int repo_choice = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select Repository Type", false), repo_types);
+    
+    if (repo_choice == 1) { // Remote
+      // Validate remote server path
+      if (!Validator::IsValidSftpPath(backup_path)) {
+        ErrorUtil::ThrowError("Invalid SFTP path format");
+      }
+      // TODO: SSH connection check 
+    }
+    else if(repo_choice == 2) {
+      // Validate NFS mount path
+      if (!Validator::IsValidMountPath(backup_path)) {
+        ErrorUtil::ThrowError("Invalid NFS path format");
+      }
+    }else 
+     {
+      if(!Validator::IsValidLocalPath((backup_path))){
+        ErrorUtil::ThrowError("Invalid backup path format");
+      }
+    }
 
     // List available backups
     std::vector<std::string> backups;
@@ -95,10 +112,43 @@ void RestoreSystem::RestoreFromBackup() {
     }
 
     std::string backup_name = backups[choice - 1];
+    
+    // Ask if user wants to restore to original location
+    std::vector<std::string> location_options = {
+        "Restore to original location",
+        "Restore to custom location"
+    };
+    int location_choice = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select Restore Location", false), location_options);
+
+    fs::path restore_dir;
+    std::string timestamp = TimeUtil::GetCurrentTimestamp();
+    if (location_choice == 0) {
+      // For original location,  calling the original path funvtion to load original path.
+      std::string original_path = Restore::LoadOriginalPath(backup_path, backup_name);
+      restore_dir = fs::path(original_path).parent_path() / ("restore_" + timestamp);
+    }
+    else {
+      // Get custom restore destination path
+      std::string restore_path = Prompter::PromptPath("Enter Path to Restore Destination");
+      if (!Validator::IsValidPath(restore_path)) {
+        ErrorUtil::ThrowError("Invalid restore path format");
+      }
+      // Create a restore directory with timestamp
+      restore_dir = fs::path(restore_path) / ("restore_" + timestamp);
+    }
+  
+    fs::create_directories(restore_dir);
+
+    // Create the actual restore operation
     Restore restore_op(backup_path, restore_dir.string(), backup_name);
     restore_op.RestoreAll();
 
-    Logger::Log("Restore completed successfully to: " + restore_dir.string());
+    if (location_choice == 0) {
+      Logger::Log("Restore completed successfully to original locations");
+    } else {
+      Logger::Log("Restore completed successfully to: " + restore_dir.string());
+    }
 
   } catch (...) {
     ErrorUtil::ThrowNested("Restore operation failed");
@@ -118,7 +168,9 @@ void RestoreSystem::ListBackups() {
 
     std::vector<std::string> backups;
     for (const auto& entry : fs::directory_iterator(backup_dir)) {
-      if (entry.is_regular_file()) {
+      if (entry.is_regular_file()) {if (!Validator::IsValidPath(backup_path)) {
+      ErrorUtil::ThrowError("Invalid backup path format");
+    }
         backups.push_back(entry.path().filename().string());
       }
     }
