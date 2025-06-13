@@ -357,3 +357,7 @@ void RepositoryService::SetRepository(Repository* new_repo) {
   delete repository_;
   repository_ = new_repo;
 }
+
+std::vector<RepoEntry> RepositoryService::GetAllRepositories() const {
+  return repodata_.GetAll();
+}

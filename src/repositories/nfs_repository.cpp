@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <thread>
 
 #include "utils/error_util.h"
 #include "utils/prompter.h"
@@ -226,20 +227,64 @@ void NFSRepository::EnsureNFSMounted() const {
             }
         }
 
-        // Mount with specific options using server IP and backup path
-        // Using sync option for better reliability
-        std::string mount_cmd = "sudo mount -t nfs4 " + server_ip_ + ":" + server_backup_path_ + " " + path_;
-        result = system(mount_cmd.c_str());
-        if (result != 0) {
-            // Try NFS3 if NFS4 fails
-            mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " " + path_;
-            result = system(mount_cmd.c_str());
-            if (result != 0) {
-                ErrorUtil::ThrowError("Failed to mount NFS share from " + server_ip_ + ":" + server_backup_path_ + 
-                                    " to " + path_ + 
-                                    "\nError: " + strerror(errno) +
-                                    "\nPlease verify the NFS server is running and the export is available.");
+        // Try mounting with retries
+        int max_retries = 3;
+        int retry_count = 0;
+        bool mount_success = false;
+        bool server_reachable = false;
+
+        while (retry_count < max_retries && !mount_success) {
+            if (retry_count > 0) {
+                Logger::Log("Re-establishing connection to NFS server...");
+                // Wait for 20 seconds before retrying
+                std::this_thread::sleep_for(std::chrono::seconds(20));
             }
+
+            // Try to ping the server first
+            std::string ping_cmd = "ping -c 1 -W 5 " + server_ip_ + " > /dev/null 2>&1";
+            result = system(ping_cmd.c_str());
+            
+            if (result == 0) {
+                server_reachable = true;
+                // Server is reachable, try mounting
+                std::string mount_cmd = "sudo mount -t nfs4 " + server_ip_ + ":" + server_backup_path_ + " " + path_;
+                result = system(mount_cmd.c_str());
+                
+                if (result == 0) {
+                    mount_success = true;
+                    break;
+                }
+
+                // Try NFS3 if NFS4 fails
+                mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " " + path_;
+                result = system(mount_cmd.c_str());
+                
+                if (result == 0) {
+                    mount_success = true;
+                    break;
+                }
+
+                // If mount failed but server is reachable, wait 10 seconds and try again
+                if (retry_count < max_retries - 1) {
+                    Logger::Log("Mount failed but server is reachable. Re-attempting mount in 10 seconds...");
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                }
+            }
+
+            retry_count++;
+        }
+
+        if (!mount_success) {
+            std::string error_msg = "Failed to mount NFS share from " + server_ip_ + ":" + server_backup_path_ + 
+                                  " to " + path_ + 
+                                  "\nError: " + strerror(errno) +
+                                  "\nPlease verify the NFS server is running and the export is available.";
+            
+            if (!server_reachable) {
+                error_msg = "Unable to establish connection with the server\n" + error_msg;
+            }
+            
+            ErrorUtil::ThrowError(error_msg);
         }
 
         // If we had local data and the server directory is empty, restore it

@@ -118,4 +118,3 @@ build.ninja
 *.DS_Store
 *.directory
 Thumbs.db
-data/

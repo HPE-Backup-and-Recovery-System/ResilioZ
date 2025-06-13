@@ -40,6 +40,9 @@ class Restore {
   void RestoreBackup(const fs::path& backup_path, const fs::path& restore_path,
                const std::string& backup_id);
 
+  // Get backup metadata
+  const BackupMetadata& GetMetadata() const { return metadata_; }
+
  private:
   // Load metadata from backup
   void LoadMetadata();
