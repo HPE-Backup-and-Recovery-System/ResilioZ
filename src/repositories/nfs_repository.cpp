@@ -29,7 +29,6 @@ NFSRepository::NFSRepository(const std::string& server_ip,
     password_ = password;
     created_at_ = created_at;
     type_ = RepositoryType::NFS;
-    // Set the full path to the local mount point without double-nesting
     path_ = "/mnt/" + name;
 }
 
@@ -66,14 +65,12 @@ bool NFSRepository::Exists() const {
         return false;
     }
 
-    // Check if config file exists
     std::string config_path = path_ + "/config.json";
     if (!fs::exists(config_path)) {
         Logger::Log("Config file not found at: " + config_path);
         return false;
     }
 
-    // Try to read the config file
     try {
         std::ifstream file(config_path);
         if (!file.is_open()) {
@@ -97,16 +94,13 @@ void NFSRepository::Initialize() {
 
 void NFSRepository::Delete() {
     try {
-        // First check if it's mounted
         if (NFSMountExists()) {
-            // Change permissions to allow unmounting
             std::string chmod_cmd = "sudo chmod -R 777 " + path_;
             int result = system(chmod_cmd.c_str());
             if (result != 0) {
                 Logger::Log("Warning: Failed to set permissions for unmounting: " + path_);
             }
 
-            // Unmount the NFS share
             std::string umount_cmd = "sudo umount -f " + path_;
             result = system(umount_cmd.c_str());
             if (result != 0) {
@@ -114,7 +108,6 @@ void NFSRepository::Delete() {
             }
         }
 
-        // Remove the mount point directory
         std::string rm_cmd = "sudo rm -rf " + path_;
         int result = system(rm_cmd.c_str());
         if (result != 0) {
@@ -128,7 +121,6 @@ void NFSRepository::Delete() {
 }
 
 void NFSRepository::WriteConfig() const {
-    // Ensure the directory exists before writing config
     std::string config_dir = path_;
     std::string mkdir_cmd = "sudo mkdir -p " + config_dir;
     int result = system(mkdir_cmd.c_str());
@@ -146,7 +138,6 @@ void NFSRepository::WriteConfig() const {
                            {"created_at", created_at_},
                            {"password_hash", GetHashedPassword()}};
 
-    // Create a temporary file first
     std::string temp_config_path = config_path + ".tmp";
     std::ofstream file(temp_config_path);
     if (!file.is_open()) {
@@ -156,21 +147,18 @@ void NFSRepository::WriteConfig() const {
     file << config.dump(4);
     file.close();
 
-    // Move the temporary file to the final location
     std::string mv_cmd = "sudo mv " + temp_config_path + " " + config_path;
     result = system(mv_cmd.c_str());
     if (result != 0) {
         ErrorUtil::ThrowError("Failed to move config file to final location: " + config_path);
     }
 
-    // Set proper permissions
     std::string chmod_cmd = "sudo chmod 644 " + config_path;
     result = system(chmod_cmd.c_str());
     if (result != 0) {
         Logger::Log("Warning: Failed to set permissions on config file: " + config_path);
     }
 
-    // Verify the config file was written correctly
     if (!fs::exists(config_path)) {
         ErrorUtil::ThrowError("Config file was not created successfully: " + config_path);
     }
@@ -189,13 +177,11 @@ NFSRepository NFSRepository::FromConfigJson(const nlohmann::json& config) {
 }
 
 bool NFSRepository::NFSMountExists() const { 
-    // Check if the path exists and is a mount point
     struct stat st;
     if (stat(path_.c_str(), &st) != 0) {
         return false;
     }
     
-    // Check if it's a mount point
     struct stat parent_st;
     if (stat((path_ + "/..").c_str(), &parent_st) != 0) {
         return false;
@@ -206,20 +192,17 @@ bool NFSRepository::NFSMountExists() const {
 
 void NFSRepository::EnsureNFSMounted() const {
     if (!NFSMountExists()) {
-        // Create mount point directory first
         std::string mkdir_cmd = "sudo mkdir -p " + path_;
         int result = system(mkdir_cmd.c_str());
         if (result != 0) {
             ErrorUtil::ThrowError("Failed to create mount point directory: " + path_);
         }
 
-        // First check if we have local data to preserve
         bool hasLocalData = false;
         std::string tempBackupPath = path_ + "_temp_backup";
         
         if (fs::exists(path_) && !fs::is_empty(path_)) {
             hasLocalData = true;
-            // Create temporary backup of local data
             std::string backup_cmd = "sudo cp -r " + path_ + " " + tempBackupPath;
             result = system(backup_cmd.c_str());
             if (result != 0) {
@@ -227,7 +210,6 @@ void NFSRepository::EnsureNFSMounted() const {
             }
         }
 
-        // Try mounting with retries
         int max_retries = 3;
         int retry_count = 0;
         bool mount_success = false;
@@ -236,17 +218,15 @@ void NFSRepository::EnsureNFSMounted() const {
         while (retry_count < max_retries && !mount_success) {
             if (retry_count > 0) {
                 Logger::Log("Re-establishing connection to NFS server...");
-                // Wait for 20 seconds before retrying
-                std::this_thread::sleep_for(std::chrono::seconds(20));
+                int wait_time = 20 * (1 << retry_count);
+                std::this_thread::sleep_for(std::chrono::seconds(wait_time));
             }
 
-            // Try to ping the server first
             std::string ping_cmd = "ping -c 1 -W 5 " + server_ip_ + " > /dev/null 2>&1";
             result = system(ping_cmd.c_str());
             
             if (result == 0) {
                 server_reachable = true;
-                // Server is reachable, try mounting
                 std::string mount_cmd = "sudo mount -t nfs4 " + server_ip_ + ":" + server_backup_path_ + " " + path_;
                 result = system(mount_cmd.c_str());
                 
@@ -255,7 +235,6 @@ void NFSRepository::EnsureNFSMounted() const {
                     break;
                 }
 
-                // Try NFS3 if NFS4 fails
                 mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " " + path_;
                 result = system(mount_cmd.c_str());
                 
@@ -264,10 +243,8 @@ void NFSRepository::EnsureNFSMounted() const {
                     break;
                 }
 
-                // If mount failed but server is reachable, wait 10 seconds and try again
                 if (retry_count < max_retries - 1) {
-                    Logger::Log("Mount failed but server is reachable. Re-attempting mount in 10 seconds...");
-                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                    Logger::Log("Mount failed but server is reachable. Re-attempting mount...");
                 }
             }
 
@@ -287,11 +264,8 @@ void NFSRepository::EnsureNFSMounted() const {
             ErrorUtil::ThrowError(error_msg);
         }
 
-        // If we had local data and the server directory is empty, restore it
         if (hasLocalData) {
-            // Check if server directory is empty
             if (fs::is_empty(path_)) {
-                // Restore local data to server
                 std::string restore_cmd = "sudo cp -r " + tempBackupPath + "/* " + path_ + "/";
                 result = system(restore_cmd.c_str());
                 if (result != 0) {
@@ -300,7 +274,6 @@ void NFSRepository::EnsureNFSMounted() const {
                 Logger::Log("Restored local data to server at: " + path_);
             }
             
-            // Clean up temporary backup
             std::string cleanup_cmd = "sudo rm -rf " + tempBackupPath;
             system(cleanup_cmd.c_str());
         }
@@ -308,14 +281,12 @@ void NFSRepository::EnsureNFSMounted() const {
 }
 
 void NFSRepository::CreateRemoteDirectory() const {
-    // First ensure the mount point exists
     std::string cmd = "sudo mkdir -p " + path_;
     int result = system(cmd.c_str());
     if (result != 0) {
         ErrorUtil::ThrowError("Failed to create NFS repository directory: " + path_);
     }
 
-    // Create a test file to verify permissions
     std::string test_file = path_ + "/.test_write";
     std::string touch_cmd = "touch " + test_file;
     result = system(touch_cmd.c_str());
@@ -323,7 +294,6 @@ void NFSRepository::CreateRemoteDirectory() const {
         ErrorUtil::ThrowError("Failed to write to NFS share. Please check your permissions on the NFS server.");
     }
 
-    // Clean up test file
     std::string rm_cmd = "rm -f " + test_file;
     system(rm_cmd.c_str());
 }
