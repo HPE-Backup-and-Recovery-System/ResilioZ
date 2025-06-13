@@ -3,6 +3,7 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <map>
+#include <vector>
 #include <thread>
 #include <chrono>
 #include <atomic>
@@ -12,6 +13,7 @@
 #include "schedulers/scheduler.h"
 #include "utils/logger.h"
 #include "utils/time_util.h"
+#include "backup_restore/backup.hpp"
 
 Scheduler::Scheduler(){
     int port = 8080;
@@ -20,57 +22,81 @@ Scheduler::Scheduler(){
     address.sin_port = htons(port);
 }
 
-std::string Scheduler::generateScheduleId(int conn_id){
+std::string Scheduler::GenerateScheduleId(int conn_id){
     return "#" + std::to_string(conn_id);   
 }
 
-std::string Scheduler::generateScheduleName(std::string schedule_id){
+std::string Scheduler::GenerateScheduleName(std::string schedule_id){
     return "Schedule " + schedule_id;   
 }
 
-std::string Scheduler::addSchedule(nlohmann::json reqBody){
-    std::string backup_type = reqBody["type"];
-    std::string schedule_string = reqBody["payload"];
-    std::string schedule_id = generateScheduleId(conn_id);
-    std::string schedule_name = generateScheduleName(schedule_id);
+std::string Scheduler::GenerateScheduleInfoString(std::string schedule_id){
+    std::string message;
+    
+    nlohmann::json metaData = nlohmann::json::parse(schedules[schedule_id]);
+    std::string type = metaData["type"].get<std::string>();
+    std::string schedule = metaData["schedule"].get<std::string>();
+    std::string source = metaData["source"].get<std::string>();
+    std::string destination = metaData["destination"].get<std::string>();
+    std::string remarks = metaData["remarks"].get<std::string>();
 
-    nlohmann::json taskContext;
-    taskContext["backup_type"] = backup_type;
-    taskContext["schedule_string"] = schedule_string;
-    taskContext["schedule_id"] = schedule_id;
-    taskContext["schedule_name"] = schedule_name;
-
-    cron.add_schedule(generateScheduleName(generateScheduleId(conn_id)), reqBody["payload"], [taskContext = taskContext](auto&) {
-        std::string timestamp = TimeUtil::GetCurrentTimestamp();
-        
-        // Add backup logic here
-        // std::filesystem::path src = "~/Desktop/HPE/Source";
-        // std::filesystem::path dst = "~/Desktop/HPE/Target";
-        // size_t s = 1024 * 1024;
-        // std::string remark = "";
-
-        // Backup backup(src,dst, BackupType::FULL, remark,s);
-        // backup.backup_directory();
-
-        std::string message;
-        message += taskContext["schedule_name"].get<std::string>() + " at " + timestamp + "\n";
-        message += "-- Backup Type: " + taskContext["backup_type"].get<std::string>() + "\n" ;
-        message += "-- Backup Schedule: " + taskContext["schedule_string"].get<std::string>() + "\n" ;
-        
-        std::cout << message << "\n";
-    }); 
-
-    nlohmann::json metaData;
-    metaData["schedule"] = std::string(reqBody["payload"]);
-    metaData["type"] = std::string(reqBody["type"]);
-
-    schedules[schedule_id] = metaData.dump();
-    std::string message = schedule_name + " added!\n";
-    conn_id = conn_id + 1;   
+    message += GenerateScheduleName(schedule_id) + "\n";
+    message += "-- Backup Type: " + type + "\n" ;
+    message += "-- Backup Schedule: " + schedule + "\n";
+    message += "-- Source: " + source + "\n";
+    message += "-- Destination: " + destination + "\n";
+    message += "-- Remarks: " + remarks + "\n";
     return message;
 }
 
-std::string Scheduler::viewSchedules(){
+std::string Scheduler::AddSchedule(nlohmann::json reqBody){
+    std::vector <std::string> v = {"Full","Incremental","Differential"};
+
+    int backup_type = reqBody["type"];
+    std::string backup_type_string = v[backup_type];
+    std::string source = reqBody["source"];
+    std::string destination = reqBody["destination"];
+    std::string remarks = reqBody["remarks"];
+    std::string schedule_string = reqBody["payload"];
+    std::string schedule_id = GenerateScheduleId(conn_id);
+    std::string schedule_name = GenerateScheduleName(schedule_id);
+    
+    // Stored inside the map as metadata
+    nlohmann::json metaData;
+    metaData["type"] = backup_type_string;
+    metaData["schedule"] = schedule_string;
+    metaData["source"] = source;
+    metaData["destination"] = destination;
+    metaData["remarks"] = remarks;
+    
+    schedules[schedule_id] = metaData.dump();
+    conn_id = conn_id + 1;
+    
+    // This is tied to scheduled function
+    nlohmann::json taskContext;
+    taskContext["source"] = source;
+    taskContext["destination"] = destination;
+    taskContext["backup_type"] = backup_type;
+    taskContext["remarks"] = remarks;
+    taskContext["info"] = GenerateScheduleInfoString(schedule_id);
+    
+    // Adding the scheduled function
+    cron.add_schedule(GenerateScheduleName(GenerateScheduleId(conn_id)), reqBody["payload"], [taskContext = taskContext](auto&) {
+        std::string timestamp = TimeUtil::GetCurrentTimestamp();
+        std::cout << "Executed At " << timestamp << "\n";
+        std::cout << taskContext["info"].get<std::string>() << "\n";
+        
+        Backup backup(taskContext["source"], taskContext["destination"], taskContext["backup_type"], taskContext["remarks"]);
+        backup.BackupDirectory();
+
+        // Pending nonlocal backups
+    }); 
+    
+    std::string message = schedule_name + " added!\n";
+    return message;
+}
+
+std::string Scheduler::ViewSchedules(){
     std::string message;
     auto count = schedules.size();
 
@@ -81,15 +107,8 @@ std::string Scheduler::viewSchedules(){
 
     for (auto p: schedules){
         count--;
-        std::string id = p.first;
-        nlohmann::json metaData = nlohmann::json::parse(p.second);
-        
-        std::string schedule = metaData["schedule"].get<std::string>();
-        std::string type = metaData["type"].get<std::string>();
-
-        message += generateScheduleName(id) + "\n";
-        message += "-- Backup Type: " + type + "\n" ;
-        message += "-- Backup Schedule: " + schedule + "\n" ;
+        std::string schedule_info = GenerateScheduleInfoString(p.first);
+        message += schedule_info;
 
         if (count != 0){
             message += "\n";
@@ -99,9 +118,9 @@ std::string Scheduler::viewSchedules(){
     return message;
 }
 
-std::string Scheduler::removeSchedule(nlohmann::json reqBody){
+std::string Scheduler::RemoveSchedule(nlohmann::json reqBody){
     std::string schedule_id = reqBody["payload"].get<std::string>();
-    std::string name = generateScheduleName(schedule_id);
+    std::string name = GenerateScheduleName(schedule_id);
     
     cron.remove_schedule(name);
     schedules.erase(schedule_id);
@@ -174,15 +193,15 @@ void Scheduler::Run(){
         }
 
         else if (reqBody["action"] == "add"){
-            message = addSchedule(reqBody);
+            message = AddSchedule(reqBody);
         }
 
         else if (reqBody["action"] == "view"){
-            message = viewSchedules();
+            message = ViewSchedules();
         }
 
         else if (reqBody["action"] == "remove"){
-            message = removeSchedule(reqBody);
+            message = RemoveSchedule(reqBody);
         }
 
         else{
@@ -201,7 +220,6 @@ void Scheduler::Run(){
 
     // Close the server socket
     close(server_fd);
-    // std::cout << "Scheduler socket closed!\n";
 
     // Stop the scheduler
     scheduler_thread.join(); 
