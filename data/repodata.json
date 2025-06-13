@@ -7,10 +7,45 @@
     "type": "local"
   },
   {
-    "created_at": "2025-06-11T02:15:27Z",
-    "name": "localbackup",
+    "created_at": "2025-06-11T08:32:35Z",
+    "name": "11062025",
     "password_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
-    "path": "/home/lalithmint/Desktop",
+    "path": "/mnt/testing",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-11T08:47:08Z",
+    "name": "11062025_",
+    "password_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "path": "/mnt/check",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-11T11:23:19Z",
+    "name": "test_11062025",
+    "password_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "path": "/mnt/test_11062025",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-11T11:39:00Z",
+    "name": "test1234",
+    "password_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "path": "/mnt/test1234",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-11T12:12:28Z",
+    "name": "vishnu",
+    "password_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "path": "/mnt/vishnu",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-13T09:13:29Z",
+    "name": "test1",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/centronox/Downloads",
     "type": "local"
   }
 ]

@@ -15,6 +15,7 @@ class RepositoryService : public Service {
 
   bool CreateNewRepository(bool loop = false);
   void ListRepositories();
+  std::vector<RepoEntry> GetAllRepositories() const;
   Repository* FetchExistingRepository();
 
   Repository* GetRepository();

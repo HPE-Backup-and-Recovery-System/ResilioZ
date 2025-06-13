@@ -41,10 +41,8 @@ bool Validator::IsValidRepoName(const std::string& name) {
 }
 
 bool Validator::IsValidIpAddress(const std::string& ip) {
-  // Basic IPv4 check
-  std::regex pattern(
-      R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
-      R"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
+  // Standard IPv4 validation pattern that works for all valid IPs including private ranges
+  std::regex pattern(R"(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
   return std::regex_match(ip, pattern);
 }
 

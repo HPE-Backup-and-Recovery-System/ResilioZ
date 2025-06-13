@@ -3,9 +3,11 @@
 #include <exception>
 #include <iostream>
 #include <limits>
+#include <fstream>
 
 #include "repositories/all.h"
 #include "utils/utils.h"
+#include "nlohmann/json.hpp"
 
 RepositoryService::RepositoryService() : repository_(nullptr) {
   try {
@@ -37,7 +39,7 @@ void RepositoryService::ShowMainMenu() {
           std::cout << " - Going Back...\n";
           return;
         case 1:
-          CreateNewRepository(true);
+          CreateNewRepository();
           break;
         case 2:
           ListRepositories();
@@ -60,6 +62,7 @@ void RepositoryService::ShowMainMenu() {
 bool RepositoryService::CreateNewRepository(bool loop) {
   std::vector<std::string> menu = {"Go BACK...", "Local Repository",
                                    "NFS Repository", "Remote Repository"};
+
   do {
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository Type", false), menu);
@@ -68,25 +71,27 @@ bool RepositoryService::CreateNewRepository(bool loop) {
       switch (choice) {
         case 0:
           std::cout << " - Going Back...\n";
-          return false;
+          return true;
         case 1:
           InitLocalRepositoryFromPrompt();
-          break;
+          return true;
         case 2:
           InitNFSRepositoryFromPrompt();
-          break;
+          return true;
         case 3:
           InitRemoteRepositoryFromPrompt();
-          break;
+          return true;
         default:
           Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
+          return false;
       }
     } catch (...) {
       ErrorUtil::ThrowNested("Repository creation failure");
       return false;
     }
   } while (loop);
-  return true;
+  
+  return false;
 }
 
 void RepositoryService::InitLocalRepositoryFromPrompt() {
@@ -128,16 +133,17 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, path, password;
+  std::string name, server_ip, server_backup_path, password;
   name = Prompter::PromptRepoName();
-  path = Prompter::PromptMountPath();
+  server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
+  server_backup_path = Prompter::PromptPath("Server Backup Path (e.g., /backup_pool)");
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   NFSRepository* repo = nullptr;
   try {
-    repo = new NFSRepository(path, name, password, timestamp);
+    repo = new NFSRepository(server_ip, server_backup_path, name, password, timestamp);
     if (repo->Exists()) {
       ErrorUtil::ThrowError("Repository already exists at location: " +
                             repo->GetPath());
@@ -241,8 +247,21 @@ Repository* RepositoryService::FetchExistingRepository() {
       repo = new LocalRepository(entry->path, entry->name, password,
                                  entry->created_at);
     } else if (entry->type == "nfs") {
-      repo = new NFSRepository(entry->path, entry->name, password,
-                               entry->created_at);
+      // Read server IP and backup path from config file
+      std::string config_path = entry->path + "/config.json";
+      std::ifstream config_file(config_path);
+      if (!config_file.is_open()) {
+        ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
+      }
+      nlohmann::json config;
+      config_file >> config;
+      config_file.close();
+
+      repo = new NFSRepository(config.at("server_ip"),
+                             config.at("server_backup_path"),
+                             entry->name,
+                             password,
+                             entry->created_at);
     } else if (entry->type == "remote") {
       repo = new RemoteRepository(entry->path, entry->name, password,
                                   entry->created_at);
@@ -292,8 +311,21 @@ void RepositoryService::DeleteRepository() {
       repo = new LocalRepository(entry->path, entry->name, password,
                                  entry->created_at);
     } else if (entry->type == "nfs") {
-      repo = new NFSRepository(entry->path, entry->name, password,
-                               entry->created_at);
+      // Read server IP and backup path from config file
+      std::string config_path = entry->path + "/config.json";
+      std::ifstream config_file(config_path);
+      if (!config_file.is_open()) {
+        ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
+      }
+      nlohmann::json config;
+      config_file >> config;
+      config_file.close();
+
+      repo = new NFSRepository(config.at("server_ip"),
+                             config.at("server_backup_path"),
+                             entry->name,
+                             password,
+                             entry->created_at);
     } else if (entry->type == "remote") {
       repo = new RemoteRepository(entry->path, entry->name, password,
                                   entry->created_at);
@@ -324,4 +356,8 @@ Repository* RepositoryService::GetRepository() { return repository_; }
 void RepositoryService::SetRepository(Repository* new_repo) {
   delete repository_;
   repository_ = new_repo;
+}
+
+std::vector<RepoEntry> RepositoryService::GetAllRepositories() const {
+  return repodata_.GetAll();
 }
