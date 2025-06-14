@@ -118,6 +118,7 @@ build.ninja
 *.DS_Store
 *.directory
 Thumbs.db
+Documentation.txt
 
 # ---------------
 # From QT Creator

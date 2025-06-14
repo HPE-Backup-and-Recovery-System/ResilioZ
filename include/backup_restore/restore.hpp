@@ -21,6 +21,10 @@ class Restore {
   Restore(const fs::path& input_path, const fs::path& output_path,
           const std::string& backup_name);
 
+  // Static method to load Original Path without creating a Restore object
+  static std::string LoadOriginalPath(const fs::path& input_path, 
+                                         const std::string& backup_name);
+
   // Restore a single file
   void RestoreFile(const std::string& filename);
 
@@ -35,6 +39,9 @@ class Restore {
 
   void RestoreBackup(const fs::path& backup_path, const fs::path& restore_path,
                const std::string& backup_id);
+
+  // Get backup metadata
+  const BackupMetadata& GetMetadata() const { return metadata_; }
 
  private:
   // Load metadata from backup

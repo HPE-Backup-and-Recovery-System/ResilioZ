@@ -24,6 +24,7 @@ file(GLOB_RECURSE BACKUP_SOURCE
 )
 file(GLOB_RECURSE SCHEDULER_SOURCE
     "${PROJECT_SOURCE_DIR}/src/schedulers/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
 )
 
 # Exclude All Files Under src/gui/
@@ -139,6 +140,7 @@ target_include_directories(scheduler PRIVATE
     ${libcron_SOURCE_DIR}
     ${ZSTD_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
+    ${ZSTD_INCLUDE_DIRS}
 )
 
 target_include_directories(backup-ui PRIVATE 
@@ -173,6 +175,8 @@ target_link_libraries(scheduler PRIVATE
     utils 
     libcron
     ${OPENSSL_LIBRARIES}
+    OpenSSL::SSL 
+    OpenSSL::Crypto
     ${ZSTD_LIBRARIES}
 )
 

@@ -29,8 +29,7 @@ bool Validator::IsValidSftpPath(const std::string& path) {
 }
 
 bool Validator::IsValidPassword(const std::string& password) {
-  // Any Characters, Max = 64
-  std::regex pattern(R"(^.{0,64}$)");
+  std::regex pattern(R"(^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,64}$)");
   return std::regex_match(password, pattern);
 }
 
@@ -41,17 +40,9 @@ bool Validator::IsValidRepoName(const std::string& name) {
 }
 
 bool Validator::IsValidIpAddress(const std::string& ip) {
-  // Basic IPv4 check
-  std::regex pattern(
-      R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
-      R"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
+  // Standard IPv4 validation pattern that works for all valid IPs including private ranges
+  std::regex pattern(R"(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
   return std::regex_match(ip, pattern);
-}
-
-bool Validator::IsValidBackupType(const std::string& type) {
-  std::string lower = type;
-  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-  return lower == "full" || lower == "incremental" || lower == "differential";
 }
 
 bool Validator::IsValidCronString(const std::string& cron_string){
