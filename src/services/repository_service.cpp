@@ -136,10 +136,12 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   std::string name, server_ip, server_backup_path, password;
   name = Prompter::PromptRepoName();
   server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
-  server_backup_path = Prompter::PromptPath("Server Backup Path (e.g., /backup_pool)");
+  server_backup_path = Prompter::PromptPath("NFS Server Export Path (e.g., /backup_pool)");
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
+
+  Logger::TerminalLog("Repository will be mounted at: /mnt/nfs_repositories/" + name);
 
   NFSRepository* repo = nullptr;
   try {
@@ -227,7 +229,25 @@ void RepositoryService::ListRepositories() {
 Repository* RepositoryService::FetchExistingRepository() {
   std::string name, path, password;
   name = Prompter::PromptRepoName("Existing Repository Name");
+  
+  // First try to find the repository by name to determine its type
+  auto all_entries = repodata_.GetAll();
+  std::string repo_type;
+  for (const auto& entry : all_entries) {
+    if (entry.name == name) {
+      repo_type = entry.type;
+      if (repo_type == "nfs") {
+        path = "/mnt/nfs_repositories";  // Use the base NFS mount point
+        break;
+      }
+    }
+  }
+  
+  // If not found or not NFS, prompt for path
+  if (repo_type != "nfs") {
   path = Prompter::PromptPath();
+  }
+  
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
@@ -248,7 +268,7 @@ Repository* RepositoryService::FetchExistingRepository() {
                                  entry->created_at);
     } else if (entry->type == "nfs") {
       // Read server IP and backup path from config file
-      std::string config_path = entry->path + "/config.json";
+      std::string config_path = entry->path + "/" + entry->name + "/config.json";
       std::ifstream config_file(config_path);
       if (!config_file.is_open()) {
         ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
@@ -291,7 +311,25 @@ Repository* RepositoryService::FetchExistingRepository() {
 void RepositoryService::DeleteRepository() {
   std::string name, path, password;
   name = Prompter::PromptRepoName("Repository Name to DELETE");
+  
+  // First try to find the repository by name to determine its type
+  auto all_entries = repodata_.GetAll();
+  std::string repo_type;
+  for (const auto& entry : all_entries) {
+    if (entry.name == name) {
+      repo_type = entry.type;
+      if (repo_type == "nfs") {
+        path = "/mnt/nfs_repositories";  // Use the base NFS mount point
+        break;
+      }
+    }
+  }
+  
+  // If not found or not NFS, prompt for path
+  if (repo_type != "nfs") {
   path = Prompter::PromptPath();
+  }
+  
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
@@ -312,7 +350,7 @@ void RepositoryService::DeleteRepository() {
                                  entry->created_at);
     } else if (entry->type == "nfs") {
       // Read server IP and backup path from config file
-      std::string config_path = entry->path + "/config.json";
+      std::string config_path = entry->path + "/" + entry->name + "/config.json";
       std::ifstream config_file(config_path);
       if (!config_file.is_open()) {
         ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);

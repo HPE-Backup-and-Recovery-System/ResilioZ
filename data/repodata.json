@@ -54,5 +54,75 @@
     "password_hash": "4fcb261ad6a545d79d2e41d885020e1b195460c3db89bf72d74ad5ec69fc15aa",
     "path": "/home/centronox/Downloads",
     "type": "local"
+  },
+  {
+    "created_at": "2025-06-14T10:44:06Z",
+    "name": "test6",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/home/centronox/Downloads",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-14T11:08:59Z",
+    "name": "test14",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/test14",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T11:22:33Z",
+    "name": "test15",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/test15",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T11:27:56Z",
+    "name": "test145",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/test145",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T11:42:06Z",
+    "name": "test146",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/test146",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T11:58:30Z",
+    "name": "test2",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/nfs_repositories/test2",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T13:25:45Z",
+    "name": "test1",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/nfs_repositories/test1",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T14:17:04Z",
+    "name": "test5",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/nfs_repositories/test5",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T15:22:48Z",
+    "name": "test8",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/nfs_repositories",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T15:55:33Z",
+    "name": "test11",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "/mnt/nfs_repositories",
+    "type": "nfs"
   }
 ]
