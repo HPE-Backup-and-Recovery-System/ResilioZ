@@ -11,4 +11,5 @@ cmake --build build
 
 # Run the Binary
 cd build
-./main
+# ./cli
+./gui

@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/assets/images">
+        <file>restore.png</file>
+        <file>backup.png</file>
+    </qresource>
+    <qresource prefix="/assets/icons">
+        <file>icons/square-plus.svg</file>
+        <file>icons/list.svg</file>
+        <file>icons/code-compare.svg</file>
+    </qresource>
+</RCC>
