@@ -19,24 +19,23 @@ set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
 file(GLOB_RECURSE MAIN_SOURCE
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
-file(GLOB_RECURSE BACKUP_SOURCE
-    "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
-)
+
 file(GLOB_RECURSE SCHEDULER_SOURCE
     "${PROJECT_SOURCE_DIR}/src/schedulers/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
 )
 
-# Exclude All Files Under src/gui/
-file(GLOB_RECURSE GUI_FILES "${PROJECT_SOURCE_DIR}/src/gui/*")
-list(REMOVE_ITEM MAIN_SOURCE ${GUI_FILES})
+# All .ui Files Under src/gui/
+file(GLOB_RECURSE GUI_HEADERS "${PROJECT_SOURCE_DIR}/include/gui/*.h")
+file(GLOB_RECURSE GUI_FILES 
+    "${PROJECT_SOURCE_DIR}/src/gui/*.ui"
+    "${PROJECT_SOURCE_DIR}/src/gui/*.qrc"
+)
 
 # Exclude main & scheduler to Avoid Collision...
 set(EXCLUDE_FILES
-    "${PROJECT_SOURCE_DIR}/src/main_gui.cpp"
-    "${PROJECT_SOURCE_DIR}/src/main_cli.cpp"
+    "${PROJECT_SOURCE_DIR}/src/main.cpp"
     "${PROJECT_SOURCE_DIR}/src/scheduler.cpp"
-    "${PROJECT_SOURCE_DIR}/src/backup-ui.cpp"
 )
 
 list(REMOVE_ITEM MAIN_SOURCE ${EXCLUDE_FILES})
@@ -61,12 +60,10 @@ add_compile_definitions(
     PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
 
-# Add Executables (Uses Globbing)
-add_executable(cli src/main_cli.cpp ${MAIN_SOURCE})
-add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
-add_executable(backup-ui src/backup-ui.cpp ${BACKUP_SOURCE})
 
+# ------------------------------------------------------------------------------
 # Dependencies...
+
 # Find Packages which Contain FindLib.cmake - Install: libssh-dev, libzstd-dev, zlib1g-dev, pkg-config
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -87,47 +84,41 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(libcron)
 message(STATUS "Fetched Libcron...")
 
+# ------------------------------------------------------------------------------
+
+# Add Executables (Uses Globbing)
+add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
+
 # QT (GUI): qt6-base-dev, qtcreator, libxkbcommon-dev
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
-set(GUI_SOURCES
-    src/main_gui.cpp
-    ${PROJECT_SOURCE_DIR}/include/gui/main_window.h
-    ${PROJECT_SOURCE_DIR}/include/gui/tabs/backup_tab.h
-    ${PROJECT_SOURCE_DIR}/include/gui/tabs/restore_tab.h
-    ${PROJECT_SOURCE_DIR}/include/gui/tabs/services_tab.h
+set(APP_SOURCES
+    src/main.cpp
+    ${GUI_HEADERS}
     ${GUI_FILES}
     ${MAIN_SOURCE}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(gui
+    qt_add_executable(main
         MANUAL_FINALIZATION
-        ${GUI_SOURCES}
+        ${APP_SOURCES}
     )
 else()
-    add_executable(gui
-        ${GUI_SOURCES}
+    add_executable(main
+        ${APP_SOURCES}
     )
 endif()
 
-set_target_properties(gui PROPERTIES
+set_target_properties(main PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
     AUTORCC ON
 )
 
 # Include Directories for Libraries in Main (CLI + GUI)
-target_include_directories(gui PRIVATE 
-    ${libcron_SOURCE_DIR}
-    ${LIBSSH_INCLUDE_DIRS}
-    ${ZLIB_INCLUDE_DIRS}
-    ${ZSTD_INCLUDE_DIRS}
-    ${OPENSSL_INCLUDE_DIR}
-)
-
-target_include_directories(cli PRIVATE 
+target_include_directories(main PRIVATE 
     ${libcron_SOURCE_DIR}
     ${LIBSSH_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
@@ -143,13 +134,8 @@ target_include_directories(scheduler PRIVATE
     ${ZSTD_INCLUDE_DIRS}
 )
 
-target_include_directories(backup-ui PRIVATE 
-    ${OPENSSL_INCLUDE_DIR}
-    ${ZSTD_INCLUDE_DIRS}
-)
-
 # Link Libraries for Main (CLI + GUI)
-target_link_libraries(gui PRIVATE
+target_link_libraries(main PRIVATE
     utils
     libcron
     ${LIBSSH_LIBRARIES}
@@ -158,16 +144,6 @@ target_link_libraries(gui PRIVATE
     OpenSSL::SSL 
     OpenSSL::Crypto
     Qt${QT_VERSION_MAJOR}::Widgets
-)
-
-target_link_libraries(cli PRIVATE
-    utils
-    libcron
-    ${LIBSSH_LIBRARIES}
-    ${ZLIB_LIBRARIES}
-    ${ZSTD_LIBRARIES}
-    OpenSSL::SSL 
-    OpenSSL::Crypto
 )
 
 # Link Libraries for Scheduler
@@ -180,21 +156,14 @@ target_link_libraries(scheduler PRIVATE
     ${ZSTD_LIBRARIES}
 )
 
-target_link_libraries(backup-ui PRIVATE 
-    utils
-    OpenSSL::SSL 
-    OpenSSL::Crypto
-    ${ZSTD_LIBRARIES}
-)
-
 # Additional Dependencies for GUI
 include(GNUInstallDirs)
-install(TARGETS gui
+install(TARGETS main
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(gui)
+    qt_finalize_executable(main)
 endif()

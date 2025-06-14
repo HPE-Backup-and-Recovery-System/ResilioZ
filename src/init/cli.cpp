@@ -1,3 +1,5 @@
+#include "init/cli.h"
+
 #include <exception>
 #include <iostream>
 #include <vector>
@@ -5,7 +7,7 @@
 #include "systems/all.h"
 #include "utils/utils.h"
 
-int main(int argc, char** argv) {
+int RunCLI(int argc, char** argv) {
   // UserIO::ClearTerminal();
   Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
   System* system = nullptr;

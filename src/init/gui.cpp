@@ -1,8 +1,10 @@
+#include "init/gui.h"
+
 #include <QApplication>
 
 #include "gui/main_window.h"
 
-int main(int argc, char *argv[]) {
+int RunGUI(int argc, char *argv[]) {
   QApplication a(argc, argv);
   MainWindow w;
   w.show();
