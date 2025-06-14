@@ -14,7 +14,14 @@ class BackupTab : public QWidget {
   explicit BackupTab(QWidget *parent = nullptr);
   ~BackupTab();
 
+ private slots:
+  void on_createBackupButton_clicked();
+  void on_nextButton_clicked();
+  void on_backButton_clicked();
+
  private:
+  void updateProgress();
+  void updateButtons();
   Ui::BackupTab *ui;
 };
 
