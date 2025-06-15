@@ -144,11 +144,25 @@ void NFSRepository::Delete() {
                 Logger::Log("Warning: Failed to remove chunk directories: " + chunks_path);
             }
 
+            // Delete files in dumps directory using find without sudo - exactly like chunks
+            std::string dumps_path = repo_path + "/dumps";
+            std::string delete_dumps_cmd = "find " + dumps_path + " -type f -exec rm -f {} \\;";
+            result = system(delete_dumps_cmd.c_str());
+            if (result != 0) {
+                Logger::Log("Warning: Failed to remove dumps files: " + dumps_path);
+            }
+
+            // Remove dumps directories without sudo - exactly like chunks
+            std::string rm_dumps_dirs = "find " + dumps_path + " -type d -exec rmdir {} \\; 2>/dev/null";
+            result = system(rm_dumps_dirs.c_str());
+            if (result != 0) {
+                Logger::Log("Warning: Failed to remove dumps directories: " + dumps_path);
+            }
+
             // Finally remove the repository directory itself
-            // We might need sudo here since the parent directory is owned by nobody:nogroup
             std::string rm_cmd = "sudo rm -rf " + repo_path;
             result = system(rm_cmd.c_str());
-            if (result != 0) {
+        if (result != 0) {
                 Logger::Log("Warning: Failed to remove repository directory: " + repo_path);
             }
 
