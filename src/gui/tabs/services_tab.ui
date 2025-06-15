@@ -34,7 +34,6 @@
      <property name="styleSheet">
       <string notr="true">QFrame{
 	border: none;
-	background: rgb(234, 234, 234);
 }</string>
      </property>
      <property name="frameShape">
