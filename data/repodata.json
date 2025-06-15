@@ -124,5 +124,12 @@
     "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
     "path": "/mnt/nfs_repositories",
     "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-14T18:50:25Z",
+    "name": "test3",
+    "password_hash": "3a4b0169e7cf5f6fa7d3c31ae7fa89ec7f22410d309ebcf2ab73ef401fe42a78",
+    "path": "/mnt/nfs_repositories",
+    "type": "nfs"
   }
 ]
