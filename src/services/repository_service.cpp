@@ -133,19 +133,21 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, server_ip, server_backup_path, password;
+  std::string name, server_ip, server_backup_path, client_mount_path, password;
   name = Prompter::PromptRepoName();
   server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
   server_backup_path = Prompter::PromptPath("NFS Server Export Path (e.g., /backup_pool)");
+  client_mount_path = Prompter::PromptPath("Local Mount Point (e.g., /mnt/temp)");
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
-  Logger::TerminalLog("Repository will be mounted at: /mnt/nfs_repositories/" + name);
+  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path + "/" + name);
 
   NFSRepository* repo = nullptr;
   try {
     repo = new NFSRepository(server_ip, server_backup_path, name, password, timestamp);
+    repo->SetMountPoint(client_mount_path);
     if (repo->Exists()) {
       ErrorUtil::ThrowError("Repository already exists at location: " +
                             repo->GetPath());
@@ -229,25 +231,7 @@ void RepositoryService::ListRepositories() {
 Repository* RepositoryService::FetchExistingRepository() {
   std::string name, path, password;
   name = Prompter::PromptRepoName("Existing Repository Name");
-  
-  // First try to find the repository by name to determine its type
-  auto all_entries = repodata_.GetAll();
-  std::string repo_type;
-  for (const auto& entry : all_entries) {
-    if (entry.name == name) {
-      repo_type = entry.type;
-      if (repo_type == "nfs") {
-        path = "/mnt/nfs_repositories";  // Use the base NFS mount point
-        break;
-      }
-    }
-  }
-  
-  // If not found or not NFS, prompt for path
-  if (repo_type != "nfs") {
   path = Prompter::PromptPath();
-  }
-  
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
@@ -282,6 +266,7 @@ Repository* RepositoryService::FetchExistingRepository() {
                              entry->name,
                              password,
                              entry->created_at);
+      ((NFSRepository*)repo)->SetMountPoint(path);
     } else if (entry->type == "remote") {
       repo = new RemoteRepository(entry->path, entry->name, password,
                                   entry->created_at);
@@ -311,25 +296,7 @@ Repository* RepositoryService::FetchExistingRepository() {
 void RepositoryService::DeleteRepository() {
   std::string name, path, password;
   name = Prompter::PromptRepoName("Repository Name to DELETE");
-  
-  // First try to find the repository by name to determine its type
-  auto all_entries = repodata_.GetAll();
-  std::string repo_type;
-  for (const auto& entry : all_entries) {
-    if (entry.name == name) {
-      repo_type = entry.type;
-      if (repo_type == "nfs") {
-        path = "/mnt/nfs_repositories";  // Use the base NFS mount point
-        break;
-      }
-    }
-  }
-  
-  // If not found or not NFS, prompt for path
-  if (repo_type != "nfs") {
   path = Prompter::PromptPath();
-  }
-  
   password = Prompter::PromptPassword("Password", false);
 
   Repository* repo = nullptr;
@@ -364,6 +331,7 @@ void RepositoryService::DeleteRepository() {
                              entry->name,
                              password,
                              entry->created_at);
+      ((NFSRepository*)repo)->SetMountPoint(path);
     } else if (entry->type == "remote") {
       repo = new RemoteRepository(entry->path, entry->name, password,
                                   entry->created_at);

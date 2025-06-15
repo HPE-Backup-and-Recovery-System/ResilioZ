@@ -89,7 +89,7 @@ message(STATUS "Fetched Libcron...")
 # Add Executables (Uses Globbing)
 add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
 
-# QT (GUI): qt6-base-dev, qtcreator, libxkbcommon-dev
+# QT (GUI): qt6-base-dev, qtcreator, libxkbcommon-dev, libgl1-mesa-dev
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 

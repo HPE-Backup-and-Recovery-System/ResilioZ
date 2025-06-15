@@ -29,17 +29,12 @@ NFSRepository::NFSRepository(const std::string& server_ip,
     password_ = password;
     created_at_ = created_at;
     type_ = RepositoryType::NFS;
-    
-    // Create base directory for NFS repositories if it doesn't exist
-    std::string base_dir = "/mnt/nfs_repositories";
-    std::string mkdir_cmd = "sudo mkdir -p " + base_dir;
-    int result = system(mkdir_cmd.c_str());
-    if (result != 0) {
-        ErrorUtil::ThrowError("Failed to create NFS repositories base directory: " + base_dir);
-    }
-    
-    // Set the path to the base directory
-    path_ = base_dir;
+    // Mount point will be set via SetMountPoint
+}
+
+void NFSRepository::SetMountPoint(const std::string& mount_point) {
+    mount_point_ = mount_point;
+    path_ = mount_point_;
 }
 
 bool NFSRepository::UploadFile(const std::string& local_file,
@@ -56,7 +51,7 @@ bool NFSRepository::UploadFile(const std::string& local_file,
     }
 
   // Set proper permissions
-  std::string chmod_cmd = "sudo chmod -R 777 " + remote_path;
+  std::string chmod_cmd = "sudo chmod -R 777 " + remote_path; // -R 777 is unsafe, please check 
   result = system(chmod_cmd.c_str());
   if (result != 0) {
     Logger::Log("Warning: Failed to set permissions on directory: " + remote_path);
@@ -239,153 +234,206 @@ NFSRepository NFSRepository::FromConfigJson(const nlohmann::json& config) {
 
 bool NFSRepository::NFSMountExists() const { 
     struct stat st;
-    if (stat("/mnt/nfs_repositories", &st) != 0) {
+    if (stat(mount_point_.c_str(), &st) != 0) {
         return false;
     }
     
     struct stat parent_st;
-    if (stat("/mnt", &parent_st) != 0) {
+    std::string parent_dir = fs::path(mount_point_).parent_path().string();
+    if (stat(parent_dir.c_str(), &parent_st) != 0) {
         return false;
     }
     
     return st.st_dev != parent_st.st_dev;
 }
 
-void NFSRepository::EnsureNFSMounted() const {
-    // Check if the base directory exists
-    struct stat st;
-    if (stat("/mnt/nfs_repositories", &st) != 0) {
-        std::string mkdir_cmd = "sudo mkdir -p /mnt/nfs_repositories";
+bool NFSRepository::MountNFSShare() const {
+    // Create mount point if it doesn't exist
+    if (!fs::exists(mount_point_)) {
+        std::string mkdir_cmd = "sudo mkdir -p " + mount_point_;
         int result = system(mkdir_cmd.c_str());
         if (result != 0) {
-            ErrorUtil::ThrowError("Failed to create NFS mount point: /mnt/nfs_repositories");
+            Logger::Log("Failed to create NFS mount point: " + mount_point_, LogLevel::ERROR);
+            return false;
+        }
+        Logger::Log("Created mount point: " + mount_point_);
+    }
+
+    // Check if already mounted
+    bool currently_mounted = false;
+    try {
+        struct stat st;
+        struct stat parent_st;
+        std::string parent_dir = fs::path(mount_point_).parent_path().string();
+        
+        if (stat(mount_point_.c_str(), &st) == 0 && 
+            stat(parent_dir.c_str(), &parent_st) == 0) {
+            currently_mounted = (st.st_dev != parent_st.st_dev);
+        }
+    } catch (const std::exception& e) {
+        Logger::Log("Warning: Error checking mount status: " + std::string(e.what()), LogLevel::WARNING);
+    }
+
+    // If mounted, unmount first
+    if (currently_mounted) {
+        Logger::Log("Unmounting existing NFS mount...");
+        std::string umount_cmd = "sudo umount -f " + mount_point_ + " 2>/dev/null";
+        int umount_result = system(umount_cmd.c_str());
+        if (umount_result != 0) {
+            Logger::Log("Warning: Failed to unmount existing mount point", LogLevel::WARNING);
         }
     }
-    
-    struct stat parent_st;
-    if (stat("/mnt", &parent_st) != 0) {
-        ErrorUtil::ThrowError("Parent directory does not exist");
-    }
-    
-    // If not mounted, mount the entire NFS share
-    if (st.st_dev == parent_st.st_dev) {
-        std::string umount_cmd = "sudo umount -f /mnt/nfs_repositories 2>/dev/null";
-        system(umount_cmd.c_str()); // Ignore errors from unmount
 
-        int max_retries = 3;
-        int retry_count = 0;
-        bool mount_success = false;
-        bool server_reachable = false;
+    int max_retries = 3;
+    int retry_count = 0;
+    bool mount_success = false;
+    std::string mount_output;
 
-        while (retry_count < max_retries && !mount_success) {
-            if (retry_count > 0) {
-                Logger::Log("Re-establishing connection to NFS server...");
-                int wait_time = 5 * (1 << retry_count); // Start with 5 seconds, then 10, then 20
-                std::this_thread::sleep_for(std::chrono::seconds(wait_time));
+    while (retry_count < max_retries && !mount_success) {
+        if (retry_count > 0) {
+            Logger::Log("Re-establishing connection to NFS server...");
+            int wait_time = 5 * (1 << retry_count); // Start with 5 seconds, then 10, then 20
+            std::this_thread::sleep_for(std::chrono::seconds(wait_time));
+        }
+
+        Logger::Log("Attempting to mount NFS share from " + server_ip_ + ":" + server_backup_path_);
+
+        // Try simple mount first
+        std::string mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " " + mount_point_ + " 2>&1";
+        FILE* pipe = popen(mount_cmd.c_str(), "r");
+        if (pipe) {
+            char buffer[128];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                mount_output += buffer;
             }
-
-            // First check if server responds to ping
-            std::string ping_cmd = "ping -c 1 -W 5 " + server_ip_ + " > /dev/null 2>&1";
-            int result = system(ping_cmd.c_str());
-            
+            int result = pclose(pipe);
             if (result == 0) {
-                server_reachable = true;
-                Logger::Log("Server " + server_ip_ + " is reachable, attempting to mount...");
+                mount_success = true;
+                Logger::Log("Successfully mounted NFS share");
+                break;
+            }
+            Logger::Log("Mount attempt failed: " + mount_output, LogLevel::WARNING);
+        }
 
-                // Try simple mount first
-                std::string mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " /mnt/nfs_repositories";
-                result = system(mount_cmd.c_str());
-                
-                if (result == 0) {
-                    mount_success = true;
-                    Logger::Log("Successfully mounted NFS share");
-                    break;
+        // If simple mount fails, try with explicit options
+        if (!mount_success) {
+            mount_cmd = "sudo mount -t nfs -o rw,soft,intr " + server_ip_ + ":" + server_backup_path_ + " " + mount_point_ + " 2>&1";
+            pipe = popen(mount_cmd.c_str(), "r");
+            if (pipe) {
+                char buffer[128];
+                mount_output.clear();
+                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                    mount_output += buffer;
                 }
-
-                // If simple mount fails, try with explicit options
-                mount_cmd = "sudo mount -t nfs -o rw,soft,intr " + server_ip_ + ":" + server_backup_path_ + " /mnt/nfs_repositories";
-        result = system(mount_cmd.c_str());
-                
+                int result = pclose(pipe);
                 if (result == 0) {
                     mount_success = true;
                     Logger::Log("Successfully mounted NFS share with explicit options");
                     break;
                 }
-
-                // Log the specific mount error
-                Logger::Log("Mount attempt failed: " + std::string(strerror(errno)), LogLevel::WARNING);
-
-                if (retry_count < max_retries - 1) {
-                    Logger::Log("Mount failed but server is reachable. Will retry in " + std::to_string(5 * (1 << (retry_count + 1))) + " seconds...");
-                }
-            } else {
-                Logger::Log("Server " + server_ip_ + " is not responding to ping", LogLevel::WARNING);
+                Logger::Log("Mount attempt with options failed: " + mount_output, LogLevel::WARNING);
             }
-
-            retry_count++;
         }
 
-        if (!mount_success) {
-            std::string error_msg = "Failed to mount NFS share from " + server_ip_ + ":" + server_backup_path_ + 
-                                  " to /mnt/nfs_repositories\n";
-            
-            if (!server_reachable) {
-                error_msg += "Server is not reachable. Please check:\n";
-                error_msg += "1. The server IP address is correct\n";
-                error_msg += "2. The server is running\n";
-                error_msg += "3. There are no firewall rules blocking access\n";
-            } else {
-                error_msg += "Server is reachable but mount failed. Please check:\n";
-                error_msg += "1. The NFS service is running on the server\n";
-                error_msg += "2. The export path '" + server_backup_path_ + "' exists and is exported\n";
-                error_msg += "3. The NFS export permissions allow this client to mount\n";
-                error_msg += "4. Error details: " + std::string(strerror(errno)) + "\n";
-            }
-            
-            ErrorUtil::ThrowError(error_msg);
-        }
+        retry_count++;
+    }
 
+    if (mount_success) {
         // Set proper permissions on the mount point
-        std::string chmod_cmd = "sudo chmod 777 /mnt/nfs_repositories";
+        std::string chown_cmd = "sudo chown $USER:$USER " + mount_point_;
+        int chown_result = system(chown_cmd.c_str());
+        if (chown_result != 0) {
+            Logger::Log("Warning: Failed to set ownership on mount point", LogLevel::WARNING);
+        }
+
+        std::string chmod_cmd = "sudo chmod 777 " + mount_point_;
         int chmod_result = system(chmod_cmd.c_str());
         if (chmod_result != 0) {
-            Logger::Log("Warning: Failed to set permissions on NFS mount point");
+            Logger::Log("Warning: Failed to set permissions on mount point", LogLevel::WARNING);
+        }
+
+        // Create the repository directory if it doesn't exist
+        std::string repo_path = path_ + "/" + name_;
+        std::string mkdir_cmd = "sudo mkdir -p " + repo_path;
+        int mkdir_result = system(mkdir_cmd.c_str());
+        if (mkdir_result != 0) {
+            Logger::Log("Warning: Failed to create repository directory", LogLevel::WARNING);
+        }
+                
+        // Set proper permissions on the repository directory
+        chmod_cmd = "sudo chmod 777 " + repo_path;
+        chmod_result = system(chmod_cmd.c_str());
+        if (chmod_result != 0) {
+            Logger::Log("Warning: Failed to set permissions on repository directory", LogLevel::WARNING);
+        }
+
+        chown_cmd = "sudo chown $USER:$USER " + repo_path;
+        chown_result = system(chown_cmd.c_str());
+        if (chown_result != 0) {
+            Logger::Log("Warning: Failed to set ownership on repository directory", LogLevel::WARNING);
         }
     }
 
-    // Create the repository directory if it doesn't exist
-    std::string repo_path = path_ + "/" + name_;
-    std::string mkdir_cmd = "sudo mkdir -p " + repo_path;
-    int mkdir_result = system(mkdir_cmd.c_str());
-    if (mkdir_result != 0) {
-        ErrorUtil::ThrowError("Failed to create repository directory: " + repo_path);
+    return mount_success;
+}
+
+void NFSRepository::EnsureNFSMounted() const {
+    // First check if server responds to ping
+    Logger::Log("Checking if server " + server_ip_ + " is reachable...");
+    std::string ping_cmd = "ping -c 1 -W 5 " + server_ip_ + " > /dev/null 2>&1";
+    int result = system(ping_cmd.c_str());
+    bool server_reachable = (result == 0);
+    
+    if (!server_reachable) {
+        std::string error_msg = "Server " + server_ip_ + " is not reachable. Please check:\n";
+        error_msg += "1. The server IP address is correct\n";
+        error_msg += "2. The server is running\n";
+        error_msg += "3. There are no firewall rules blocking access\n";
+        error_msg += "4. The server is actually an NFS server (not just any pingable machine)\n";
+        ErrorUtil::ThrowError(error_msg);
     }
-            
-    // Set proper permissions on the repository directory
-    std::string chmod_cmd = "sudo chmod 777 " + repo_path;
-    int chmod_result = system(chmod_cmd.c_str());
-    if (chmod_result != 0) {
-        Logger::Log("Warning: Failed to set permissions on repository directory: " + repo_path);
+
+    Logger::Log("Server " + server_ip_ + " is reachable, attempting to mount...");
+
+    if (!MountNFSShare()) {
+        std::string error_msg = "Failed to mount NFS share from " + server_ip_ + ":" + server_backup_path_ + 
+                              " to " + mount_point_ + "\n";
+        error_msg += "Server is reachable but mount failed. Please check:\n";
+        error_msg += "1. The NFS service is running on the server\n";
+        error_msg += "2. The export path '" + server_backup_path_ + "' exists and is exported\n";
+        error_msg += "3. The NFS export permissions allow this client to mount\n";
+        error_msg += "4. The server is actually running an NFS service\n";
+        ErrorUtil::ThrowError(error_msg);
     }
 }
 
 void NFSRepository::CreateRemoteDirectory() const {
-    std::string cmd = "sudo mkdir -p " + path_;
-    int result = system(cmd.c_str());
-    if (result != 0) {
-        ErrorUtil::ThrowError("Failed to create NFS repository directory: " + path_);
-    }
-
+    // No need to create the path directory since it's already created in EnsureNFSMounted
+    
+    // Test write access with sudo
     std::string test_file = path_ + "/.test_write";
-    std::string touch_cmd = "touch " + test_file;
-    result = system(touch_cmd.c_str());
+    std::string touch_cmd = "sudo touch " + test_file;
+    int result = system(touch_cmd.c_str());
     if (result != 0) {
         ErrorUtil::ThrowError("Failed to write to NFS share. Please check your permissions on the NFS server.");
     }
 
+    // Set permissions on the test file
+    std::string chmod_cmd = "sudo chmod 666 " + test_file;
+    result = system(chmod_cmd.c_str());
+    if (result != 0) {
+        Logger::Log("Warning: Failed to set permissions on test file");
+    }
+
+    // Try to remove the test file without sudo (to verify user permissions)
     std::string rm_cmd = "rm -f " + test_file;
     result = system(rm_cmd.c_str());
     if (result != 0) {
-        Logger::Log("Warning: Failed to remove test file: " + test_file);
+        // If regular remove fails, use sudo
+        rm_cmd = "sudo rm -f " + test_file;
+        result = system(rm_cmd.c_str());
+        if (result != 0) {
+            Logger::Log("Warning: Failed to remove test file: " + test_file);
+        }
     }
 }
