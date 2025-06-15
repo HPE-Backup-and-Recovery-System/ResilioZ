@@ -13,7 +13,6 @@ bool IsValidSftpPath(const std::string& path);
 bool IsValidPassword(const std::string& password);
 bool IsValidRepoName(const std::string& name);
 bool IsValidIpAddress(const std::string& ip);
-bool IsValidBackupType(const std::string& type);
 bool IsValidCronString(const std::string& cron_string);
 bool IsValidScheduleId(const std::string& cron_string);
 

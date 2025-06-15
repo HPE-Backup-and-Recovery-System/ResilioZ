@@ -3,10 +3,12 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "services/scheduler_service.h"
+#include "backup_restore/backup.hpp"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/prompter.h"
@@ -24,7 +26,7 @@ void SchedulerService::Log(){
 }
 
 
-void SchedulerService::sendRequest(const char *message){
+void SchedulerService::SendRequest(const char *message){
     int client_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (client_fd < 0) {
         ErrorUtil::ThrowError("Socket creation failed");
@@ -54,22 +56,35 @@ void SchedulerService::sendRequest(const char *message){
     return;
 }
 
-void SchedulerService::addSchedule(){
+void SchedulerService::AddSchedule(){
     UserIO::DisplayTitle("Adding Schedule");
-    std::string schedule, backup_type;
+    std::string schedule, backup_type, source, destination,remarks;
+    std::vector<std::string> menu;
+    int choice;
+    BackupType type;
 
     schedule = Prompter::PromptCronString();
-    backup_type = Prompter::PromptBackupType();
+
+    source = Prompter::PromptPath("Path to Backup Source");
+    destination = Prompter::PromptPath("Path to Backup Destination");
+    menu = {"Full Backup", "Incremental Backup", "Differential Backup"};
+    choice = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Backup Type", false), menu);
+    type = static_cast<BackupType>(choice);
+    remarks = Prompter::PromptInput("Remarks for Backup (Optional)");
     
     nlohmann::json reqBody;
     reqBody["action"] = "add";
     reqBody["payload"] = schedule;
-    reqBody["type"] = backup_type;
+    reqBody["source"] = source;
+    reqBody["destination"] = destination;
+    reqBody["type"] = type;
+    reqBody["remarks"] = remarks;
 
-    sendRequest(reqBody.dump().c_str());
+    SendRequest(reqBody.dump().c_str());
 }
 
-void SchedulerService::removeSchedule(){
+void SchedulerService::RemoveSchedule(){
     UserIO::DisplayTitle("Removing Schedule");
     std::string schedule_id;
     
@@ -79,19 +94,19 @@ void SchedulerService::removeSchedule(){
     reqBody["action"] = "remove";
     reqBody["payload"] = schedule_id;
     
-    sendRequest(reqBody.dump().c_str());
+    SendRequest(reqBody.dump().c_str());
 }
 
-void SchedulerService::viewSchedules(){
+void SchedulerService::ViewSchedules(){
     UserIO::DisplayTitle("Viewing All Schedules");
             
     nlohmann::json reqBody;
     reqBody["action"] = "view";
 
-    sendRequest(reqBody.dump().c_str());
+    SendRequest(reqBody.dump().c_str());
 }
 
-void SchedulerService::terminateScheduler(){
+void SchedulerService::TerminateScheduler(){
     // Making sure server shuts down
     char confirm;
     std::cout << "Enter Y to confirm termination of scheduler\n";
@@ -101,11 +116,11 @@ void SchedulerService::terminateScheduler(){
     if (confirm == 'Y' || confirm == 'y'){
         nlohmann::json reqBody;
         reqBody["action"] = "exit";
-        sendRequest(reqBody.dump().c_str());
+        SendRequest(reqBody.dump().c_str());
     }
 }
 
-void SchedulerService::showMainMenu(){
+void SchedulerService::ShowMainMenu(){
     std::vector<std::string> main_menu = {
       "Go BACK...", "Create New Schedule", "List All Schedules",
       "Delete Schedule"};
@@ -120,13 +135,13 @@ void SchedulerService::showMainMenu(){
             std::cout << "\n - Going Back...\n";
             return;
             case 1:
-            addSchedule();
+            AddSchedule();
             break;
             case 2:
-            viewSchedules();
+            ViewSchedules();
             break;
             case 3:
-            removeSchedule();
+            RemoveSchedule();
             break;
             default:
             Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
@@ -139,5 +154,5 @@ void SchedulerService::showMainMenu(){
 
 void SchedulerService::Run(){
     // Main user loop
-    showMainMenu();
+    ShowMainMenu();
 }
