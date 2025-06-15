@@ -71,7 +71,7 @@ bool RepositoryService::CreateNewRepository(bool loop) {
       switch (choice) {
         case 0:
           std::cout << " - Going Back...\n";
-          return true;
+          return false;
         case 1:
           InitLocalRepositoryFromPrompt();
           return true;
