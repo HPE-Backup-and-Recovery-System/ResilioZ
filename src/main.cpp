@@ -1,45 +1,23 @@
-#include <exception>
 #include <iostream>
-#include <vector>
+#include <string>
 
-#include "systems/all.h"
-#include "utils/utils.h"
+#include "init/init.h"
 
-int main(int argc, char** argv) {
-  // UserIO::ClearTerminal();
-  Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
-  System* system = nullptr;
-
-  std::vector<std::string> main_menu = {
-      "EXIT...", "Backup System", "Restore System", "Others (Services System)"};
-  while (true) {
-    int choice = UserIO::HandleMenuWithSelect(
-        UserIO::DisplayMaxTitle("SYSTEMS", false), main_menu);
-
-    switch (choice) {
-      case 0: {
-        std::cout << " - Exiting...\n\n";
-        return EXIT_SUCCESS;
-      }
-      case 1: {
-        system = new BackupSystem();
-        system->Run();
-        break;
-      }
-      case 2: {
-        system = new RestoreSystem();
-        system->Run();
-        break;
-      }
-      case 3: {
-        system = new ServicesSystem();
-        system->Run();
-        break;
-      }
-      default: {
-        Logger::TerminalLog("Menu Mismatch...", LogLevel::ERROR);
-      }
-    }
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " --cli | --gui" << std::endl;
+    return 1;
   }
-  return EXIT_FAILURE;
+
+  std::string mode(argv[1]);
+  if (mode == "--cli") {
+    (void)RunCLI(argc, argv);
+  } else if (mode == "--gui") {
+    (void)RunGUI(argc, argv);
+  } else {
+    std::cerr << "Invalid argument: " << mode << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
 }
