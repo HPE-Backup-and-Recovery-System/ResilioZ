@@ -12,6 +12,8 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <sstream>
+#include <thread>
+#include <atomic>
 
 #include "backup_restore/progress.hpp"
 #include "utils/error_util.h"
@@ -80,25 +82,85 @@ void Backup::BackupFile(const fs::path& file_path) {
     size_t processed_bytes = 0;
     size_t processed_chunks = 0;
 
-    // Use streaming chunking
-    chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
-      try {
-        // Compress the chunk before saving
-        Chunk compressed_chunk = CompressChunk(chunk);
-        file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
-        SaveChunk(compressed_chunk);
+    // Atomic flags for thread synchronization
+    std::atomic<bool> progress_made{false};
+    std::atomic<bool> abort_requested{false};
+    std::atomic<bool> chunking_completed{false};
 
-        // Update progress
-        processed_bytes += chunk.size;
-        processed_chunks++;
-        progress.Update(processed_bytes, processed_chunks);
+    // Create a thread for the chunking operation
+    std::thread chunking_thread([&]() {
+      try {
+        chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
+          // Check for abort request
+          if (abort_requested) {
+            throw std::runtime_error("Aborted by watchdog");
+          }
+
+          // Process the chunk
+          try {
+            Chunk compressed_chunk = CompressChunk(chunk);
+            file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
+            SaveChunk(compressed_chunk);
+
+            // Update progress
+            processed_bytes += chunk.size;
+            processed_chunks++;
+            progress.Update(processed_bytes, processed_chunks);
+
+            // Signal progress
+            progress_made = true;
+          } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
+          }
+        });
+
+        chunking_completed = true;
       } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
+        // Propagate the error but ensure chunking_completed is set
+        chunking_completed = true;
+        throw;
       }
     });
 
-    progress.Complete();
-    metadata_.files[file_path.string()] = file_metadata;
+    // Watchdog loop in main thread
+    int failure_count = 0;
+    const int MAX_FAILURES = 3;
+    const auto CHECK_INTERVAL = std::chrono::seconds(3);
+
+    while (!chunking_completed) {
+      // Sleep for check interval
+      std::this_thread::sleep_for(CHECK_INTERVAL);
+
+      // Check if progress was made
+      if (progress_made) {
+        progress_made = false;  // Reset for next interval
+        failure_count = 0;      // Reset failure count on progress
+      } else {
+        failure_count++;
+        Logger::Log("No progress detected for " + std::to_string(failure_count * 3) + 
+                   " seconds while backing up " + file_path.string(), LogLevel::WARNING);
+
+        if (failure_count >= MAX_FAILURES) {
+          Logger::Log("Backup operation appears frozen, aborting backup of " + 
+                     file_path.string(), LogLevel::ERROR);
+          abort_requested = true;
+          break;
+        }
+      }
+    }
+
+    // Wait for chunking thread to finish
+    if (chunking_thread.joinable()) {
+      chunking_thread.join();
+    }
+
+    // If we completed successfully, update metadata and progress
+    if (!abort_requested) {
+      progress.Complete();
+      metadata_.files[file_path.string()] = file_metadata;
+    } else {
+      throw std::runtime_error("Backup aborted due to lack of progress");
+    }
 
   } catch (const std::exception& e) {
     throw std::runtime_error("Failed to backup file: " + std::string(e.what()));
