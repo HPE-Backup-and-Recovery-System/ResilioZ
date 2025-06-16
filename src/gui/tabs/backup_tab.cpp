@@ -1,5 +1,8 @@
 #include "gui/tabs/backup_tab.h"
 
+#include <QMessageBox>
+
+#include "gui/dialog/create_repository_dialog.h"
 #include "gui/tabs/ui_backup_tab.h"
 
 BackupTab::BackupTab(QWidget *parent) : QWidget(parent), ui(new Ui::BackupTab) {
@@ -59,4 +62,16 @@ void BackupTab::on_backButton_clicked() {
     ui->stackedWidget->setCurrentIndex(0);
   }
   updateProgress();
+}
+
+void BackupTab::on_createRepoButton_clicked() {
+  CreateRepositoryDialog dialog(this);
+  dialog.setWindowFlags(Qt::Window);
+  if (dialog.exec() == QDialog::Accepted) {
+    repository_ = nullptr; // TODO...
+    QMessageBox::information(this, "Success", "Repository created.");
+  } else {
+    repository_ = nullptr;
+    QMessageBox::warning(this, "Warning", "Repository not created.");
+  }
 }

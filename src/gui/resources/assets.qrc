@@ -7,5 +7,6 @@
         <file>icons/square-plus.svg</file>
         <file>icons/list.svg</file>
         <file>icons/code-compare.svg</file>
+        <file>icons/box-open.svg</file>
     </qresource>
 </RCC>

@@ -46,7 +46,6 @@
      <property name="styleSheet">
       <string notr="true">QFrame{
 	border: none;
-	background: rgb(234, 234, 234);
 }</string>
      </property>
      <property name="frameShape">
@@ -97,7 +96,7 @@ QLabel {
         <property name="currentIndex">
          <number>1</number>
         </property>
-        <widget class="QWidget" name="page">
+        <widget class="QWidget" name="menuPage">
          <property name="autoFillBackground">
           <bool>true</bool>
          </property>
@@ -309,7 +308,7 @@ QLabel {
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="page_2">
+        <widget class="QWidget" name="createBackupPage">
          <layout class="QGridLayout" name="gridLayout_7">
           <property name="leftMargin">
            <number>0</number>
@@ -352,12 +351,6 @@ QLabel {
                 <enum>QFrame::Raised</enum>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_2">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
                 <item>
                  <widget class="QFrame" name="frame_7">
                   <property name="styleSheet">
@@ -454,17 +447,17 @@ QLabel {
                   </layout>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QProgressBar" name="progressBar">
+                  <property name="value">
+                   <number>33</number>
+                  </property>
+                  <property name="textVisible">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
                </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QProgressBar" name="progressBar">
-               <property name="value">
-                <number>33</number>
-               </property>
-               <property name="textVisible">
-                <bool>false</bool>
-               </property>
               </widget>
              </item>
              <item>
@@ -490,7 +483,105 @@ QLabel {
                 </property>
                 <item row="1" column="0">
                  <widget class="QStackedWidget" name="stackedWidget_createBackup">
-                  <widget class="QWidget" name="page_3"/>
+                  <property name="layoutDirection">
+                   <enum>Qt::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton {
+	padding-top: 128px;
+	padding-bottom: 128px;
+	font-size: 28px;
+}</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>0</number>
+                  </property>
+                  <widget class="QWidget" name="backupRepoPage">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="layoutDirection">
+                    <enum>Qt::LeftToRight</enum>
+                   </property>
+                   <layout class="QGridLayout" name="gridLayout_8">
+                    <property name="leftMargin">
+                     <number>9</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>30</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>9</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>30</number>
+                    </property>
+                    <property name="spacing">
+                     <number>30</number>
+                    </property>
+                    <item row="0" column="1">
+                     <widget class="QPushButton" name="useRepoButton">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true"/>
+                      </property>
+                      <property name="text">
+                       <string> Use Existing Repository</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../resources/assets.qrc">
+                        <normaloff>:/assets/icons/icons/box-open.svg</normaloff>:/assets/icons/icons/box-open.svg</iconset>
+                      </property>
+                      <property name="iconSize">
+                       <size>
+                        <width>36</width>
+                        <height>36</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QPushButton" name="createRepoButton">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true"/>
+                      </property>
+                      <property name="text">
+                       <string> Create New Repository</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../resources/assets.qrc">
+                        <normaloff>:/assets/icons/icons/square-plus.svg</normaloff>:/assets/icons/icons/square-plus.svg</iconset>
+                      </property>
+                      <property name="iconSize">
+                       <size>
+                        <width>36</width>
+                        <height>36</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
                   <widget class="QWidget" name="page_4"/>
                   <widget class="QWidget" name="page_5"/>
                  </widget>
@@ -510,6 +601,10 @@ QPushButton#backButton {
 	border: 1px solid rgb(29, 31, 39);
 }
 
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
 QPushButton#backButton:disabled {
 	background: lightgrey;
 	color: darkgrey;
@@ -524,13 +619,13 @@ QPushButton#backButton:disabled {
                   </property>
                   <layout class="QHBoxLayout" name="horizontalLayout_4">
                    <property name="spacing">
-                    <number>90</number>
+                    <number>30</number>
                    </property>
                    <property name="leftMargin">
-                    <number>45</number>
+                    <number>9</number>
                    </property>
                    <property name="rightMargin">
-                    <number>45</number>
+                    <number>9</number>
                    </property>
                    <item>
                     <widget class="QPushButton" name="backButton">

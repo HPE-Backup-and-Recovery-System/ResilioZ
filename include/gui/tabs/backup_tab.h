@@ -3,6 +3,10 @@
 
 #include <QWidget>
 
+#include "repositories/repository.h"
+#include "services/all.h"
+#include "systems/system.h"
+
 namespace Ui {
 class BackupTab;
 }
@@ -11,7 +15,7 @@ class BackupTab : public QWidget {
   Q_OBJECT
 
  public:
-  explicit BackupTab(QWidget *parent = nullptr);
+  explicit BackupTab(QWidget* parent = nullptr);
   ~BackupTab();
 
  private slots:
@@ -19,10 +23,17 @@ class BackupTab : public QWidget {
   void on_nextButton_clicked();
   void on_backButton_clicked();
 
- private:
+  void on_createRepoButton_clicked();
+
+  private:
   void updateProgress();
   void updateButtons();
-  Ui::BackupTab *ui;
+  
+  Ui::BackupTab* ui;
+
+  Repository* repository_;
+  RepositoryService* repo_service_;
+  SchedulerService* scheduler_service_;
 };
 
 #endif  // BACKUP_TAB_H
