@@ -111,66 +111,24 @@ void NFSRepository::Initialize() {
 
 void NFSRepository::Delete() {
     try {
-        std::string repo_path = path_ + "/" + name_;
+        std::string repo_path_str = path_ + "/" + name_;
+        fs::path repo_path(repo_path_str);
         
         if (NFSMountExists()) {
-            // Delete files in backup directory using find without sudo
-            std::string backup_path = repo_path + "/backup";
-            std::string delete_backup_cmd = "find " + backup_path + " -type f -exec rm -f {} \\;";
-            int result = system(delete_backup_cmd.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove backup files: " + backup_path);
-            }
-
-            // Remove backup directories without sudo
-            std::string rm_backup_dirs = "find " + backup_path + " -type d -exec rmdir {} \\; 2>/dev/null";
-            result = system(rm_backup_dirs.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove backup directories: " + backup_path);
-            }
-
-            // Delete files in chunks directory using find without sudo
-            std::string chunks_path = repo_path + "/chunks";
-            std::string delete_chunks_cmd = "find " + chunks_path + " -type f -exec rm -f {} \\;";
-            result = system(delete_chunks_cmd.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove chunk files: " + chunks_path);
-            }
-
-            // Remove chunk directories without sudo
-            std::string rm_chunk_dirs = "find " + chunks_path + " -type d -exec rmdir {} \\; 2>/dev/null";
-            result = system(rm_chunk_dirs.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove chunk directories: " + chunks_path);
-            }
-
-            // Delete files in dumps directory using find without sudo - exactly like chunks
-            std::string dumps_path = repo_path + "/dumps";
-            std::string delete_dumps_cmd = "find " + dumps_path + " -type f -exec rm -f {} \\;";
-            result = system(delete_dumps_cmd.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove dumps files: " + dumps_path);
-            }
-
-            // Remove dumps directories without sudo - exactly like chunks
-            std::string rm_dumps_dirs = "find " + dumps_path + " -type d -exec rmdir {} \\; 2>/dev/null";
-            result = system(rm_dumps_dirs.c_str());
-            if (result != 0) {
-                Logger::Log("Warning: Failed to remove dumps directories: " + dumps_path);
-            }
-
-            // Finally remove the repository directory itself
-            std::string rm_cmd = "sudo rm -rf " + repo_path;
-            result = system(rm_cmd.c_str());
-        if (result != 0) {
-                Logger::Log("Warning: Failed to remove repository directory: " + repo_path);
-            }
-
-            // Verify if anything remains
             if (fs::exists(repo_path)) {
-                Logger::Log("Warning: Some files could not be deleted in: " + repo_path);
+                try {
+                    fs::remove_all(repo_path);
+                } catch (const fs::filesystem_error& e) {
+                    ErrorUtil::ThrowError("Failed to remove repository '" + name_ + "': " + e.what() + 
+                                          ".\nThis is likely a file permission issue. Files on the NFS share seem to be created with 'sudo', which may prevent this program from deleting them."
+                                          " Consider running this program with 'sudo' or fixing file permissions on the share.");
+                }
+            }
+
+            if (fs::exists(repo_path)) {
+                Logger::Log("Warning: Repository directory could not be fully deleted: " + repo_path_str, LogLevel::WARNING);
             } else {
-                Logger::Log("Successfully removed NFS repository: " + repo_path);
+                Logger::Log("Successfully removed NFS repository: " + repo_path_str);
             }
         } else {
             Logger::Log("NFS mount not found, skipping repository deletion");
