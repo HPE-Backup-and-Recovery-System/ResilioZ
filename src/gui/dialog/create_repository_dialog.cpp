@@ -1,8 +1,8 @@
 #include "gui/dialog/create_repository_dialog.h"
 
-#include <QMessageBox>
 #include <QString>
 
+#include "gui/decorators/message_box.h"
 #include "gui/dialog/ui_create_repository_dialog.h"
 #include "utils/utils.h"
 
@@ -72,7 +72,9 @@ void CreateRepositoryDialog::on_nextButton_clicked() {
     ui->stackedWidget_createRepo->setCurrentIndex(index + 1);
   } else {
     // TODO: Create Repo
-    QMessageBox::information(this, "Success", "Repository created." + type_);
+    MessageBoxDecorator::ShowMessageBox(this, "Success",
+                                        "Repository created." + type_,
+                                        QMessageBox::Information);
     accept();
   }
   updateProgress();
@@ -111,48 +113,60 @@ bool CreateRepositoryDialog::handleRepoDetails() {
   if (type_ == "local") {
     name_ = ui->localNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      QMessageBox::warning(this, "Warning", "Repository name is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "Repository name is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
     path_ = ui->localPathInput->text();
     if (!Validator::IsValidPath(path_.toStdString())) {
-      QMessageBox::warning(this, "Warning",
-                           "Path for local repository is invalid.");
+      MessageBoxDecorator::ShowMessageBox(
+          this, "Invalid Input", "Path for local repository is invalid.",
+          QMessageBox::Warning);
       return false;
     }
   } else if (type_ == "nfs") {
     name_ = ui->nfsNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      QMessageBox::warning(this, "Warning", "Repository name is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "Repository name is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
     server_ip_ = ui->nfsServerIpInput->text();
     if (!Validator::IsValidIpAddress(server_ip_.toStdString())) {
-      QMessageBox::warning(this, "Warning", "Server IP address is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "NFS server IP address is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
     server_backup_path_ = ui->nfsServerBackupPathInput->text();
     if (!Validator::IsValidLocalPath(server_backup_path_.toStdString())) {
-      QMessageBox::warning(this, "Warning",
-                           "NFS server backup path is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "NFS server backup path is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
     client_mount_path_ = ui->nfsClientMountPathInput->text();
     if (!Validator::IsValidMountPath(client_mount_path_.toStdString())) {
-      QMessageBox::warning(this, "Warning",
-                           "NFS client mount path is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "NFS client mount path is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
   } else if (type_ == "remote") {
     name_ = ui->remoteNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      QMessageBox::warning(this, "Warning", "Repository name is invalid.");
+      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+                                          "Repository name is invalid.",
+                                          QMessageBox::Warning);
       return false;
     }
     path_ = ui->remotePathInput->text();
     if (!Validator::IsValidSftpPath(path_.toStdString())) {
-      QMessageBox::warning(this, "Warning",
-                           "Path for remote repository is invalid.");
+      MessageBoxDecorator::ShowMessageBox(
+          this, "Invalid Input", "Path for remote repository is invalid.",
+          QMessageBox::Warning);
       return false;
     }
   }
@@ -162,13 +176,16 @@ bool CreateRepositoryDialog::handleRepoDetails() {
 bool CreateRepositoryDialog::handleSetPassword() {
   password_ = ui->passwordInput->text();
   if (!Validator::IsValidPassword(password_.toStdString())) {
-    QMessageBox::warning(this, "Warning", "Password is invalid.");
+    MessageBoxDecorator::ShowMessageBox(
+        this, "Invalid Password", "Password is invalid.", QMessageBox::Warning);
     return false;
   }
 
   QString password_confirm = ui->passwordConfirmInput->text();
   if (password_ != password_confirm) {
-    QMessageBox::warning(this, "Warning", "Passwords do not match.");
+    MessageBoxDecorator::ShowMessageBox(this, "Invalid Password",
+                                        "Passwords do not match.",
+                                        QMessageBox::Warning);
     return false;
   }
   return true;
