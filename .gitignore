@@ -176,3 +176,6 @@ CMakeLists.txt.user*
 *vcxproj.*
 
 *.pyc
+
+# Ignore data directory
+/data/

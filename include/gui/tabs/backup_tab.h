@@ -24,11 +24,12 @@ class BackupTab : public QWidget {
   void on_backButton_clicked();
 
   void on_createRepoButton_clicked();
+  void on_useRepoButton_clicked();
 
-  private:
+ private:
   void updateProgress();
   void updateButtons();
-  
+
   Ui::BackupTab* ui;
 
   Repository* repository_;

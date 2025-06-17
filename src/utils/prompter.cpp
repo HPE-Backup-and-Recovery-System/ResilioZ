@@ -71,7 +71,7 @@ std::string Prompter::PromptPassword(const std::string& prompt_msg,
 }
 
 std::string Prompter::PromptPath(const std::string& prompt_msg) {
-  return Prompter::PromptUntilValid(Validator::IsValidPassword, "Path",
+  return Prompter::PromptUntilValid(Validator::IsValidPath, "Path",
                                     prompt_msg);
 }
 

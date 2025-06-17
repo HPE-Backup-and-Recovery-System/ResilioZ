@@ -20,7 +20,11 @@
    <string>Create New Repository</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QDialog {
+   <string notr="true">* {
+	font-family: &quot;Ubuntu Sans&quot;;
+}
+
+QDialog#CreateRepositoryDialog {
 	background-color: rgb(6, 134, 103);
 }
 
@@ -321,7 +325,7 @@ QPushButton#backButton:disabled {
 }</string>
            </property>
            <property name="currentIndex">
-            <number>2</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="selectRepoTypePage">
             <property name="sizePolicy">

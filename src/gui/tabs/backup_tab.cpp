@@ -1,8 +1,8 @@
 #include "gui/tabs/backup_tab.h"
 
-#include <QMessageBox>
-
+#include "gui/decorators/message_box.h"
 #include "gui/dialog/create_repository_dialog.h"
+#include "gui/dialog/use_repository_dialog.h"
 #include "gui/tabs/ui_backup_tab.h"
 
 BackupTab::BackupTab(QWidget *parent) : QWidget(parent), ui(new Ui::BackupTab) {
@@ -68,10 +68,26 @@ void BackupTab::on_createRepoButton_clicked() {
   CreateRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
-    repository_ = nullptr; // TODO...
-    QMessageBox::information(this, "Success", "Repository created.");
+    repository_ = nullptr;  // TODO...
+    MessageBoxDecorator::ShowMessageBox(this, "Success", "Repository created.",
+                                        QMessageBox::Information);
   } else {
     repository_ = nullptr;
-    QMessageBox::warning(this, "Warning", "Repository not created.");
+    MessageBoxDecorator::ShowMessageBox(
+        this, "Error", "Repository not created.", QMessageBox::Warning);
   }
+}
+
+void BackupTab::on_useRepoButton_clicked() {
+    UseRepositoryDialog dialog(this);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+        repository_ = nullptr;  // TODO...
+        MessageBoxDecorator::ShowMessageBox(this, "Success", "Repository selected.",
+                                            QMessageBox::Information);
+    } else {
+        repository_ = nullptr;
+        MessageBoxDecorator::ShowMessageBox(
+            this, "Error", "Repository not selected.", QMessageBox::Warning);
+    }
 }
