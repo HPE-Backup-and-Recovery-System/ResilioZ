@@ -14,18 +14,6 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
    <item row="0" column="0">
     <widget class="QFrame" name="frame">
      <property name="autoFillBackground">
@@ -74,7 +62,22 @@ QFrame{
 	color: white;
 	text-align: left;
 }
-</string>
+
+QProgressBar {
+    border: 1px solid rgb(29, 31, 39);
+    height: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+QProgressBar::chunk {
+    background-color: rgb(6, 134, 103);
+}
+
+QLabel {
+    color: rgb(29, 31, 39);
+    font-weight: bold;
+}</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
@@ -85,7 +88,7 @@ QFrame{
         <property name="currentIndex">
          <number>0</number>
         </property>
-        <widget class="QWidget" name="page">
+        <widget class="QWidget" name="menu_page">
          <property name="autoFillBackground">
           <bool>true</bool>
          </property>
@@ -103,7 +106,7 @@ QFrame{
            <number>0</number>
           </property>
           <item row="0" column="0">
-           <widget class="QFrame" name="frame_3">
+           <widget class="QFrame" name="menu_frame">
             <property name="autoFillBackground">
              <bool>false</bool>
             </property>
@@ -115,7 +118,13 @@ QFrame{
             </property>
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <item>
-              <widget class="QFrame" name="frame_2">
+              <widget class="QFrame" name="option_frame">
+               <property name="minimumSize">
+                <size>
+                 <width>491</width>
+                 <height>0</height>
+                </size>
+               </property>
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
                </property>
@@ -129,52 +138,17 @@ QFrame{
                 <property name="topMargin">
                  <number>90</number>
                 </property>
+                <property name="rightMargin">
+                 <number>11</number>
+                </property>
                 <property name="bottomMargin">
                  <number>90</number>
                 </property>
                 <property name="verticalSpacing">
                  <number>60</number>
                 </property>
-                <item row="1" column="0">
-                 <widget class="QPushButton" name="pushButton_2">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>372</width>
-                    <height>62</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>2</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QPushButton" name="pushButton_3">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>372</width>
-                    <height>62</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>3</string>
-                  </property>
-                 </widget>
-                </item>
                 <item row="0" column="0">
-                 <widget class="QPushButton" name="pushButton">
+                 <widget class="QPushButton" name="restoreButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
                     <horstretch>0</horstretch>
@@ -187,8 +161,15 @@ QFrame{
                     <height>62</height>
                    </size>
                   </property>
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
                   <property name="text">
-                   <string>1</string>
+                   <string> Restore Backup</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resources/assets.qrc">
+                    <normaloff>:/assets/icons/icons/file-arrow-down.svg</normaloff>:/assets/icons/icons/file-arrow-down.svg</iconset>
                   </property>
                   <property name="iconSize">
                    <size>
@@ -213,11 +194,34 @@ QFrame{
                   </property>
                  </widget>
                 </item>
+                <item row="1" column="0">
+                 <widget class="QPushButton" name="retryButton">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>372</width>
+                    <height>62</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string> Retry Restore</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resources/assets.qrc">
+                    <normaloff>:/assets/icons/icons/rotate-right.svg</normaloff>:/assets/icons/icons/rotate-right.svg</iconset>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </widget>
              </item>
              <item>
-              <widget class="QFrame" name="backupImg">
+              <widget class="QFrame" name="restoreImg">
                <property name="enabled">
                 <bool>true</bool>
                </property>
@@ -261,7 +265,7 @@ QFrame{
                    <enum>Qt::AutoText</enum>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../resources/assets.qrc">:/assets/images/restore.png</pixmap>
+                   <pixmap resource="../resources/assets.qrc">:/assets/images/backup.png</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
@@ -285,7 +289,15 @@ QFrame{
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="page_2">
+        <widget class="QWidget" name="attemptRestorePage">
+         <property name="styleSheet">
+          <string notr="true">QPushButton {
+	padding-top: 90px;
+	padding-bottom: 90px;
+	font-size: 28px;
+}
+</string>
+         </property>
          <layout class="QGridLayout" name="gridLayout_7">
           <property name="leftMargin">
            <number>0</number>
@@ -307,10 +319,314 @@ QFrame{
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QGridLayout" name="gridLayout_8"/>
+            <layout class="QGridLayout" name="gridLayout_12">
+             <item row="0" column="0">
+              <widget class="QFrame" name="frame_5">
+               <property name="styleSheet">
+                <string notr="true">QLabel {
+	text-align: center;
+}</string>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                 <widget class="QFrame" name="frame_7">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel {
+	font-size: 24pt;
+	color: rgb(6, 134, 103);
+}</string>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_6">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_8">
+                     <property name="text">
+                      <string>1</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_9">
+                     <property name="text">
+                      <string>2</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QLabel" name="label_10">
+                     <property name="text">
+                      <string>3</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="frame_8">
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_8">
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_3">
+                     <property name="text">
+                      <string>Select Repository</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_4">
+                     <property name="text">
+                      <string>Select Backup File</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QLabel" name="label_2">
+                     <property name="text">
+                      <string>Select Destination Path</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QProgressBar" name="progressBar">
+                  <property name="value">
+                   <number>33</number>
+                  </property>
+                  <property name="textVisible">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QFrame" name="frame_6">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_3">
+                <item>
+                 <widget class="QStackedWidget" name="stackedWidget_attemptRestore">
+                  <property name="styleSheet">
+                   <string notr="true">text-align:center;</string>
+                  </property>
+                  <widget class="QWidget" name="page_5">
+                   <layout class="QGridLayout" name="gridLayout_9">
+                    <item row="0" column="1">
+                     <widget class="QFrame" name="frame_3">
+                      <property name="frameShape">
+                       <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_13">
+                       <item row="0" column="0">
+                        <widget class="QPushButton" name="chooseRepoButton">
+                         <property name="styleSheet">
+                          <string notr="true"/>
+                         </property>
+                         <property name="text">
+                          <string>Choose Repository</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_6">
+                   <layout class="QGridLayout" name="gridLayout_10">
+                    <item row="0" column="0">
+                     <widget class="QFrame" name="frame_10">
+                      <property name="frameShape">
+                       <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QVBoxLayout" name="verticalLayout_5">
+                       <item>
+                        <widget class="QPushButton" name="chooseBackupFile">
+                         <property name="text">
+                          <string>Choose Backup File</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page">
+                   <layout class="QGridLayout" name="gridLayout_11">
+                    <item row="0" column="0">
+                     <widget class="QFrame" name="frame_11">
+                      <property name="frameShape">
+                       <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QHBoxLayout" name="horizontalLayout">
+                       <item>
+                        <widget class="QPushButton" name="chooseDestination">
+                         <property name="text">
+                          <string>Choose Destination</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="frame_9">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}</string>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_4">
+                   <property name="spacing">
+                    <number>30</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>9</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>9</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="backButton">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="text">
+                      <string>Back</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="nextButton">
+                     <property name="text">
+                      <string>Next</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
          </layout>
+        </widget>
+        <widget class="QWidget" name="retryRestorePage">
+         <widget class="QFrame" name="frame_2">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>1511</width>
+            <height>741</height>
+           </rect>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <widget class="QLabel" name="label_11">
+           <property name="geometry">
+            <rect>
+             <x>90</x>
+             <y>450</y>
+             <width>611</width>
+             <height>21</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>Testing Please</string>
+           </property>
+          </widget>
+         </widget>
         </widget>
        </widget>
       </item>
