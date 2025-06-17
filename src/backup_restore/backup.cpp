@@ -98,21 +98,21 @@ void Backup::BackupFile(const fs::path& file_path) {
 
           // Process the chunk
           try {
-            Chunk compressed_chunk = CompressChunk(chunk);
-            file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
-            SaveChunk(compressed_chunk);
+        Chunk compressed_chunk = CompressChunk(chunk);
+        file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
+        SaveChunk(compressed_chunk);
 
-            // Update progress
-            processed_bytes += chunk.size;
-            processed_chunks++;
-            progress.Update(processed_bytes, processed_chunks);
+        // Update progress
+        processed_bytes += chunk.size;
+        processed_chunks++;
+        progress.Update(processed_bytes, processed_chunks);
 
             // Signal progress
             progress_made = true;
-          } catch (const std::exception& e) {
-            throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
-          }
-        });
+      } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
+      }
+    });
 
         chunking_completed = true;
       } catch (const std::exception& e) {
@@ -152,12 +152,13 @@ void Backup::BackupFile(const fs::path& file_path) {
     // Wait for chunking thread to finish
     if (chunking_thread.joinable()) {
       chunking_thread.join();
+      
     }
 
     // If we completed successfully, update metadata and progress
     if (!abort_requested) {
-      progress.Complete();
-      metadata_.files[file_path.string()] = file_metadata;
+    progress.Complete();
+    metadata_.files[file_path.string()] = file_metadata;
     } else {
       throw std::runtime_error("Backup aborted due to lack of progress");
     }
