@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "repositories/repository.h"
+
 struct RepoEntry {
   std::string name;
   std::string path;
@@ -22,11 +24,15 @@ class RepodataManager {
   void AddEntry(const RepoEntry& entry);
   bool DeleteEntry(const std::string& name, const std::string& path);
   std::optional<RepoEntry> GetEntry(const std::string& name,
-                                const std::string& path) const;
+                                    const std::string& path) const;
   std::vector<RepoEntry> GetAll() const;
 
   static std::string GetResolvedPath(const std::string& path);
-  static std::string GetFormattedTypeString(const std::string& type, bool upper = true);
+
+  static std::string GetFormattedTypeString(const std::string& type,
+                                            bool upper = true);
+  static std::string GetFormattedTypeString(const RepositoryType& type,
+                                            bool upper = true);
 
  private:
   std::vector<RepoEntry> entries_;

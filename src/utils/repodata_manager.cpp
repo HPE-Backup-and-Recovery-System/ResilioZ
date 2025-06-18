@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "repositories/repository.h"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/validator.h"
@@ -140,5 +141,13 @@ std::string RepodataManager::GetFormattedTypeString(const std::string& type,
   if (type == "local") return (upper ? "LOCAL" : "Local");
   if (type == "nfs") return "NFS";
   if (type == "remote") return (upper ? "REMOTE" : "Remote");
+  return (upper ? "UNKNOWN" : "Unknown");
+}
+
+std::string RepodataManager::GetFormattedTypeString(const RepositoryType& type,
+                                                    bool upper) {
+  if (type == RepositoryType::LOCAL) return (upper ? "LOCAL" : "Local");
+  if (type == RepositoryType::NFS) return "NFS";
+  if (type == RepositoryType::REMOTE) return (upper ? "REMOTE" : "Remote");
   return (upper ? "UNKNOWN" : "Unknown");
 }

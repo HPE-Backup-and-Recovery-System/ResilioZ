@@ -8,7 +8,7 @@
 class RepositoryService : public Service {
  public:
   RepositoryService();
-  ~RepositoryService() {};
+  ~RepositoryService();
 
   void Run() override;
   void Log() override;
@@ -16,7 +16,7 @@ class RepositoryService : public Service {
   bool CreateNewRepository(bool loop = false);
   void ListRepositories();
   std::vector<RepoEntry> GetAllRepositories() const;
-  Repository* FetchExistingRepository();
+  Repository* SelectExistingRepository();
 
   Repository* GetRepository();
   void SetRepository(Repository* new_repo);
@@ -29,7 +29,7 @@ class RepositoryService : public Service {
   void DeleteRepository();
 
   Repository* repository_;
-  RepodataManager repodata_;
+  RepodataManager* repodata_mgr;
 };
 
 #endif  // REPOSITORY_SERVICE_H_
