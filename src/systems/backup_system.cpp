@@ -50,7 +50,7 @@ void BackupSystem::Run() {
 }
 
 void BackupSystem::CreateBackup() {
-  std::string source, destination = "/tmp", remarks = "";
+  std::string source, destination = "temp", remarks = "";
   BackupType type;
   std::vector<std::string> menu;
   int choice;
@@ -74,8 +74,10 @@ void BackupSystem::CreateBackup() {
         }
         case 2: {
           repo_service_->ListRepositories();
-          repository_ = repo_service_->FetchExistingRepository();
-          loop = false;
+          repository_ = repo_service_->SelectExistingRepository();
+          if (repository_ != nullptr) {
+            loop = false;
+          }
           break;
         }
         default:
@@ -102,8 +104,8 @@ void BackupSystem::CreateBackup() {
     if (repository_->GetType() == RepositoryType::REMOTE) {
       auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
       if (remote_repo) {
-        remote_repo->UploadDirectory("/tmp", "");
-        fs::remove_all("/tmp");
+        remote_repo->UploadDirectory("temp");
+        // fs::remove_all("temp");
       }
     }
 

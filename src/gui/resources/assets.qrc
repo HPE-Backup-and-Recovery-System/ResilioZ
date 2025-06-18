@@ -8,5 +8,7 @@
         <file>icons/list.svg</file>
         <file>icons/code-compare.svg</file>
         <file>icons/box-open.svg</file>
+        <file>icons/file-arrow-down.svg</file>
+        <file>icons/rotate-right.svg</file>
     </qresource>
 </RCC>

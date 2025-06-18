@@ -251,101 +251,106 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
       ssh_disconnect(session);
       ssh_free(session);
     }
-    throw;
+    ErrorUtil::ThrowNested("Cannot upload file to remote path: " +
+                           remote_path_);
   }
 }
 
 bool RemoteRepository::UploadDirectory(const std::string& local_dir,
                                        const std::string& remote_dir) const {
-
-  std::string remote_path_ = remote_dir.empty() ? remote_dir_ : remote_dir;
-  
   ssh_session session = ssh_new();
-  ssh_scp scp = nullptr;
+  sftp_session sftp = nullptr;
 
-  try {
-    ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
-    ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
+  if (!session) {
+    ErrorUtil::ThrowError("Failed to create SSH session");
+  }
 
-    if (ssh_connect(session) != SSH_OK ||
-        ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
-            SSH_AUTH_SUCCESS) {
-      ErrorUtil::ThrowError("SSH connection or authentication failed");
-    }
+  ssh_options_set(session, SSH_OPTIONS_HOST, host_.c_str());
+  ssh_options_set(session, SSH_OPTIONS_USER, user_.c_str());
 
-    scp = ssh_scp_new(session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE,
-                      remote_path_.c_str());
-    if (!scp) {
-      ErrorUtil::ThrowError("Failed to create SCP session");
-    }
+  if (ssh_connect(session) != SSH_OK ||
+      ssh_userauth_publickey_auto(session, nullptr, nullptr) !=
+          SSH_AUTH_SUCCESS) {
+    ssh_free(session);
+    ErrorUtil::ThrowError("SSH connection or authentication failed");
+  }
 
-    if (ssh_scp_init(scp) != SSH_OK) {
-      ErrorUtil::ThrowError("Failed to initialize SCP session");
-    }
-
-    std::function<void(const fs::path&, const std::string&)> push_recursive;
-    push_recursive = [&](const fs::path& local_path,
-                         const std::string& remote_path) {
-      if (fs::is_directory(local_path)) {
-        if (ssh_scp_push_directory(scp, local_path.filename().c_str(), 0755) !=
-            SSH_OK) {
-          ErrorUtil::ThrowError("Failed to push remote directory: " +
-                                remote_path);
-        }
-        for (const auto& entry : fs::directory_iterator(local_path)) {
-          push_recursive(entry.path(),
-                         remote_path + "/" + entry.path().filename().string());
-        }
-        if (ssh_scp_leave_directory(scp) != SSH_OK) {
-          ErrorUtil::ThrowError("Failed to leave remote directory: " +
-                                remote_path);
-        }
-      } else if (fs::is_regular_file(local_path)) {
-        std::ifstream file(local_path, std::ios::binary);
-        if (!file) {
-          ErrorUtil::ThrowError("Failed to open local file: " +
-                                local_path.string());
-        }
-
-        auto filesize = fs::file_size(local_path);
-        if (ssh_scp_push_file(scp, local_path.filename().c_str(), filesize,
-                              0644) != SSH_OK) {
-          ErrorUtil::ThrowError("Failed to push remote file: " + remote_path);
-        }
-
-        constexpr size_t buffer_size = 16384;
-        char buffer[buffer_size];
-        while (file) {
-          file.read(buffer, buffer_size);
-          std::streamsize bytes_read = file.gcount();
-          if (bytes_read > 0) {
-            if (ssh_scp_write(scp, buffer, static_cast<size_t>(bytes_read)) !=
-                SSH_OK) {
-              ErrorUtil::ThrowError("Failed to write remote file data: " +
-                                    remote_path);
-            }
-          }
-        }
-      }
-    };
-
-    push_recursive(fs::path(local_dir), remote_dir);
-
-    ssh_scp_close(scp);
-    ssh_scp_free(scp);
+  sftp = sftp_new(session);
+  if (!sftp || sftp_init(sftp) != SSH_OK) {
     ssh_disconnect(session);
     ssh_free(session);
+    ErrorUtil::ThrowError("Failed to initialize SFTP session");
+  }
 
-    return true;
-  } catch (...) {
-    if (scp) {
-      ssh_scp_close(scp);
-      ssh_scp_free(scp);
+  std::function<void(const fs::path&, const std::string&)> upload_recursive;
+  upload_recursive = [&](const fs::path& path, const std::string& remote_path) {
+    if (fs::is_directory(path)) {
+      std::string dir_name = path.filename().string();
+
+      std::string remote_subdir = remote_path + "/" + dir_name;
+      sftp_mkdir(sftp, remote_subdir.c_str(), S_IRWXU);
+
+      for (const auto& entry : fs::directory_iterator(path)) {
+        upload_recursive(entry.path(), remote_subdir);
+      }
+    } else if (fs::is_regular_file(path)) {
+      std::string file_name = path.filename().string();
+      const std::string remote_file = remote_path + "/" + file_name;
+
+      std::ifstream infile(path, std::ios::binary);
+      if (!infile) return;
+
+      const int max_retries = 3;
+      int attempt = 0;
+
+      while (attempt < max_retries) {
+        sftp_file file =
+            sftp_open(sftp, remote_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                      S_IRUSR | S_IWUSR);
+        if (!file) {
+          attempt++;
+          continue;
+        }
+
+        char buffer[16384];
+        while (infile) {
+          infile.read(buffer, sizeof(buffer));
+          std::streamsize bytes = infile.gcount();
+          if (bytes > 0 && sftp_write(file, buffer, bytes) < 0) {
+            sftp_close(file);
+            attempt++;
+            break;
+          }
+        }
+        sftp_close(file);
+        break;
+      }
+
+      if (attempt == max_retries) {
+        ErrorUtil::ThrowError("Failed to upload file after retries: " +
+                              path.string());
+      }
     }
+  };
+
+  try {
+    for (const auto& entry : fs::directory_iterator(local_dir)) {
+      upload_recursive(entry.path(),
+                       remote_dir.empty() ? remote_dir_ : remote_dir);
+    }
+
+    sftp_free(sftp);
+    ssh_disconnect(session);
+    ssh_free(session);
+    return true;
+
+  } catch (...) {
+    if (sftp) sftp_free(sftp);
     if (session) {
       ssh_disconnect(session);
       ssh_free(session);
     }
-    throw;
+    ErrorUtil::ThrowNested("Cannot upload directory to remote path: " +
+                           (remote_dir.empty() ? remote_dir_ : remote_dir));
   }
 }

@@ -28,8 +28,7 @@ file(GLOB_RECURSE SCHEDULER_SOURCE
 # All .ui Files Under src/gui/
 file(GLOB_RECURSE GUI_HEADERS "${PROJECT_SOURCE_DIR}/include/gui/*.h")
 file(GLOB_RECURSE GUI_FILES 
-    "${PROJECT_SOURCE_DIR}/src/gui/*.ui"
-    "${PROJECT_SOURCE_DIR}/src/gui/*.qrc"
+    "${PROJECT_SOURCE_DIR}/src/gui/*"
 )
 
 # Exclude main & scheduler to Avoid Collision...
@@ -89,9 +88,9 @@ message(STATUS "Fetched Libcron...")
 # Add Executables (Uses Globbing)
 add_executable(scheduler src/scheduler.cpp ${SCHEDULER_SOURCE})
 
-# QT (GUI): qt6-base-dev, qtcreator, libxkbcommon-dev, libgl1-mesa-dev
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+# QT (GUI): qt6-base-dev, qtcreator, libxkbcommon-dev
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Concurrent)
 
 set(APP_SOURCES
     src/main.cpp
@@ -144,6 +143,8 @@ target_link_libraries(main PRIVATE
     OpenSSL::SSL 
     OpenSSL::Crypto
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Concurrent
+    Qt${QT_VERSION_MAJOR}::Core
 )
 
 # Link Libraries for Scheduler

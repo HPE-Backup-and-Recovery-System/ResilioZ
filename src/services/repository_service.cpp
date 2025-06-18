@@ -1,21 +1,26 @@
 #include "services/repository_service.h"
 
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <limits>
-#include <fstream>
 
+#include "nlohmann/json.hpp"
 #include "repositories/all.h"
 #include "utils/utils.h"
-#include "nlohmann/json.hpp"
 
 RepositoryService::RepositoryService() : repository_(nullptr) {
   try {
-    // Initialization of RepoData Manager...
+    repodata_mgr = new RepodataManager();
   } catch (const std::exception& e) {
     ErrorUtil::LogException(
         e, "Failed to initialize repository data management service");
   }
+}
+
+RepositoryService::~RepositoryService() {
+  if (repository_) delete repository_;
+  delete repodata_mgr;
 }
 
 void RepositoryService::Run() { ShowMainMenu(); }
@@ -45,7 +50,7 @@ void RepositoryService::ShowMainMenu() {
           ListRepositories();
           break;
         case 3:
-          FetchExistingRepository();
+          SelectExistingRepository();
           break;
         case 4:
           DeleteRepository();
@@ -90,7 +95,7 @@ bool RepositoryService::CreateNewRepository(bool loop) {
       return false;
     }
   } while (loop);
-  
+
   return false;
 }
 
@@ -117,7 +122,7 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
     }
-    repodata_.AddEntry(
+    repodata_mgr->AddEntry(
         {name, repo->GetPath(), "local", repo->GetHashedPassword(), timestamp});
 
     delete repository_;
@@ -136,8 +141,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   std::string name, server_ip, server_backup_path, client_mount_path, password;
   name = Prompter::PromptRepoName();
   server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
-  server_backup_path = Prompter::PromptPath("NFS Server Export Path (e.g., /backup_pool)");
-  client_mount_path = Prompter::PromptPath("Local Mount Point (e.g., /mnt/temp)");
+  server_backup_path =
+      Prompter::PromptPath("Server Backup Path (e.g., /backup_pool)");
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
@@ -146,8 +151,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
 
   NFSRepository* repo = nullptr;
   try {
-    repo = new NFSRepository(server_ip, server_backup_path, name, password, timestamp);
-    repo->SetMountPoint(client_mount_path);
+    repo = new NFSRepository(server_ip, server_backup_path, name, password,
+                             timestamp);
     if (repo->Exists()) {
       ErrorUtil::ThrowError("Repository already exists at location: " +
                             repo->GetPath());
@@ -159,7 +164,7 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
     }
-    repodata_.AddEntry(
+    repodata_mgr->AddEntry(
         {name, repo->GetPath(), "nfs", repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
@@ -195,8 +200,8 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
     }
-    repodata_.AddEntry({name, repo->GetPath(), "remote",
-                        repo->GetHashedPassword(), timestamp});
+    repodata_mgr->AddEntry({name, repo->GetPath(), "remote",
+                            repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
   } catch (const std::exception& e) {
@@ -210,7 +215,7 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
 
 void RepositoryService::ListRepositories() {
   try {
-    const auto repos = repodata_.GetAll();
+    const auto repos = repodata_mgr->GetAll();
     if (repos.empty()) {
       UserIO::DisplayMinTitle("No repositories found");
       return;
@@ -228,31 +233,47 @@ void RepositoryService::ListRepositories() {
   }
 }
 
-Repository* RepositoryService::FetchExistingRepository() {
-  std::string name, path, password;
-  name = Prompter::PromptRepoName("Existing Repository Name");
-  path = Prompter::PromptPath();
-  password = Prompter::PromptPassword("Password", false);
-
+Repository* RepositoryService::SelectExistingRepository() {
   Repository* repo = nullptr;
-  auto entry = repodata_.GetEntry(name, path);
+  const auto repodata_entries = repodata_mgr->GetAll();
+
+  if (repodata_entries.empty()) {
+    UserIO::DisplayMinTitle("No repositories found");
+    Logger::TerminalLog("Please create a repository...", LogLevel::WARNING);
+    return nullptr;
+  }
+
+  std::vector<std::string> repo_menu = {"Go BACK..."};
+  for (const auto& repo : repodata_entries) {
+    repo_menu.push_back(repo.name + " [" +
+                        RepodataManager::GetFormattedTypeString(repo.type) +
+                        "] - " + repo.path);
+  }
+
   try {
-    if (!entry) {
-      Logger::TerminalLog("Please verify repository name and path...",
-                          LogLevel::WARNING);
-      ErrorUtil::ThrowError("Repository not found in data file");
+    int repo_choice = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select Repository", false), repo_menu);
+
+    if (repo_choice == 0) {
+      std::cout << " - Going Back...\n";
+      return nullptr;
     }
 
-    if (entry->password_hash != Repository::GetHashedPassword(password)) {
+    const auto selected_repo = repodata_entries[repo_choice - 1];
+    std::string password =
+        Prompter::PromptPassword("Repository Password", false);
+
+    if (selected_repo.password_hash !=
+        Repository::GetHashedPassword(password)) {
       ErrorUtil::ThrowError("Incorrect password entered");
     }
 
-    if (entry->type == "local") {
-      repo = new LocalRepository(entry->path, entry->name, password,
-                                 entry->created_at);
-    } else if (entry->type == "nfs") {
+    if (selected_repo.type == "local") {
+      repo = new LocalRepository(selected_repo.path, selected_repo.name,
+                                 password, selected_repo.created_at);
+    } else if (selected_repo.type == "nfs") {
       // Read server IP and backup path from config file
-      std::string config_path = entry->path + "/" + entry->name + "/config.json";
+      std::string config_path = selected_repo.path + "/config.json";
       std::ifstream config_file(config_path);
       if (!config_file.is_open()) {
         ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
@@ -261,18 +282,15 @@ Repository* RepositoryService::FetchExistingRepository() {
       config_file >> config;
       config_file.close();
 
-      repo = new NFSRepository(config.at("server_ip"),
-                             config.at("server_backup_path"),
-                             entry->name,
-                             password,
-                             entry->created_at);
-      ((NFSRepository*)repo)->SetMountPoint(path);
-    } else if (entry->type == "remote") {
-      repo = new RemoteRepository(entry->path, entry->name, password,
-                                  entry->created_at);
+      repo = new NFSRepository(
+          config.at("server_ip"), config.at("server_backup_path"),
+          selected_repo.name, password, selected_repo.created_at);
+    } else if (selected_repo.type == "remote") {
+      repo = new RemoteRepository(selected_repo.path, selected_repo.name,
+                                  password, selected_repo.created_at);
     } else {
       ErrorUtil::ThrowError("Encountered unknown repository type: " +
-                            entry->type);
+                            selected_repo.type);
     }
 
     if (!repo->Exists()) {
@@ -280,8 +298,8 @@ Repository* RepositoryService::FetchExistingRepository() {
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
     }
 
-    Logger::Log("Repository: " + name + " [" +
-                RepodataManager::GetFormattedTypeString(entry->type) +
+    Logger::Log("Repository: " + selected_repo.name + " [" +
+                RepodataManager::GetFormattedTypeString(selected_repo.type) +
                 "] loaded from: " + repo->GetPath());
     SetRepository(repo);
     return repo;
@@ -294,50 +312,10 @@ Repository* RepositoryService::FetchExistingRepository() {
 }
 
 void RepositoryService::DeleteRepository() {
-  std::string name, path, password;
-  name = Prompter::PromptRepoName("Repository Name to DELETE");
-  path = Prompter::PromptPath();
-  password = Prompter::PromptPassword("Password", false);
-
-  Repository* repo = nullptr;
-  auto entry = repodata_.GetEntry(name, path);
   try {
-    if (!entry) {
-      Logger::TerminalLog("Please verify repository name and path...",
-                          LogLevel::WARNING);
-      ErrorUtil::ThrowError("Repository not found in data file");
-    }
-
-    if (entry->password_hash != Repository::GetHashedPassword(password)) {
-      ErrorUtil::ThrowError("Incorrect password entered");
-    }
-
-    if (entry->type == "local") {
-      repo = new LocalRepository(entry->path, entry->name, password,
-                                 entry->created_at);
-    } else if (entry->type == "nfs") {
-      // Read server IP and backup path from config file
-      std::string config_path = entry->path + "/" + entry->name + "/config.json";
-      std::ifstream config_file(config_path);
-      if (!config_file.is_open()) {
-        ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
-      }
-      nlohmann::json config;
-      config_file >> config;
-      config_file.close();
-
-      repo = new NFSRepository(config.at("server_ip"),
-                             config.at("server_backup_path"),
-                             entry->name,
-                             password,
-                             entry->created_at);
-      ((NFSRepository*)repo)->SetMountPoint(path);
-    } else if (entry->type == "remote") {
-      repo = new RemoteRepository(entry->path, entry->name, password,
-                                  entry->created_at);
-    } else {
-      ErrorUtil::ThrowError("Encountered unknown repository type: " +
-                            entry->type);
+    const auto repo = SelectExistingRepository();
+    if (repo == nullptr) {
+      return;
     }
 
     if (!repo->Exists()) {
@@ -346,9 +324,9 @@ void RepositoryService::DeleteRepository() {
     }
     repo->Delete();
 
-    repodata_.DeleteEntry(name, path);
-    Logger::Log("Repository: " + name + " [" +
-                RepodataManager::GetFormattedTypeString(entry->type) +
+    repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
+    Logger::Log("Repository: " + repo->GetName() + " [" +
+                RepodataManager::GetFormattedTypeString(repo->GetType()) +
                 "] deleted from location: " + repo->GetPath());
 
     SetRepository(repo);
@@ -365,5 +343,5 @@ void RepositoryService::SetRepository(Repository* new_repo) {
 }
 
 std::vector<RepoEntry> RepositoryService::GetAllRepositories() const {
-  return repodata_.GetAll();
+  return repodata_mgr->GetAll();
 }
