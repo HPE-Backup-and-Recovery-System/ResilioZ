@@ -29,7 +29,11 @@ bool Validator::IsValidSftpPath(const std::string& path) {
 }
 
 bool Validator::IsValidPassword(const std::string& password) {
-  std::regex pattern(R"(^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,64}$)");
+  // Any Characters, Max = 64
+  std::regex pattern(R"(^.{0,64}$)");
+  
+  // Strict Password Validation
+  // std::regex pattern(R"(^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,64}$)");
   return std::regex_match(password, pattern);
 }
 
