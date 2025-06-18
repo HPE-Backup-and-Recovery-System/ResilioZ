@@ -100,7 +100,6 @@ void RestoreTab::onAttemptRestorePageChanged(int index){
 }
 
 void RestoreTab::loadFileTable() {
-  ui->selectedFileLabel->setText("Selected File: <none>");
   ui->fileTable->clearContents();
 
   auto* header = ui->fileTable->horizontalHeader();
@@ -148,9 +147,9 @@ void RestoreTab::onFileSelected(){
   QList<QTableWidgetItem*> selectedItems = ui->fileTable->selectedItems();
     if (!selectedItems.isEmpty()) {
         QString fileName = selectedItems.first()->text();
-        ui->selectedFileLabel->setText("Selected File: " + fileName);
+        // To do
     } else {
-        ui->selectedFileLabel->setText("Selected File: <none>");
+        // To do
     }
 }
 
@@ -162,7 +161,7 @@ void RestoreTab::on_chooseDestination_clicked()
                               QDir::homePath(),
                               QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!selectedDir.isEmpty()) {
-        ui->directoryLabel->setText("Selected directory: " +selectedDir); 
+        // To do
     }
 }
 
