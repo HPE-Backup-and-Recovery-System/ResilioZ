@@ -1,27 +1,27 @@
-#ifndef USE_REPOSITORY_DIALOG_H
-#define USE_REPOSITORY_DIALOG_H
+#ifndef DELETE_REPOSITORY_DIALOG_H
+#define DELETE_REPOSITORY_DIALOG_H
 
 #include <QDialog>
 
 #include "utils/repodata_manager.h"
 
 namespace Ui {
-class UseRepositoryDialog;
+class DeleteRepositoryDialog;
 }
 
-class UseRepositoryDialog : public QDialog {
+class DeleteRepositoryDialog : public QDialog {
   Q_OBJECT
 
  public:
-  explicit UseRepositoryDialog(QWidget *parent = nullptr);
-  ~UseRepositoryDialog();
+  explicit DeleteRepositoryDialog(QWidget *parent = nullptr);
+  ~DeleteRepositoryDialog();
 
  private slots:
   void on_backButton_clicked();
   void on_nextButton_clicked();
 
  private:
-  Ui::UseRepositoryDialog *ui;
+  Ui::DeleteRepositoryDialog *ui;
   RepodataManager *repodata_mgr_;
   std::vector<RepoEntry> repos;
   void resizeEvent(QResizeEvent *event) override;
@@ -31,4 +31,4 @@ class UseRepositoryDialog : public QDialog {
   void FillTable();
 };
 
-#endif  // USE_REPOSITORY_DIALOG_H
+#endif  // DELETE_REPOSITORY_DIALOG_H

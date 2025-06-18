@@ -325,7 +325,7 @@ QPushButton#backButton:disabled {
 }</string>
            </property>
            <property name="currentIndex">
-            <number>1</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="selectRepoTypePage">
             <property name="sizePolicy">
@@ -432,10 +432,14 @@ QLineEdit {
 	font-size: 16pt;
 	padding: 4px;
 	border: 1px solid rgb(6, 134, 103);
+}
+
+QLineEdit:disabled {
+	background: rgba(6, 134, 103, 0.5);
 }</string>
                </property>
                <property name="currentIndex">
-                <number>0</number>
+                <number>2</number>
                </property>
                <widget class="QWidget" name="localPage">
                 <property name="sizePolicy">
@@ -601,6 +605,15 @@ QLineEdit {
                      </property>
                      <property name="toolTip">
                       <string>Enter Path of Remote Repository (ex. user@host:/path)</string>
+                     </property>
+                     <property name="placeholderText">
+                      <string/>
+                     </property>
+                     <property name="cursorMoveStyle">
+                      <enum>Qt::LogicalMoveStyle</enum>
+                     </property>
+                     <property name="clearButtonEnabled">
+                      <bool>false</bool>
                      </property>
                     </widget>
                    </item>
