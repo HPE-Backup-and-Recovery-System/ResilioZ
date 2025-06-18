@@ -25,6 +25,11 @@ private slots:
     void on_backButton_clicked();
     void on_chooseRepoButton_clicked();
 
+    void onFileSelected();
+
+
+    void on_chooseDestination_clicked();
+
 private:
   Ui::RestoreTab *ui;
 
@@ -33,6 +38,8 @@ private:
 
   void updateProgress();
   void updateButtons();
+  void onAttemptRestorePageChanged(int index);
+  void loadFileTable();
 };
 
 #endif  // RESTORE_TAB_H

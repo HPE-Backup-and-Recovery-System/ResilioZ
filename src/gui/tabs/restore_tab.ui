@@ -86,7 +86,7 @@ QLabel {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="menu_page">
          <property name="autoFillBackground">
@@ -490,11 +490,70 @@ QLabel {
                       <property name="frameShadow">
                        <enum>QFrame::Raised</enum>
                       </property>
-                      <layout class="QVBoxLayout" name="verticalLayout_5">
-                       <item>
-                        <widget class="QPushButton" name="chooseBackupFile">
+                      <layout class="QGridLayout" name="gridLayout_14">
+                       <item row="0" column="0">
+                        <widget class="QTableWidget" name="fileTable">
+                         <property name="styleSheet">
+                          <string notr="true">* {
+    font-size: 12pt;
+    color: rgb(29, 31, 39);
+}
+
+QHeaderView::section {
+    background-color: rgb(6, 134, 103);
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    border: none;
+}
+
+QTableCornerButton::section {
+    background-color: rgb(6, 134, 103);
+    border: none;
+}
+
+QTableWidget {
+    background-color: white;
+    selection-background-color: rgb(6, 134, 103);
+    selection-color: white;
+    gridline-color: transparent;
+    border: 1px solid rgb(220, 220, 220);
+    show-decoration-selected: 1;
+}
+
+QTableWidget::item {
+    padding: 6px 10px;
+    border: none;
+    font-weight: normal;
+    color: rgb(29, 31, 39);
+}
+
+QTableWidget::item:hover {
+    background-color: rgba(6, 134, 103, 0.1);
+}
+
+QTableWidget::item:selected {
+    background-color: rgba(6, 134, 103, 0.5);
+    color: white;
+    font-weight: 700;
+}
+
+QTableView {
+    show-decoration-selected: 1;
+}
+</string>
+                         </property>
+                         <column>
+                          <property name="text">
+                           <string>Filename</string>
+                          </property>
+                         </column>
+                        </widget>
+                       </item>
+                       <item row="1" column="0" alignment="Qt::AlignHCenter">
+                        <widget class="QLabel" name="selectedFileLabel">
                          <property name="text">
-                          <string>Choose Backup File</string>
+                          <string>Selected File: &lt;None&gt;</string>
                          </property>
                         </widget>
                        </item>
@@ -505,7 +564,7 @@ QLabel {
                   </widget>
                   <widget class="QWidget" name="page">
                    <layout class="QGridLayout" name="gridLayout_11">
-                    <item row="0" column="0">
+                    <item row="1" column="0">
                      <widget class="QFrame" name="frame_11">
                       <property name="frameShape">
                        <enum>QFrame::StyledPanel</enum>
@@ -513,11 +572,37 @@ QLabel {
                       <property name="frameShadow">
                        <enum>QFrame::Raised</enum>
                       </property>
-                      <layout class="QHBoxLayout" name="horizontalLayout">
+                      <layout class="QVBoxLayout" name="verticalLayout_2">
+                       <item>
+                        <widget class="QPushButton" name="reuseOriginalLocation">
+                         <property name="text">
+                          <string>Restore to Original location</string>
+                         </property>
+                        </widget>
+                       </item>
                        <item>
                         <widget class="QPushButton" name="chooseDestination">
+                         <property name="styleSheet">
+                          <string notr="true"/>
+                         </property>
                          <property name="text">
-                          <string>Choose Destination</string>
+                          <string>Choose Custom Restore Destination</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item alignment="Qt::AlignHCenter">
+                        <widget class="QLabel" name="directoryLabel">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="styleSheet">
+                          <string notr="true"/>
+                         </property>
+                         <property name="text">
+                          <string>Selected directory: &lt;None&gt;</string>
                          </property>
                         </widget>
                        </item>
