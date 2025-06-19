@@ -1,4 +1,4 @@
-#include "gui/dialog/use_repository_dialog.h"
+#include "gui/dialog/delete_repository_dialog.h"
 
 #include <QModelIndexList>
 #include <QThread>
@@ -6,12 +6,12 @@
 
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
-#include "gui/dialog/ui_use_repository_dialog.h"
+#include "gui/dialog/ui_delete_repository_dialog.h"
 #include "repositories/repository.h"
 #include "utils/utils.h"
 
-UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
-    : QDialog(parent), ui(new Ui::UseRepositoryDialog) {
+DeleteRepositoryDialog::DeleteRepositoryDialog(QWidget* parent)
+    : QDialog(parent), ui(new Ui::DeleteRepositoryDialog) {
   ui->setupUi(this);
 
   repodata_mgr_ = new RepodataManager();
@@ -36,20 +36,20 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 
   connect(ui->repoTable->selectionModel(),
           &QItemSelectionModel::selectionChanged, this,
-          &UseRepositoryDialog::checkSelection);
+          &DeleteRepositoryDialog::checkSelection);
 }
 
-UseRepositoryDialog::~UseRepositoryDialog() {
+DeleteRepositoryDialog::~DeleteRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
 }
 
-void UseRepositoryDialog::resizeEvent(QResizeEvent* event) {
+void DeleteRepositoryDialog::resizeEvent(QResizeEvent* event) {
   QDialog::resizeEvent(event);  // QWidget::resizeEvent(event); for QWidgets
   SetColSize(ui->repoTable->viewport()->width());
 }
 
-void UseRepositoryDialog::checkSelection() {
+void DeleteRepositoryDialog::checkSelection() {
   QModelIndexList selected = ui->repoTable->selectionModel()->selectedRows();
 
   bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
@@ -57,7 +57,7 @@ void UseRepositoryDialog::checkSelection() {
   ui->passwordInput->setEnabled(validSelection);
 }
 
-void UseRepositoryDialog::SetColSize(int tableWidth) {
+void DeleteRepositoryDialog::SetColSize(int tableWidth) {
   int col_created_at = 200;
   int col_name = 240;
   int col_type = 100;
@@ -69,7 +69,7 @@ void UseRepositoryDialog::SetColSize(int tableWidth) {
   ui->repoTable->setColumnWidth(3, col_path);        // Path
 }
 
-void UseRepositoryDialog::FillTable() {
+void DeleteRepositoryDialog::FillTable() {
   ui->repoTable->clearContents();
   ui->repoTable->setRowCount(static_cast<int>(repos.size()) + 1);
 
@@ -103,9 +103,9 @@ void UseRepositoryDialog::FillTable() {
   ui->repoTable->selectRow(0);
 }
 
-void UseRepositoryDialog::on_backButton_clicked() { reject(); }
+void DeleteRepositoryDialog::on_backButton_clicked() { reject(); }
 
-void UseRepositoryDialog::on_nextButton_clicked() {
+void DeleteRepositoryDialog::on_nextButton_clicked() {
   QModelIndexList selected = ui->repoTable->selectionModel()->selectedRows();
   if (selected.isEmpty() || selected.first().row() == 0) {
     MessageBoxDecorator::ShowMessageBox(this, "Repository Not Selected",
