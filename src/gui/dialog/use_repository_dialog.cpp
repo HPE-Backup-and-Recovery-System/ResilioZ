@@ -7,13 +7,19 @@
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
 #include "gui/dialog/ui_use_repository_dialog.h"
-#include "repositories/repository.h"
+#include "repositories/all.h"
 #include "utils/utils.h"
 
 UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
     : QDialog(parent), ui(new Ui::UseRepositoryDialog) {
   ui->setupUi(this);
 
+  ui->backButton->setAutoDefault(true);
+  ui->backButton->setDefault(false);
+  ui->nextButton->setAutoDefault(true);
+  ui->nextButton->setDefault(true);
+
+  repository_ = nullptr;
   repodata_mgr_ = new RepodataManager();
   repos = repodata_mgr_->GetAll();
   fillTable();
@@ -42,7 +48,14 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 UseRepositoryDialog::~UseRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
+  if (repository_) delete repository_;
 }
+
+void UseRepositoryDialog::setRepository(Repository* repository) {
+  repository_ = repository;
+}
+
+Repository* UseRepositoryDialog::getRepository() const { return repository_; }
 
 void UseRepositoryDialog::resizeEvent(QResizeEvent* event) {
   QDialog::resizeEvent(event);  // QWidget::resizeEvent(event); for QWidgets
@@ -108,13 +121,17 @@ void UseRepositoryDialog::on_backButton_clicked() { reject(); }
 void UseRepositoryDialog::on_nextButton_clicked() {
   QModelIndexList selected = ui->repoTable->selectionModel()->selectedRows();
   if (selected.isEmpty() || selected.first().row() == 0) {
-    MessageBoxDecorator::ShowMessageBox(this, "Repository Not Selected",
+    MessageBoxDecorator::showMessageBox(this, "Repository Not Selected",
                                         "Please select a repository.",
                                         QMessageBox::Warning);
     return;
   }
 
-  int row = selected.first().row();
+  ui->nextButton->setEnabled(false);
+  useRepository(selected.first().row());
+}
+
+void UseRepositoryDialog::useRepository(int row) {
   std::string created_at = ui->repoTable->item(row, 0)->text().toStdString();
   std::string name = ui->repoTable->item(row, 1)->text().toStdString();
   std::string type =
@@ -124,24 +141,80 @@ void UseRepositoryDialog::on_nextButton_clicked() {
   QString password = ui->passwordInput->text();
   if (Repository::GetHashedPassword(password.toStdString()) !=
       repos[row - 1].password_hash) {
-    MessageBoxDecorator::ShowMessageBox(this, "Incorrect Password",
+    MessageBoxDecorator::showMessageBox(this, "Incorrect Password",
                                         "Please check the repository password.",
                                         QMessageBox::Warning);
     return;
   }
 
-  QEventLoop loop;
-  bool result = false;
-  ProgressBoxDecorator::RunProgressBox(
+  if (type == "local") {
+    repository_ =
+        new LocalRepository(path, name, password.toStdString(), created_at);
+  } else if (type == "nfs") {
+    repository_ =
+        new NFSRepository(path, name, password.toStdString(), created_at);
+  } else if (type == "remote") {
+    repository_ =
+        new RemoteRepository(path, name, password.toStdString(), created_at);
+  } else {
+    MessageBoxDecorator::showMessageBox(
+        this, "Failure", "Could not select repository due to invalid type.",
+        QMessageBox::Warning);
+
+    Logger::Log("GUI: Repository selection failure due to invalid type.",
+                LogLevel::ERROR);
+    return;
+  }
+
+  ProgressBoxDecorator::runProgressBox(
       this,
       [&]() -> bool {
-        QThread::sleep(5);
-        result = true;
-        QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
-        return true;
+        try {
+          if (!repository_->Exists()) {
+            repodata_mgr_->DeleteEntry(repository_->GetName(),
+                                       repository_->GetPath());
+            Logger::SystemLog("GUI | Deleted entry for repository: " +
+                              repository_->GetName() + " [" +
+                              RepodataManager::GetFormattedTypeString(
+                                  repository_->GetType()) +
+                              "] - " + repository_->GetPath() +
+                              " as it does not exist");
+            QMetaObject::invokeMethod(this, [=]() {
+              MessageBoxDecorator::showMessageBox(
+                  this, "Error",
+                  "Repository not found at location: " +
+                      QString::fromStdString(repository_->GetPath() +
+                                             "\nRepository entry is deleted."),
+                  QMessageBox::Warning);
+            });
+            return false;
+          }
+          Logger::SystemLog(
+              "GUI | Repository: " + repository_->GetName() + " [" +
+              RepodataManager::GetFormattedTypeString(repository_->GetType()) +
+              "] loaded from location: " + repository_->GetPath());
+          return true;
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "GUI | Cannot select repository: " + std::string(e.what()),
+              LogLevel::ERROR);
+          return false;
+        }
       },
-      "Verifying repository...");
-
-  loop.exec();
-  if (result) accept();
+      "Loading repository...",
+      "Repository: " + QString::fromStdString(repository_->GetName()) + " [" +
+          QString::fromStdString(
+              RepodataManager::GetFormattedTypeString(repository_->GetType())) +
+          "] selected from location: " +
+          QString::fromStdString(repository_->GetPath()),
+      "Repository selection failed.",
+      [&](bool success) {
+        if (success) {
+          repodata_mgr_->DeleteEntry(repository_->GetName(),
+                                     repository_->GetPath());
+          accept();
+        } else {
+          ui->nextButton->setEnabled(true);
+        }
+      });
 }

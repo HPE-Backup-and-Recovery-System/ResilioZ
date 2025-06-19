@@ -104,6 +104,9 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   std::string name, path, password;
   name = Prompter::PromptRepoName();
   path = Prompter::PromptLocalPath();
+  if (path.empty()) {
+    path = ".";
+  }
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
@@ -317,6 +320,10 @@ void RepositoryService::DeleteRepository() {
     }
 
     if (!repo->Exists()) {
+      repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
+      Logger::Log("Deleted entry for repository: " + repo->GetName() + " [" +
+                  RepodataManager::GetFormattedTypeString(repo->GetType()) +
+                  "] - " + repo->GetPath() + " as it does not exist");
       delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
     }

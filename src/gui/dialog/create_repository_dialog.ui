@@ -329,7 +329,7 @@ QPushButton#nextButton:disabled {
 }</string>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="selectRepoTypePage">
             <property name="sizePolicy">
@@ -644,16 +644,6 @@ QLineEdit:disabled {
                    <property name="spacing">
                     <number>30</number>
                    </property>
-                   <item row="1" column="0">
-                    <widget class="QLabel" name="nfsServerIpLabel">
-                     <property name="text">
-                      <string>NFS Server IP Address</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
                    <item row="0" column="1">
                     <widget class="QLineEdit" name="nfsNameInput">
                      <property name="enabled">
@@ -670,39 +660,10 @@ QLineEdit:disabled {
                      </property>
                     </widget>
                    </item>
-                   <item row="1" column="1">
-                    <widget class="QLineEdit" name="nfsServerIpInput">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="toolTip">
-                      <string>Enter IP Address of NFS Server</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="2" column="1">
-                    <widget class="QLineEdit" name="nfsServerBackupPathInput">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="toolTip">
-                      <string>Enter Path to Backup on NFS Server</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="2" column="0">
-                    <widget class="QLabel" name="nfsServerBackupPathLabel">
-                     <property name="autoFillBackground">
-                      <bool>false</bool>
-                     </property>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="nfsMountPathLabel">
                      <property name="text">
-                      <string>NFS Server Backup Path</string>
+                      <string>NFS Mount Path</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -725,8 +686,8 @@ QLineEdit:disabled {
                      </property>
                     </widget>
                    </item>
-                   <item row="3" column="1">
-                    <widget class="QLineEdit" name="nfsClientMountPathInput">
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="nfsMountPathInput">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                        <horstretch>0</horstretch>
@@ -735,16 +696,6 @@ QLineEdit:disabled {
                      </property>
                      <property name="toolTip">
                       <string>Enter Path to Mount on NFS Client</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="3" column="0">
-                    <widget class="QLabel" name="nfsClientMountPathLabel">
-                     <property name="text">
-                      <string>NFS Client Mount Path</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                      </property>
                     </widget>
                    </item>

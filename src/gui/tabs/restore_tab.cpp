@@ -1,35 +1,38 @@
 #include "gui/tabs/restore_tab.h"
 
-#include "gui/tabs/ui_restore_tab.h"
+#include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QFileInfoList>
+#include <QTimer>
+
 #include "gui/decorators/message_box.h"
 #include "gui/dialog/use_repository_dialog.h"
+#include "gui/tabs/ui_restore_tab.h"
 
-#include <QDir>
-#include <QFileInfoList>
-#include <QFileInfo>
-#include <QDateTime>
-#include <QTimer>
-#include <QFileDialog>
-
-RestoreTab::RestoreTab(QWidget *parent)
+RestoreTab::RestoreTab(QWidget* parent)
     : QWidget(parent), ui(new Ui::RestoreTab) {
   ui->setupUi(this);
-  ui->stackedWidget->setCurrentIndex(0);
 
-  connect(ui->stackedWidget_attemptRestore, &QStackedWidget::currentChanged, this,
-            &RestoreTab::onAttemptRestorePageChanged);
+  ui->stackedWidget->setCurrentIndex(0);
+  ui->backButton->setAutoDefault(true);
+  ui->backButton->setDefault(false);
+  ui->nextButton->setAutoDefault(true);
+  ui->nextButton->setDefault(true);
+
+  connect(ui->stackedWidget_attemptRestore, &QStackedWidget::currentChanged,
+          this, &RestoreTab::onAttemptRestorePageChanged);
 }
 
 RestoreTab::~RestoreTab() { delete ui; }
 
-void RestoreTab::on_restoreButton_clicked()
-{
-    ui->stackedWidget->setCurrentIndex(1);
+void RestoreTab::on_restoreButton_clicked() {
+  ui->stackedWidget->setCurrentIndex(1);
 }
 
-void RestoreTab::on_retryButton_clicked()
-{
-    // ui->stackedWidget->setCurrentIndex(2);
+void RestoreTab::on_retryButton_clicked() {
+  // ui->stackedWidget->setCurrentIndex(2);
 }
 
 void RestoreTab::updateProgress() {
@@ -75,28 +78,25 @@ void RestoreTab::on_backButton_clicked() {
   updateProgress();
 }
 
-void RestoreTab::on_chooseRepoButton_clicked()
-{
-    UseRepositoryDialog dialog(this);
-    dialog.setWindowFlags(Qt::Window);
-    if (dialog.exec() == QDialog::Accepted) {
-        repository_ = nullptr;  // TODO...
-        MessageBoxDecorator::ShowMessageBox(this, "Success", "Repository selected.",
-                                            QMessageBox::Information);
-    } else {
-        repository_ = nullptr;
-        MessageBoxDecorator::ShowMessageBox(
-            this, "Error", "Repository not selected.", QMessageBox::Warning);
-    }
+void RestoreTab::on_chooseRepoButton_clicked() {
+  UseRepositoryDialog dialog(this);
+  dialog.setWindowFlags(Qt::Window);
+  if (dialog.exec() == QDialog::Accepted) {
+    repository_ = nullptr;  // TODO...
+    MessageBoxDecorator::showMessageBox(this, "Success", "Repository selected.",
+                                        QMessageBox::Information);
+  } else {
+    repository_ = nullptr;
+    MessageBoxDecorator::showMessageBox(
+        this, "Error", "Repository not selected.", QMessageBox::Warning);
+  }
 }
 
-void RestoreTab::onAttemptRestorePageChanged(int index){
-    updateButtons();
-    if (index == 1) {
-      QTimer::singleShot(0, this, [this]() {
-          loadFileTable();
-      });
-    }
+void RestoreTab::onAttemptRestorePageChanged(int index) {
+  updateButtons();
+  if (index == 1) {
+    QTimer::singleShot(0, this, [this]() { loadFileTable(); });
+  }
 }
 
 void RestoreTab::loadFileTable() {
@@ -107,7 +107,7 @@ void RestoreTab::loadFileTable() {
   noSelection->setTextAlignment(Qt::AlignCenter);
   noSelection->setForeground(Qt::darkGray);
   ui->fileTable->setItem(0, 0, noSelection);
-  
+
   // Polished Features for Table
   ui->fileTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
   ui->fileTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -115,7 +115,7 @@ void RestoreTab::loadFileTable() {
   ui->fileTable->setShowGrid(true);
   ui->fileTable->setFocusPolicy(Qt::NoFocus);
   header->setStretchLastSection(true);
-  header->setSectionResizeMode(0, QHeaderView::Stretch); 
+  header->setSectionResizeMode(0, QHeaderView::Stretch);
   ui->fileTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   ui->fileTable->verticalHeader()->setVisible(false);
 
@@ -134,34 +134,31 @@ void RestoreTab::loadFileTable() {
   ui->fileTable->setHorizontalHeaderLabels(QStringList() << "Backup File Name");
 
   for (int i = 0; i < fileList.size(); ++i) {
-      QFileInfo fileInfo = fileList.at(i);
-      QTableWidgetItem *nameItem = new QTableWidgetItem(fileInfo.fileName());
+    QFileInfo fileInfo = fileList.at(i);
+    QTableWidgetItem* nameItem = new QTableWidgetItem(fileInfo.fileName());
 
-      ui->fileTable->setItem(i, 0, nameItem);
-      nameItem->setTextAlignment(Qt::AlignCenter);
+    ui->fileTable->setItem(i, 0, nameItem);
+    nameItem->setTextAlignment(Qt::AlignCenter);
   }
-  connect(ui->fileTable, &QTableWidget::itemSelectionChanged, this, &RestoreTab::onFileSelected);
+  connect(ui->fileTable, &QTableWidget::itemSelectionChanged, this,
+          &RestoreTab::onFileSelected);
 }
 
-void RestoreTab::onFileSelected(){
+void RestoreTab::onFileSelected() {
   QList<QTableWidgetItem*> selectedItems = ui->fileTable->selectedItems();
-    if (!selectedItems.isEmpty()) {
-        QString fileName = selectedItems.first()->text();
-        // To do
-    } else {
-        // To do
-    }
+  if (!selectedItems.isEmpty()) {
+    QString fileName = selectedItems.first()->text();
+    // To do
+  } else {
+    // To do
+  }
 }
 
-
-void RestoreTab::on_chooseDestination_clicked()
-{
-    QString selectedDir = QFileDialog::getExistingDirectory(this,
-                              "Choose Backup Directory",
-                              QDir::homePath(),
-                              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (!selectedDir.isEmpty()) {
-        // To do
-    }
+void RestoreTab::on_chooseDestination_clicked() {
+  QString selectedDir = QFileDialog::getExistingDirectory(
+      this, "Choose Backup Directory", QDir::homePath(),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  if (!selectedDir.isEmpty()) {
+    // To do
+  }
 }
-

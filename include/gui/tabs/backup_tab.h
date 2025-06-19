@@ -27,14 +27,17 @@ class BackupTab : public QWidget {
   void on_useRepoButton_clicked();
 
  private:
+  Ui::BackupTab* ui;
+  Repository* repository_;
+
   void updateProgress();
   void updateButtons();
 
-  Ui::BackupTab* ui;
+  void handleSelectRepo();
+  void handleBackupDetails();
+  void handleSchedule();
 
-  Repository* repository_;
-  RepositoryService* repo_service_;
-  SchedulerService* scheduler_service_;
+  void initBackup();
 };
 
 #endif  // BACKUP_TAB_H

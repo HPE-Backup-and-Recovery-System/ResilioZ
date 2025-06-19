@@ -7,7 +7,7 @@
 
 class MessageBoxDecorator {
  public:
-  static void ShowMessageBox(QWidget* parent, const QString& title,
+  static void showMessageBox(QWidget* parent, const QString& title,
                              const QString& text, QMessageBox::Icon icon);
 
  private:

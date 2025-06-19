@@ -25,7 +25,7 @@ QPushButton {
     )");
 }
 
-void MessageBoxDecorator::ShowMessageBox(QWidget* parent, const QString& title,
+void MessageBoxDecorator::showMessageBox(QWidget* parent, const QString& title,
                                          const QString& text,
                                          QMessageBox::Icon icon) {
   QMessageBox box(parent);
@@ -34,6 +34,8 @@ void MessageBoxDecorator::ShowMessageBox(QWidget* parent, const QString& title,
   box.setIcon(icon);
   box.setStyleSheet(getStyleSheet());
   QPushButton* ok = box.addButton(QMessageBox::Ok);
+  ok->setAutoDefault(true);
+  ok->setDefault(true);
   ok->setIcon(QIcon());
   box.setMinimumSize(QSize(480, 240));  // Does not work but Okay...
   box.exec();

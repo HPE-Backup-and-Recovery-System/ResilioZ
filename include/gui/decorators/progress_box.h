@@ -11,7 +11,7 @@
 class ProgressBoxDecorator {
  public:
   // Determinate Task (with Progress Callback)
-  static void RunProgressBox(
+  static void runProgressBox(
       QWidget* parent, std::function<bool(std::function<void(int)>)> task,
       const QString& message,
       const QString& success_message = "Operation completed.",
@@ -19,7 +19,7 @@ class ProgressBoxDecorator {
       std::function<void(bool)> onFinishCallback = [](bool) {});
 
   // Indeterminate Task (No Progress)
-  static void RunProgressBox(
+  static void runProgressBox(
       QWidget* parent, std::function<bool()> task, const QString& message,
       const QString& success_message = "Operation completed.",
       const QString& failure_message = "Operation failed.",
@@ -27,7 +27,7 @@ class ProgressBoxDecorator {
 
  private:
   static QString getStyleSheet();
-  static QDialog* CreateProgressDialog(QWidget* parent, const QString& message,
+  static QDialog* createProgressDialog(QWidget* parent, const QString& message,
                                        bool determinate);
 };
 

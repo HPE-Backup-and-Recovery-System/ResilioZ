@@ -27,13 +27,13 @@ class CreateRepositoryDialog : public QDialog {
 
  private:
   QString type_ = "local";
-  QString name_, path_, server_ip_, server_backup_path_, client_mount_path_;
+  QString name_, path_;
   QString password_ = "";
   std::string timestamp_;
 
   Ui::CreateRepositoryDialog* ui;
   Repository* repository_;
-  RepodataManager repodata_mgr_;
+  RepodataManager* repodata_mgr_;
 
   void updateProgress();
   void updateButtons();

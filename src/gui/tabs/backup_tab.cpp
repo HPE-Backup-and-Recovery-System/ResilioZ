@@ -7,8 +7,15 @@
 
 BackupTab::BackupTab(QWidget *parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
+
   ui->stackedWidget->setCurrentIndex(0);
   ui->stackedWidget_createBackup->setCurrentIndex(0);
+  ui->backButton->setAutoDefault(true);
+  ui->backButton->setDefault(false);
+  ui->nextButton->setAutoDefault(true);
+  ui->nextButton->setDefault(true);
+
+  repository_ = nullptr;
 
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
@@ -70,11 +77,11 @@ void BackupTab::on_createRepoButton_clicked() {
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = nullptr;  // TODO...
-    MessageBoxDecorator::ShowMessageBox(this, "Success", "Repository created.",
+    MessageBoxDecorator::showMessageBox(this, "Success", "Repository created.",
                                         QMessageBox::Information);
   } else {
     repository_ = nullptr;
-    MessageBoxDecorator::ShowMessageBox(
+    MessageBoxDecorator::showMessageBox(
         this, "Error", "Repository not created.", QMessageBox::Warning);
   }
 }
@@ -84,11 +91,11 @@ void BackupTab::on_useRepoButton_clicked() {
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = nullptr;  // TODO...
-    MessageBoxDecorator::ShowMessageBox(this, "Success", "Repository selected.",
+    MessageBoxDecorator::showMessageBox(this, "Success", "Repository selected.",
                                         QMessageBox::Information);
   } else {
     repository_ = nullptr;
-    MessageBoxDecorator::ShowMessageBox(
+    MessageBoxDecorator::showMessageBox(
         this, "Error", "Repository not selected.", QMessageBox::Warning);
   }
 }
