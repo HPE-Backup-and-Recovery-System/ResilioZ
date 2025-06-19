@@ -179,7 +179,3 @@ CMakeLists.txt.user*
 
 # Ignore data directory
 /data/
-
-# files
-HPE_banner_3.png
-SystemWorkflow.jpeg
