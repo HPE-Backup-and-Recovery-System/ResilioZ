@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1000</width>
-    <height>601</height>
+    <height>603</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -472,6 +472,36 @@ QLabel {
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
+               <property name="styleSheet">
+                <string notr="true">QLabel {
+	font-size: 18pt;
+	font-weight: 500;
+}
+
+QRadioButton {
+	padding: 32px;
+	font-size: 24px;
+	font-weight: 500;
+	background-color: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QRadioButton::indicator {
+	width: 0;
+	height: 0;
+}
+
+QRadioButton:hover {
+	background-color: rgb(234, 234, 234);
+}
+
+QRadioButton:checked {
+	color: white;
+	background-color: rgb(6, 134, 103);
+	border: none;
+}</string>
+               </property>
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
                </property>
@@ -485,6 +515,67 @@ QLabel {
                 <property name="rightMargin">
                  <number>0</number>
                 </property>
+                <item row="2" column="0">
+                 <widget class="QFrame" name="frame_9">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}</string>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_4">
+                   <property name="spacing">
+                    <number>30</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>9</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>9</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="backButton">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="text">
+                      <string>Back</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="nextButton">
+                     <property name="text">
+                      <string>Next</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
                 <item row="1" column="0">
                  <widget class="QStackedWidget" name="stackedWidget_createBackup">
                   <property name="layoutDirection">
@@ -498,7 +589,7 @@ QLabel {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>0</number>
+                   <number>2</number>
                   </property>
                   <widget class="QWidget" name="backupRepoPage">
                    <property name="sizePolicy">
@@ -586,69 +677,186 @@ QLabel {
                     </item>
                    </layout>
                   </widget>
-                  <widget class="QWidget" name="page_4"/>
-                  <widget class="QWidget" name="page_5"/>
-                 </widget>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QFrame" name="frame_9">
-                  <property name="styleSheet">
-                   <string notr="true">QPushButton {
-	font-size: 14pt;
-	padding: 8px;
-	text-align: center;
-}
-
-QPushButton#backButton {
-	background: white;
-	color: rgb(29, 31, 39);
-	border: 1px solid rgb(29, 31, 39);
-}
-
-QPushButton#backButton:hover {
+                  <widget class="QWidget" name="backupDetailsPage">
+                   <layout class="QGridLayout" name="gridLayout_9">
+                    <item row="0" column="0">
+                     <widget class="QFrame" name="frame_10">
+                      <property name="styleSheet">
+                       <string notr="true">QFrame {
 	background: rgb(234, 234, 234);
 }
 
-QPushButton#backButton:disabled {
-	background: lightgrey;
-	color: darkgrey;
-	border: none;
-}</string>
-                  </property>
-                  <property name="frameShape">
-                   <enum>QFrame::StyledPanel</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Raised</enum>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_4">
-                   <property name="spacing">
-                    <number>30</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>9</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>9</number>
-                   </property>
-                   <item>
-                    <widget class="QPushButton" name="backButton">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
-                     <property name="text">
-                      <string>Back</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="nextButton">
-                     <property name="text">
-                      <string>Next</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
+QLabel {
+	background-color: rgb(234, 234, 234);
+	font-weight: 500;
+	font-size: 16pt;
+}
+
+QLineEdit {
+	color: rgb(6, 134, 103);
+	font-weight: 700;
+	font-size: 16pt;
+	padding: 4px;
+	border: 1px solid rgb(6, 134, 103);
+}
+</string>
+                      </property>
+                      <property name="frameShape">
+                       <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_17">
+                       <item row="0" column="0">
+                        <layout class="QGridLayout" name="gridLayout_15">
+                         <property name="leftMargin">
+                          <number>30</number>
+                         </property>
+                         <property name="topMargin">
+                          <number>30</number>
+                         </property>
+                         <property name="rightMargin">
+                          <number>30</number>
+                         </property>
+                         <property name="bottomMargin">
+                          <number>30</number>
+                         </property>
+                         <property name="spacing">
+                          <number>30</number>
+                         </property>
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="srcLabel">
+                           <property name="autoFillBackground">
+                            <bool>false</bool>
+                           </property>
+                           <property name="text">
+                            <string>Backup Source Path</string>
+                           </property>
+                           <property name="scaledContents">
+                            <bool>false</bool>
+                           </property>
+                           <property name="alignment">
+                            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QLineEdit" name="srcInput">
+                           <property name="enabled">
+                            <bool>true</bool>
+                           </property>
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="toolTip">
+                            <string>Enter Password of Repository</string>
+                           </property>
+                           <property name="echoMode">
+                            <enum>QLineEdit::PasswordEchoOnEdit</enum>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="0">
+                          <widget class="QLabel" name="remarksLabel">
+                           <property name="autoFillBackground">
+                            <bool>false</bool>
+                           </property>
+                           <property name="text">
+                            <string>Remarks (Optional)</string>
+                           </property>
+                           <property name="alignment">
+                            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="1">
+                          <widget class="QLineEdit" name="remarksInput">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="toolTip">
+                            <string>Re-enter Password of Repository</string>
+                           </property>
+                           <property name="echoMode">
+                            <enum>QLineEdit::Password</enum>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="scheduleBackupPage">
+                   <layout class="QVBoxLayout" name="verticalLayout_3">
+                    <property name="spacing">
+                     <number>18</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_8">
+                      <property name="text">
+                       <string>Would you like to Automate this Backup?</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="localRepoButton">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true"/>
+                      </property>
+                      <property name="text">
+                       <string>No</string>
+                      </property>
+                      <property name="iconSize">
+                       <size>
+                        <width>36</width>
+                        <height>36</height>
+                       </size>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="nfsRepoButton">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true"/>
+                      </property>
+                      <property name="text">
+                       <string>Yes</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
                  </widget>
                 </item>
                </layout>

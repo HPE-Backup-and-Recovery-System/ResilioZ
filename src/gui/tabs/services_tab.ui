@@ -65,7 +65,13 @@ QFrame{
          <bool>false</bool>
         </property>
         <property name="styleSheet">
-         <string notr="true">QPushButton {
+         <string notr="true">QLabel {
+	font-size: 18pt;
+	font-weight: 500;
+	color: rgb(29, 31, 39);
+}
+
+QPushButton {
 	padding: 16px 32px;
 	font-size: 32px;
 	font-weight: 500;
@@ -85,147 +91,372 @@ QFrame{
         <property name="currentIndex">
          <number>0</number>
         </property>
-        <widget class="QWidget" name="page">
+        <widget class="QWidget" name="chooseSvcPage">
          <property name="autoFillBackground">
           <bool>true</bool>
          </property>
-         <layout class="QGridLayout" name="gridLayout_5">
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <property name="spacing">
+           <number>30</number>
+          </property>
           <property name="leftMargin">
-           <number>0</number>
+           <number>90</number>
           </property>
           <property name="topMargin">
-           <number>0</number>
+           <number>90</number>
           </property>
           <property name="rightMargin">
-           <number>0</number>
+           <number>90</number>
           </property>
           <property name="bottomMargin">
-           <number>0</number>
+           <number>90</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QFrame" name="frame_3">
-            <property name="autoFillBackground">
+          <item>
+           <widget class="QPushButton" name="repoSvcBtn">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>372</width>
+              <height>62</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>1. 
+Repository
+Service</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>36</width>
+              <height>36</height>
+             </size>
+            </property>
+            <property name="checkable">
              <bool>false</bool>
             </property>
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
+            <property name="checked">
+             <bool>false</bool>
             </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
+            <property name="autoDefault">
+             <bool>false</bool>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout_3">
-             <item>
-              <widget class="QFrame" name="frame_2">
-               <property name="frameShape">
-                <enum>QFrame::StyledPanel</enum>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Raised</enum>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout">
-                <property name="leftMargin">
-                 <number>90</number>
-                </property>
-                <property name="topMargin">
-                 <number>90</number>
-                </property>
-                <property name="rightMargin">
-                 <number>90</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>90</number>
-                </property>
-                <item>
-                 <widget class="QPushButton" name="pushButton">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>372</width>
-                    <height>62</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>1</string>
-                  </property>
-                  <property name="iconSize">
-                   <size>
-                    <width>36</width>
-                    <height>36</height>
-                   </size>
-                  </property>
-                  <property name="checkable">
-                   <bool>false</bool>
-                  </property>
-                  <property name="checked">
-                   <bool>false</bool>
-                  </property>
-                  <property name="autoDefault">
-                   <bool>false</bool>
-                  </property>
-                  <property name="default">
-                   <bool>false</bool>
-                  </property>
-                  <property name="flat">
-                   <bool>false</bool>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="pushButton_2">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>372</width>
-                    <height>62</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>2</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
+            <property name="default">
+             <bool>false</bool>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="schSvcBtn">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>372</width>
+              <height>62</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>2. 
+Scheduler 
+Service</string>
+            </property>
            </widget>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="page_2">
+        <widget class="QWidget" name="repoSvcPage">
          <layout class="QGridLayout" name="gridLayout_7">
           <property name="leftMargin">
-           <number>0</number>
+           <number>9</number>
           </property>
           <property name="topMargin">
-           <number>0</number>
+           <number>9</number>
           </property>
           <property name="rightMargin">
-           <number>0</number>
+           <number>9</number>
           </property>
           <property name="bottomMargin">
-           <number>0</number>
+           <number>9</number>
           </property>
           <item row="0" column="0">
-           <widget class="QFrame" name="frame_4">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>30</number>
             </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
+            <property name="leftMargin">
+             <number>30</number>
             </property>
-            <layout class="QGridLayout" name="gridLayout_8"/>
-           </widget>
+            <property name="topMargin">
+             <number>30</number>
+            </property>
+            <property name="rightMargin">
+             <number>30</number>
+            </property>
+            <property name="bottomMargin">
+             <number>30</number>
+            </property>
+            <item>
+             <widget class="QFrame" name="frame_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}
+
+QPushButton#nextButton:disabled {
+	background: grey;
+}</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="spacing">
+                <number>30</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="text">
+                  <string>Repository Service</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="backButton">
+                 <property name="text">
+                  <string>Back</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="createRepo">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Create New Repository</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="listRepo">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>List All Repositories</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deleteRepo">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Delete a Repository</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="schSvcPage">
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="0" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <property name="spacing">
+             <number>30</number>
+            </property>
+            <property name="leftMargin">
+             <number>30</number>
+            </property>
+            <property name="topMargin">
+             <number>30</number>
+            </property>
+            <property name="rightMargin">
+             <number>30</number>
+            </property>
+            <property name="bottomMargin">
+             <number>30</number>
+            </property>
+            <item>
+             <widget class="QFrame" name="frame_3">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton_2 {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton_2:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton_2:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}
+</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <property name="spacing">
+                <number>30</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>9</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_2">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Scheduler Service</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="backButton_2">
+                 <property name="text">
+                  <string>Back</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="createSch">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Create New Schedule</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="listSch">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>List All Schedules</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deleteSch">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Delete a Schedule</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
