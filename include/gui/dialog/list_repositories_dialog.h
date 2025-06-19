@@ -25,8 +25,8 @@ class ListRepositoriesDialog : public QDialog {
   std::vector<RepoEntry> repos;
   void resizeEvent(QResizeEvent *event) override;
 
-  void SetColSize(int tableWidth);
-  void FillTable();
+  void setColSize(int tableWidth);
+  void fillTable();
 };
 
 #endif  // LIST_REPOSITORIES_DIALOG_H

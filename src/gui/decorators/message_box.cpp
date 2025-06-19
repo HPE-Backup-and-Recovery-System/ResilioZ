@@ -5,7 +5,7 @@
 #include <QString>
 #include <QWidget>
 
-QString MessageBoxDecorator::GetStyleSheet() {
+QString MessageBoxDecorator::getStyleSheet() {
   return QString(R"(
 QMessageBox {
     font-size: 12pt;
@@ -32,7 +32,7 @@ void MessageBoxDecorator::ShowMessageBox(QWidget* parent, const QString& title,
   box.setWindowTitle(title);
   box.setText(text);
   box.setIcon(icon);
-  box.setStyleSheet(GetStyleSheet());
+  box.setStyleSheet(getStyleSheet());
   QPushButton* ok = box.addButton(QMessageBox::Ok);
   ok->setIcon(QIcon());
   box.setMinimumSize(QSize(480, 240));  // Does not work but Okay...

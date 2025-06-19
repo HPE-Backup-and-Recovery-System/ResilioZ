@@ -3,10 +3,12 @@
 #include <QString>
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
 #include "gui/dialog/ui_create_repository_dialog.h"
+#include "repositories/all.h"
 #include "utils/utils.h"
 
-CreateRepositoryDialog::CreateRepositoryDialog(QWidget *parent)
+CreateRepositoryDialog::CreateRepositoryDialog(QWidget* parent)
     : QDialog(parent), ui(new Ui::CreateRepositoryDialog) {
   ui->setupUi(this);
   ui->stackedWidget_createRepo->setCurrentIndex(0);
@@ -15,9 +17,18 @@ CreateRepositoryDialog::CreateRepositoryDialog(QWidget *parent)
           &CreateRepositoryDialog::updateButtons);
 
   updateButtons();
+  repository_ = nullptr;
 }
 
 CreateRepositoryDialog::~CreateRepositoryDialog() { delete ui; }
+
+void CreateRepositoryDialog::setRepository(Repository* repository) {
+  repository_ = repository;
+}
+
+Repository* CreateRepositoryDialog::getRepository() const {
+  return repository_;
+}
 
 void CreateRepositoryDialog::updateProgress() {
   int index = ui->stackedWidget_createRepo->currentIndex();
@@ -71,11 +82,8 @@ void CreateRepositoryDialog::on_nextButton_clicked() {
   if (index < total - 1) {
     ui->stackedWidget_createRepo->setCurrentIndex(index + 1);
   } else {
-    // TODO: Create Repo
-    MessageBoxDecorator::ShowMessageBox(this, "Success",
-                                        "Repository created." + type_,
-                                        QMessageBox::Information);
-    accept();
+    ui->nextButton->setEnabled(false);
+    initRepository();
   }
   updateProgress();
 }
@@ -189,4 +197,68 @@ bool CreateRepositoryDialog::handleSetPassword() {
     return false;
   }
   return true;
+}
+
+void CreateRepositoryDialog::initRepository() {
+  timestamp_ = TimeUtil::GetCurrentTimestamp();
+
+  if (type_ == "local") {
+    setRepository(new LocalRepository(path_.toStdString(), name_.toStdString(),
+                                      password_.toStdString(), timestamp_));
+  } else if (type_ == "nfs") {
+    setRepository(new NFSRepository(
+        server_ip_.toStdString(), server_backup_path_.toStdString(),
+        name_.toStdString(), password_.toStdString(), timestamp_));
+  } else if (type_ == "remote") {
+    setRepository(new RemoteRepository(path_.toStdString(), name_.toStdString(),
+                                       password_.toStdString(), timestamp_));
+  } else {
+    MessageBoxDecorator::ShowMessageBox(
+        this, "Failure", "Could not create repository due to invalid type.",
+        QMessageBox::Warning);
+
+    Logger::Log("GUI: Repository creation failure due to invalid type.",
+                LogLevel::ERROR);
+    return;
+  }
+
+  ProgressBoxDecorator::RunProgressBox(
+      this,
+      [&]() -> bool {
+        try {
+          if (repository_->Exists()) {
+            QMetaObject::invokeMethod(this, [=]() {
+              MessageBoxDecorator::ShowMessageBox(
+                  this, "Error",
+                  "Repository already exists at location: " +
+                      QString::fromStdString(repository_->GetPath()),
+                  QMessageBox::Warning);
+            });
+            return false;
+          }
+          repository_->Initialize();
+          Logger::Log("Repository: " + name_.toStdString() +
+                      " created at location: " + repository_->GetPath());
+          return true;
+        } catch (const std::exception& e) {
+          Logger::Log("Cannot initialize repository: " + std::string(e.what()),
+                      LogLevel::ERROR);
+          return false;
+        }
+      },
+      "Initializing repository...",
+      "Repository: " + name_ + " created at location: " +
+          QString::fromStdString(repository_->GetPath()),
+      "Repository creation failed.",
+      [&](bool success) {
+        if (success) {
+          repodata_mgr_.AddEntry({repository_->GetName(),
+                                  repository_->GetPath(), type_.toStdString(),
+                                  repository_->GetHashedPassword(),
+                                  timestamp_});
+          accept();
+        } else {
+          ui->nextButton->setEnabled(true);
+        }
+      });
 }

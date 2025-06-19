@@ -27,8 +27,8 @@ class UseRepositoryDialog : public QDialog {
   void resizeEvent(QResizeEvent *event) override;
   void checkSelection();
 
-  void SetColSize(int tableWidth);
-  void FillTable();
+  void setColSize(int tableWidth);
+  void fillTable();
 };
 
 #endif  // USE_REPOSITORY_DIALOG_H

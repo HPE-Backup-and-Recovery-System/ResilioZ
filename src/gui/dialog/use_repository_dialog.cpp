@@ -16,7 +16,7 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 
   repodata_mgr_ = new RepodataManager();
   repos = repodata_mgr_->GetAll();
-  FillTable();
+  fillTable();
   checkSelection();
 
   auto* header = ui->repoTable->horizontalHeader();
@@ -32,7 +32,7 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 
   // Table Size
   QTimer::singleShot(
-      0, this, [this]() { SetColSize(ui->repoTable->viewport()->width()); });
+      0, this, [this]() { setColSize(ui->repoTable->viewport()->width()); });
 
   connect(ui->repoTable->selectionModel(),
           &QItemSelectionModel::selectionChanged, this,
@@ -46,7 +46,7 @@ UseRepositoryDialog::~UseRepositoryDialog() {
 
 void UseRepositoryDialog::resizeEvent(QResizeEvent* event) {
   QDialog::resizeEvent(event);  // QWidget::resizeEvent(event); for QWidgets
-  SetColSize(ui->repoTable->viewport()->width());
+  setColSize(ui->repoTable->viewport()->width());
 }
 
 void UseRepositoryDialog::checkSelection() {
@@ -57,7 +57,7 @@ void UseRepositoryDialog::checkSelection() {
   ui->passwordInput->setEnabled(validSelection);
 }
 
-void UseRepositoryDialog::SetColSize(int tableWidth) {
+void UseRepositoryDialog::setColSize(int tableWidth) {
   int col_created_at = 200;
   int col_name = 240;
   int col_type = 100;
@@ -69,7 +69,7 @@ void UseRepositoryDialog::SetColSize(int tableWidth) {
   ui->repoTable->setColumnWidth(3, col_path);        // Path
 }
 
-void UseRepositoryDialog::FillTable() {
+void UseRepositoryDialog::fillTable() {
   ui->repoTable->clearContents();
   ui->repoTable->setRowCount(static_cast<int>(repos.size()) + 1);
 
@@ -133,12 +133,14 @@ void UseRepositoryDialog::on_nextButton_clicked() {
   QEventLoop loop;
   bool result = false;
   ProgressBoxDecorator::RunProgressBox(
-      this, "Verifying repository...", [&]() -> bool {
+      this,
+      [&]() -> bool {
         QThread::sleep(5);
         result = true;
         QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
         return true;
-      });
+      },
+      "Verifying repository...");
 
   loop.exec();
   if (result) accept();

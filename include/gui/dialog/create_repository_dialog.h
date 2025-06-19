@@ -4,6 +4,9 @@
 #include <QDialog>
 #include <QString>
 
+#include "repositories/repository.h"
+#include "utils/repodata_manager.h"
+
 namespace Ui {
 class CreateRepositoryDialog;
 }
@@ -12,8 +15,11 @@ class CreateRepositoryDialog : public QDialog {
   Q_OBJECT
 
  public:
-  explicit CreateRepositoryDialog(QWidget *parent = nullptr);
+  explicit CreateRepositoryDialog(QWidget* parent = nullptr);
   ~CreateRepositoryDialog();
+
+  void setRepository(Repository* repository);
+  Repository* getRepository() const;
 
  private slots:
   void on_nextButton_clicked();
@@ -23,8 +29,11 @@ class CreateRepositoryDialog : public QDialog {
   QString type_ = "local";
   QString name_, path_, server_ip_, server_backup_path_, client_mount_path_;
   QString password_ = "";
+  std::string timestamp_;
 
-  Ui::CreateRepositoryDialog *ui;
+  Ui::CreateRepositoryDialog* ui;
+  Repository* repository_;
+  RepodataManager repodata_mgr_;
 
   void updateProgress();
   void updateButtons();
@@ -32,6 +41,8 @@ class CreateRepositoryDialog : public QDialog {
   bool handleRepoType();
   bool handleRepoDetails();
   bool handleSetPassword();
+
+  void initRepository();
 };
 
 #endif  // CREATE_REPOSITORY_DIALOG_H

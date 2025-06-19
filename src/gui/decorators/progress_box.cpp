@@ -10,7 +10,7 @@
 
 #include "gui/decorators/message_box.h"
 
-QString ProgressBoxDecorator::GetStyleSheet() {
+QString ProgressBoxDecorator::getStyleSheet() {
   return QString(R"(
     QProgressBar {
       border: 1px solid #CCC;
@@ -21,7 +21,7 @@ QString ProgressBoxDecorator::GetStyleSheet() {
     
     QProgressBar::chunk {
       background-color: rgb(6, 134, 103);
-      width: 20px;
+      width: 32px;
     }
     )");
 }
@@ -40,7 +40,7 @@ QDialog* ProgressBoxDecorator::CreateProgressDialog(QWidget* parent,
 
   QProgressBar* progressBar = new QProgressBar(dialog);
   progressBar->setObjectName("progressBar");
-  progressBar->setStyleSheet(GetStyleSheet());
+  progressBar->setStyleSheet(getStyleSheet());
   progressBar->setTextVisible(true);
   if (!determinate) {
     progressBar->setRange(0, 0);  // Indeterminate (pulsing)
@@ -61,8 +61,10 @@ QDialog* ProgressBoxDecorator::CreateProgressDialog(QWidget* parent,
 
 // Determinate
 void ProgressBoxDecorator::RunProgressBox(
-    QWidget* parent, const QString& message,
-    std::function<bool(std::function<void(int)>)> task) {
+    QWidget* parent, std::function<bool(std::function<void(int)>)> task,
+    const QString& message, const QString& success_message,
+    const QString& failure_message,
+    std::function<void(bool)> onFinishCallback) {
   auto dialog = CreateProgressDialog(parent, message, true);
   QProgressBar* bar = dialog->findChild<QProgressBar*>("progressBar");
 
@@ -74,21 +76,24 @@ void ProgressBoxDecorator::RunProgressBox(
     QMetaObject::invokeMethod(dialog, [=]() {
       dialog->accept();
       if (result) {
-        MessageBoxDecorator::ShowMessageBox(parent, "Success",
-                                            "Operation completed.",
+        MessageBoxDecorator::ShowMessageBox(parent, "Success", success_message,
                                             QMessageBox::Information);
       } else {
-        MessageBoxDecorator::ShowMessageBox(
-            parent, "Failed", "Operation failed.", QMessageBox::Critical);
+        MessageBoxDecorator::ShowMessageBox(parent, "Failure", failure_message,
+                                            QMessageBox::Critical);
+      }
+      if (onFinishCallback) {
+        onFinishCallback(result);
       }
     });
   });
 }
 
 // Indeterminate
-void ProgressBoxDecorator::RunProgressBox(QWidget* parent,
-                                          const QString& message,
-                                          std::function<bool()> task) {
+void ProgressBoxDecorator::RunProgressBox(
+    QWidget* parent, std::function<bool()> task, const QString& message,
+    const QString& success_message, const QString& failure_message,
+    std::function<void(bool)> onFinishCallback) {
   auto dialog = CreateProgressDialog(parent, message, false);
 
   QtConcurrent::run([=]() {
@@ -97,13 +102,13 @@ void ProgressBoxDecorator::RunProgressBox(QWidget* parent,
     QMetaObject::invokeMethod(dialog, [=]() {
       dialog->accept();
       if (result) {
-        MessageBoxDecorator::ShowMessageBox(parent, "Success",
-                                            "Operation completed.",
+        MessageBoxDecorator::ShowMessageBox(parent, "Success", success_message,
                                             QMessageBox::Information);
       } else {
-        MessageBoxDecorator::ShowMessageBox(
-            parent, "Failed", "Operation failed.", QMessageBox::Critical);
+        MessageBoxDecorator::ShowMessageBox(parent, "Failure", failure_message,
+                                            QMessageBox::Critical);
       }
+      onFinishCallback(result);
     });
   });
 }

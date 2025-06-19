@@ -11,7 +11,7 @@ class MessageBoxDecorator {
                              const QString& text, QMessageBox::Icon icon);
 
  private:
-  static QString GetStyleSheet();
+  static QString getStyleSheet();
 };
 
 #endif  // MESSAGE_BOX_H

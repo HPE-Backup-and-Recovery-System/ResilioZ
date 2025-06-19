@@ -16,7 +16,7 @@ ListRepositoriesDialog::ListRepositoriesDialog(QWidget* parent)
 
   repodata_mgr_ = new RepodataManager();
   repos = repodata_mgr_->GetAll();
-  FillTable();
+  fillTable();
 
   auto* header = ui->repoTable->horizontalHeader();
   header->setSectionResizeMode(QHeaderView::Fixed);
@@ -29,7 +29,7 @@ ListRepositoriesDialog::ListRepositoriesDialog(QWidget* parent)
 
   // Table Size
   QTimer::singleShot(
-      0, this, [this]() { SetColSize(ui->repoTable->viewport()->width()); });
+      0, this, [this]() { setColSize(ui->repoTable->viewport()->width()); });
 }
 
 ListRepositoriesDialog::~ListRepositoriesDialog() {
@@ -39,10 +39,10 @@ ListRepositoriesDialog::~ListRepositoriesDialog() {
 
 void ListRepositoriesDialog::resizeEvent(QResizeEvent* event) {
   QDialog::resizeEvent(event);  // QWidget::resizeEvent(event); for QWidgets
-  SetColSize(ui->repoTable->viewport()->width());
+  setColSize(ui->repoTable->viewport()->width());
 }
 
-void ListRepositoriesDialog::SetColSize(int tableWidth) {
+void ListRepositoriesDialog::setColSize(int tableWidth) {
   int col_created_at = 200;
   int col_name = 240;
   int col_type = 100;
@@ -54,7 +54,7 @@ void ListRepositoriesDialog::SetColSize(int tableWidth) {
   ui->repoTable->setColumnWidth(3, col_path);        // Path
 }
 
-void ListRepositoriesDialog::FillTable() {
+void ListRepositoriesDialog::fillTable() {
   ui->repoTable->clearContents();
   int repo_count = static_cast<int>(repos.size());
 
