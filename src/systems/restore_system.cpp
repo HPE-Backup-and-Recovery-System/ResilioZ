@@ -72,11 +72,11 @@ void RestoreSystem::RestoreFromBackup() {
     // Let user select repository
     int repo_choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository", false), repo_menu);
-
+ 
     if (repo_choice == 0) {
       std::cout << " - Going Back...\n";
       return;
-    }
+      }
 
     // Get selected repository path - use the full path including repository name
     std::string backup_path = repos[repo_choice - 1].path + "/" + repos[repo_choice - 1].name;
@@ -208,10 +208,10 @@ void RestoreSystem::RestoreFromBackup() {
 
     // Log summary
     if (failed_files.empty()) {
-      if (location_choice == 0) {
-        Logger::Log("Restore completed successfully to original locations");
-      } else {
-        Logger::Log("Restore completed successfully to: " + restore_dir.string());
+    if (location_choice == 0) {
+      Logger::Log("Restore completed successfully to original locations");
+    } else {
+      Logger::Log("Restore completed successfully to: " + restore_dir.string());
       }
     } else {
       std::string summary = "Restore operation was unsuccessful. " + 

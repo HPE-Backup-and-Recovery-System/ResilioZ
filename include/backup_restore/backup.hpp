@@ -35,7 +35,7 @@ class Backup {
  public:
   Backup(const fs::path& input_path, const fs::path& output_path,
          BackupType type = BackupType::FULL, const std::string& remarks = "",
-         size_t average_chunk_size = 8192);
+         size_t average_chunk_size = 1024 * 1024);
 
   void BackupDirectory();
 

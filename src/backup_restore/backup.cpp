@@ -12,11 +12,14 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <sstream>
+#include <thread>
+#include <atomic>
 
 #include "backup_restore/progress.hpp"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/user_io.h"
+#include "utils/time_util.h"
 
 namespace fs = std::filesystem;
 
@@ -71,29 +74,98 @@ void Backup::BackupFile(const fs::path& file_path) {
     return;
   }
 
-  auto file_metadata = CheckFileMetadata(file_path);
-  ProgressBar progress(file_metadata.total_size, 0,
+  try {
+    auto file_metadata = CheckFileMetadata(file_path);
+    ProgressBar progress(file_metadata.total_size, 0,
                        "backup of " + file_path.string());
 
-  size_t processed_bytes = 0;
-  size_t processed_chunks = 0;
+    size_t processed_bytes = 0;
+    size_t processed_chunks = 0;
 
-  // Use streaming chunking
-  chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
-    // Compress the chunk before saving
-    Chunk compressed_chunk = CompressChunk(chunk);
-    file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
-    SaveChunk(compressed_chunk);
+    // Atomic flags for thread synchronization
+    std::atomic<bool> progress_made{false};
+    std::atomic<bool> abort_requested{false};
+    std::atomic<bool> chunking_completed{false};
 
-    // Update progress
-    processed_bytes += chunk.size;
-    processed_chunks++;
-    progress.Update(processed_bytes, processed_chunks);
-  });
+    // Create a thread for the chunking operation
+    std::thread chunking_thread([&]() {
+      try {
+        chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
+          // Check for abort request
+          if (abort_requested) {
+            throw std::runtime_error("Aborted by watchdog");
+          }
 
-  progress.Complete();
+          // Process the chunk
+          try {
+        Chunk compressed_chunk = CompressChunk(chunk);
+        file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
+        SaveChunk(compressed_chunk);
 
-  metadata_.files[file_path.string()] = file_metadata;
+        // Update progress
+        processed_bytes += chunk.size;
+        processed_chunks++;
+        progress.Update(processed_bytes, processed_chunks);
+
+            // Signal progress
+            progress_made = true;
+      } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
+      }
+    });
+
+        chunking_completed = true;
+      } catch (const std::exception& e) {
+        // Propagate the error but ensure chunking_completed is set
+        chunking_completed = true;
+        throw;
+      }
+    });
+
+    // Watchdog loop in main thread
+    int failure_count = 0;
+    const int MAX_FAILURES = 3;
+    const auto CHECK_INTERVAL = std::chrono::seconds(3);
+
+    while (!chunking_completed) {
+      // Sleep for check interval
+      std::this_thread::sleep_for(CHECK_INTERVAL);
+
+      // Check if progress was made
+      if (progress_made) {
+        progress_made = false;  // Reset for next interval
+        failure_count = 0;      // Reset failure count on progress
+      } else {
+        failure_count++;
+        Logger::Log("No progress detected for " + std::to_string(failure_count * 3) + 
+                   " seconds while backing up " + file_path.string(), LogLevel::WARNING);
+
+        if (failure_count >= MAX_FAILURES) {
+          Logger::Log("Backup operation appears frozen, aborting backup of " + 
+                     file_path.string(), LogLevel::ERROR);
+          abort_requested = true;
+          break;
+        }
+      }
+    }
+
+    // Wait for chunking thread to finish
+    if (chunking_thread.joinable()) {
+      chunking_thread.join();
+      
+    }
+
+    // If we completed successfully, update metadata and progress
+    if (!abort_requested) {
+    progress.Complete();
+    metadata_.files[file_path.string()] = file_metadata;
+    } else {
+      throw std::runtime_error("Backup aborted due to lack of progress");
+    }
+
+  } catch (const std::exception& e) {
+    throw std::runtime_error("Failed to backup file: " + std::string(e.what()));
+  }
 }
 
 bool Backup::CheckFileToSkip(const fs::path& file_path) {
@@ -133,15 +205,25 @@ void Backup::BackupDirectory() {
   size_t added_files = 0;
   size_t deleted_files = 0;
 
+  // Create dumps directory for logging
+  fs::path dumps_dir = output_path_ / "dumps";
+  fs::create_directories(dumps_dir);
+    
+  // Create log files
+  std::ofstream failed_log(dumps_dir / "failed_backups.log");
+  std::ofstream success_log(dumps_dir / "successful_backups.log");
+  failed_log << "Failed Backups Log - " << TimeUtil::GetCurrentTimestamp() << "\n\n";
+  success_log << "Successful Backups Log - " << TimeUtil::GetCurrentTimestamp() << "\n\n";
+
   // Track files in current backup
   std::set<std::string> current_files;
 
   // First, check for deleted files
-
   for (const auto& [file_path, _] : metadata_.files) {
     if (!fs::exists(file_path)) {
       deleted_files++;
       metadata_.files.erase(file_path);
+      failed_log << "File deleted since last backup: " << file_path << "\n\n";
     }
   }
 
@@ -151,15 +233,26 @@ void Backup::BackupDirectory() {
       std::string file_path = entry.path().string();
       current_files.insert(file_path);
 
-      auto it = metadata_.files.find(file_path);
-      if (it == metadata_.files.end()) {
-        added_files++;
-        BackupFile(entry.path());
-      } else if (CheckFileForChanges(entry.path(), it->second)) {
-        changed_files++;
-        BackupFile(entry.path());
-      } else {
-        unchanged_files++;
+      try {
+        auto it = metadata_.files.find(file_path);
+        if (it == metadata_.files.end()) {
+          added_files++;
+          BackupFile(entry.path());
+          success_log << "Added new file: " << file_path << "\n";
+          success_log << "Size: " << entry.file_size() << " bytes\n\n";
+        } else if (CheckFileForChanges(entry.path(), it->second)) {
+          changed_files++;
+          BackupFile(entry.path());
+          success_log << "Updated changed file: " << file_path << "\n";
+          success_log << "Size: " << entry.file_size() << " bytes\n\n";
+        } else {
+          unchanged_files++;
+          success_log << "Skipped unchanged file: " << file_path << "\n\n";
+        }
+      } catch (const std::exception& e) {
+        failed_log << "Failed to backup file: " << file_path << "\n";
+        failed_log << "Error: " << e.what() << "\n\n";
+        Logger::Log("Failed to backup file: " + file_path + " - " + e.what(), LogLevel::ERROR);
       }
     }
   }
@@ -171,6 +264,10 @@ void Backup::BackupDirectory() {
           << "\n - Added files: " << added_files
           << "\n - Deleted files: " << deleted_files << std::endl;
   Logger::TerminalLog(summary.str());
+
+  // Write summary to both logs
+  failed_log << "\nBackup Summary:\n" << summary.str();
+  success_log << "\nBackup Summary:\n" << summary.str();
 
   SaveMetadata();
 }

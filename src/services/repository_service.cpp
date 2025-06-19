@@ -76,7 +76,7 @@ bool RepositoryService::CreateNewRepository(bool loop) {
       switch (choice) {
         case 0:
           std::cout << " - Going Back...\n";
-          return true;
+          return false;
         case 1:
           InitLocalRepositoryFromPrompt();
           return true;
@@ -138,7 +138,7 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, server_ip, server_backup_path, password;
+  std::string name, server_ip, server_backup_path, client_mount_path, password;
   name = Prompter::PromptRepoName();
   server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
   server_backup_path =
@@ -146,6 +146,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
+
+  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path + "/" + name);
 
   NFSRepository* repo = nullptr;
   try {
