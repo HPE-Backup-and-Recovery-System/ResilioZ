@@ -105,7 +105,7 @@ void BackupSystem::CreateBackup() {
       auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
       if (remote_repo) {
         remote_repo->UploadDirectory("temp");
-        // fs::remove_all("temp");
+        fs::remove_all("temp");
       }
     }
 
