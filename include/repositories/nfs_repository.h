@@ -21,6 +21,8 @@ class NFSRepository : public Repository {
 
   void WriteConfig() const override;
   static NFSRepository FromConfigJson(const nlohmann::json& config);
+  
+  void SetMountPoint(const std::string& mount_point);
 
  private:
   bool UploadFile(const std::string& local_file,
@@ -29,9 +31,11 @@ class NFSRepository : public Repository {
   void EnsureNFSMounted() const;
   void CreateRemoteDirectory() const;
   void RemoveRemoteDirectory() const;
+  bool MountNFSShare() const;
 
   std::string server_ip_;
   std::string server_backup_path_;
+  std::string mount_point_;
 };
 
 #endif  // NFS_REPOSITORY_H_

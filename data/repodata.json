@@ -1,0 +1,9 @@
+[
+  {
+    "created_at": "2025-06-19T07:42:19Z",
+    "name": "rtest",
+    "password_hash": "08acdeb859adc3c800133ea941640dde64b194788e1fe3d81687925ed8df9e20",
+    "path": "centronox@192.168.8.141:/home/centronox/Downloads/test",
+    "type": "remote"
+  }
+]
