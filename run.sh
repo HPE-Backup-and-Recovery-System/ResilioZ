@@ -10,9 +10,10 @@ cmake -S . -B build \
 cmake --build build
 
 # Run the Binary
+cd build
 
 # CLI
-./build/main --cli
+./main --cli
 
 # GUI
-./build/main --gui
+./main --gui
