@@ -171,24 +171,47 @@ void BackupTab::initBackup() {
   }
 
   // TODO: Check and Refine
-  ProgressBoxDecorator::runProgressBox(
+  auto* backup = backup_;
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
-      [&]() -> bool {
+      [this, backup](
+          std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
-          backup_->BackupDirectory();
+          setWaitMessage("Creating backup directory...");
+          backup->BackupDirectory();
+
+          if (repository_->GetType() == RepositoryType::REMOTE) {
+            setWaitMessage("Uploading backup to remote repository...");
+
+            auto* remote_repository =
+                dynamic_cast<RemoteRepository*>(repository_);
+            remote_repository->UploadDirectory(destination_path_);
+
+            setWaitMessage("Cleaning up temporary backup files...");
+            fs::remove_all(destination_path_);
+          }
+
           Logger::SystemLog("GUI | Backup created successfully.");
+          setSuccessMessage("Backup created successfully");
           return true;
+
         } catch (const std::exception& e) {
           Logger::SystemLog(
               "GUI | Cannot create backup: " + std::string(e.what()),
               LogLevel::ERROR);
+          setFailureMessage("Backup creation failed: " +
+                            QString::fromStdString(e.what()));
           return false;
         }
       },
       "Creating backup...", "Backup created successfully.",
       "Backup creation failed.",
-      [&](bool success) {
+      [this, backup](bool success) {
         if (success) {
+          delete backup;
+          backup_ = nullptr;
           ui->stackedWidget->setCurrentIndex(0);
         } else {
           ui->nextButton->setEnabled(true);

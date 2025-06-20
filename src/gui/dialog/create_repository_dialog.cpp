@@ -215,39 +215,46 @@ void CreateRepositoryDialog::initRepository() {
     return;
   }
 
-  ProgressBoxDecorator::runProgressBox(
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
-      [&]() -> bool {
+      [&](std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
+          setWaitMessage("Checking if repository already exists...");
           if (repository_->Exists()) {
-            QMetaObject::invokeMethod(this, [=]() {
-              MessageBoxDecorator::showMessageBox(
-                  this, "Error",
-                  "Repository already exists at location: " +
-                      QString::fromStdString(repository_->GetPath()),
-                  QMessageBox::Warning);
-            });
+            setFailureMessage("Repository already exists at location: " +
+                              QString::fromStdString(repository_->GetPath()));
             return false;
           }
+
+          setWaitMessage("Initializing repository...");
           repository_->Initialize();
+
           Logger::SystemLog(
               "GUI | Repository: " + name_.toStdString() + " [" +
               RepodataManager::GetFormattedTypeString(repository_->GetType()) +
               "] created at location: " + repository_->GetPath());
+
+          setSuccessMessage(
+              "Repository: " + name_ + " [" +
+              QString::fromStdString(RepodataManager::GetFormattedTypeString(
+                  repository_->GetType())) +
+              "] created at location: " +
+              QString::fromStdString(repository_->GetPath()));
           return true;
+
         } catch (const std::exception& e) {
           Logger::SystemLog(
               "GUI | Cannot initialize repository: " + std::string(e.what()),
               LogLevel::ERROR);
+
+          setFailureMessage("Repository creation failed: " +
+                            QString::fromStdString(e.what()));
           return false;
         }
       },
-      "Initializing repository...",
-      "Repository: " + name_ + " [" +
-          QString::fromStdString(
-              RepodataManager::GetFormattedTypeString(repository_->GetType())) +
-          "] created at location: " +
-          QString::fromStdString(repository_->GetPath()),
+      "Creating repository...", "Repository created successfully.",
       "Repository creation failed.",
       [&](bool success) {
         if (success) {

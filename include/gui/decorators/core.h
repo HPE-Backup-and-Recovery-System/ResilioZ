@@ -1,0 +1,5 @@
+#ifndef CORE_DECORATOR_H
+#define CORE_DECORATOR_H
+
+
+#endif  // CORE_DECORATOR_H
