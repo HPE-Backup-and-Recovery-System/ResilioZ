@@ -1,22 +1,34 @@
 #include "repositories/nfs_repository.h"
 
-#include <filesystem>
-#include <fstream>
-#include <cstdlib>
-#include <nlohmann/json.hpp>
-#include <sys/mount.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
+
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <thread>
 
 #include "utils/error_util.h"
-#include "utils/prompter.h"
 #include "utils/logger.h"
+#include "utils/prompter.h"
 
 namespace fs = std::filesystem;
 
 NFSRepository::NFSRepository() {}
+
+NFSRepository::NFSRepository(const std::string& nfs_mount_path,
+                             const std::string& name,
+                             const std::string& password,
+                             const std::string& created_at) {
+  path_ = nfs_mount_path;
+  name_ = name;
+  password_ = password;
+  created_at_ = created_at;
+  type_ = RepositoryType::NFS;
+}
 
 NFSRepository::NFSRepository(const std::string& server_ip,
                             const std::string& server_backup_path,
@@ -78,9 +90,9 @@ bool NFSRepository::UploadFile(const std::string& local_file,
 }
 
 bool NFSRepository::Exists() const {
-    if (!NFSMountExists()) {
-        return false;
-    }
+  if (!NFSMountExists()) {
+    return false;
+  }
 
     std::string config_path = path_ + "/" + name_ + "/config.json";
     if (!fs::exists(config_path)) {
@@ -88,19 +100,19 @@ bool NFSRepository::Exists() const {
         return false;
     }
 
-    try {
-        std::ifstream file(config_path);
-        if (!file.is_open()) {
-            Logger::Log("Failed to open config file: " + config_path);
-            return false;
-        }
-        nlohmann::json config;
-        file >> config;
-        return true;
-    } catch (const std::exception& e) {
-        Logger::Log("Error reading config file: " + std::string(e.what()));
-        return false;
+  try {
+    std::ifstream file(config_path);
+    if (!file.is_open()) {
+      Logger::Log("Failed to open config file: " + config_path);
+      return false;
     }
+    nlohmann::json config;
+    file >> config;
+    return true;
+  } catch (const std::exception& e) {
+    Logger::Log("Error reading config file: " + std::string(e.what()));
+    return false;
+  }
 }
 
 void NFSRepository::Initialize() {
@@ -150,7 +162,7 @@ void NFSRepository::WriteConfig() const {
     std::string config_path = repo_path + "/config.json";
     std::string temp_config_path = "/tmp/config.json.tmp";
 
-    nlohmann::json config = {{"name", name_},
+  nlohmann::json config = {{"name", name_},
                            {"type", "nfs"},
                            {"path", path_},
                            {"server_ip", server_ip_},
@@ -164,8 +176,8 @@ void NFSRepository::WriteConfig() const {
         ErrorUtil::ThrowError("Failed to write config to temporary file: " + temp_config_path);
     }
 
-    file << config.dump(4);
-    file.close();
+  file << config.dump(4);
+  file.close();
 
     // Move the temporary file to the final location with sudo
     std::string mv_cmd = "sudo mv " + temp_config_path + " " + config_path;
@@ -181,27 +193,29 @@ void NFSRepository::WriteConfig() const {
         Logger::Log("Warning: Failed to set ownership on config file: " + config_path);
     }
 
-    std::string chmod_cmd = "sudo chmod 644 " + config_path;
-    result = system(chmod_cmd.c_str());
-    if (result != 0) {
-        Logger::Log("Warning: Failed to set permissions on config file: " + config_path);
-    }
+  std::string chmod_cmd = "sudo chmod 644 " + config_path;
+  result = system(chmod_cmd.c_str());
+  if (result != 0) {
+    Logger::Log("Warning: Failed to set permissions on config file: " +
+                config_path);
+  }
 
-    if (!fs::exists(config_path)) {
-        ErrorUtil::ThrowError("Config file was not created successfully: " + config_path);
-    }
+  if (!fs::exists(config_path)) {
+    ErrorUtil::ThrowError("Config file was not created successfully: " +
+                          config_path);
+  }
 }
 
 NFSRepository NFSRepository::FromConfigJson(const nlohmann::json& config) {
-    try {
-        return NFSRepository(config.at("server_ip"),
-                           config.at("server_backup_path"),
-                           config.at("name"),
-                           config.value("password_hash", ""),
-                           config.at("created_at"));
-    } catch (const std::exception& e) {
-        ErrorUtil::ThrowError("Invalid NFS config format: " + std::string(e.what()));
-    }
+  try {
+    return NFSRepository(config.at("server_ip"),
+                         config.at("server_backup_path"), config.at("name"),
+                         config.value("password_hash", ""),
+                         config.at("created_at"));
+  } catch (const std::exception& e) {
+    ErrorUtil::ThrowError("Invalid NFS config format: " +
+                          std::string(e.what()));
+  }
 }
 
 bool NFSRepository::NFSMountExists() const { 

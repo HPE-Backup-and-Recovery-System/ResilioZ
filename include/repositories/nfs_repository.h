@@ -8,11 +8,11 @@
 class NFSRepository : public Repository {
  public:
   NFSRepository();
+  NFSRepository(const std::string& nfs_mount_path, const std::string& name,
+                const std::string& password, const std::string& created_at);
   NFSRepository(const std::string& server_ip,
-                const std::string& server_backup_path,
-                const std::string& name,
-                const std::string& password,
-                const std::string& created_at);
+                const std::string& server_backup_path, const std::string& name,
+                const std::string& password, const std::string& created_at);
   ~NFSRepository() {}
 
   bool Exists() const override;

@@ -3,21 +3,42 @@
 #include <QString>
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
 #include "gui/dialog/ui_create_repository_dialog.h"
+#include "repositories/all.h"
 #include "utils/utils.h"
 
-CreateRepositoryDialog::CreateRepositoryDialog(QWidget *parent)
+CreateRepositoryDialog::CreateRepositoryDialog(QWidget* parent)
     : QDialog(parent), ui(new Ui::CreateRepositoryDialog) {
   ui->setupUi(this);
+
   ui->stackedWidget_createRepo->setCurrentIndex(0);
+  ui->backButton->setAutoDefault(true);
+  ui->backButton->setDefault(false);
+  ui->nextButton->setAutoDefault(true);
+  ui->nextButton->setDefault(true);
 
   connect(ui->stackedWidget_createRepo, &QStackedWidget::currentChanged, this,
           &CreateRepositoryDialog::updateButtons);
 
   updateButtons();
+  repository_ = nullptr;
+  repodata_mgr_ = new RepodataManager();
 }
 
-CreateRepositoryDialog::~CreateRepositoryDialog() { delete ui; }
+CreateRepositoryDialog::~CreateRepositoryDialog() {
+  delete ui;
+  delete repodata_mgr_;
+  if (repository_) delete repository_;
+}
+
+void CreateRepositoryDialog::setRepository(Repository* repository) {
+  repository_ = repository;
+}
+
+Repository* CreateRepositoryDialog::getRepository() const {
+  return repository_;
+}
 
 void CreateRepositoryDialog::updateProgress() {
   int index = ui->stackedWidget_createRepo->currentIndex();
@@ -46,24 +67,19 @@ void CreateRepositoryDialog::on_nextButton_clicked() {
   int total = ui->stackedWidget_createRepo->count();
 
   bool valid = true;
-  // TODO: Validate Inputs
   switch (index) {
     case 0:
       valid = handleRepoType();
       break;
-
     case 1:
       valid = handleRepoDetails();
       break;
-
     case 2:
       valid = handleSetPassword();
       break;
-
     default:
       break;
   }
-
   if (!valid) {
     return;
   }
@@ -71,11 +87,8 @@ void CreateRepositoryDialog::on_nextButton_clicked() {
   if (index < total - 1) {
     ui->stackedWidget_createRepo->setCurrentIndex(index + 1);
   } else {
-    // TODO: Create Repo
-    MessageBoxDecorator::ShowMessageBox(this, "Success",
-                                        "Repository created." + type_,
-                                        QMessageBox::Information);
-    accept();
+    ui->nextButton->setEnabled(false);
+    initRepository();
   }
   updateProgress();
 }
@@ -113,14 +126,17 @@ bool CreateRepositoryDialog::handleRepoDetails() {
   if (type_ == "local") {
     name_ = ui->localNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+      MessageBoxDecorator::showMessageBox(this, "Invalid Input",
                                           "Repository name is invalid.",
                                           QMessageBox::Warning);
       return false;
     }
     path_ = ui->localPathInput->text();
+    if (path_.isEmpty()) {
+      path_ = ".";
+    }
     if (!Validator::IsValidPath(path_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(
+      MessageBoxDecorator::showMessageBox(
           this, "Invalid Input", "Path for local repository is invalid.",
           QMessageBox::Warning);
       return false;
@@ -128,43 +144,29 @@ bool CreateRepositoryDialog::handleRepoDetails() {
   } else if (type_ == "nfs") {
     name_ = ui->nfsNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+      MessageBoxDecorator::showMessageBox(this, "Invalid Input",
                                           "Repository name is invalid.",
                                           QMessageBox::Warning);
       return false;
     }
-    server_ip_ = ui->nfsServerIpInput->text();
-    if (!Validator::IsValidIpAddress(server_ip_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
-                                          "NFS server IP address is invalid.",
-                                          QMessageBox::Warning);
-      return false;
-    }
-    server_backup_path_ = ui->nfsServerBackupPathInput->text();
-    if (!Validator::IsValidLocalPath(server_backup_path_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
-                                          "NFS server backup path is invalid.",
-                                          QMessageBox::Warning);
-      return false;
-    }
-    client_mount_path_ = ui->nfsClientMountPathInput->text();
-    if (!Validator::IsValidMountPath(client_mount_path_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
-                                          "NFS client mount path is invalid.",
+    path_ = ui->nfsMountPathInput->text();
+    if (!Validator::IsValidMountPath(path_.toStdString())) {
+      MessageBoxDecorator::showMessageBox(this, "Invalid Input",
+                                          "NFS mount path is invalid.",
                                           QMessageBox::Warning);
       return false;
     }
   } else if (type_ == "remote") {
     name_ = ui->remoteNameInput->text();
     if (!Validator::IsValidRepoName(name_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(this, "Invalid Input",
+      MessageBoxDecorator::showMessageBox(this, "Invalid Input",
                                           "Repository name is invalid.",
                                           QMessageBox::Warning);
       return false;
     }
     path_ = ui->remotePathInput->text();
     if (!Validator::IsValidSftpPath(path_.toStdString())) {
-      MessageBoxDecorator::ShowMessageBox(
+      MessageBoxDecorator::showMessageBox(
           this, "Invalid Input", "Path for remote repository is invalid.",
           QMessageBox::Warning);
       return false;
@@ -176,17 +178,86 @@ bool CreateRepositoryDialog::handleRepoDetails() {
 bool CreateRepositoryDialog::handleSetPassword() {
   password_ = ui->passwordInput->text();
   if (!Validator::IsValidPassword(password_.toStdString())) {
-    MessageBoxDecorator::ShowMessageBox(
+    MessageBoxDecorator::showMessageBox(
         this, "Invalid Password", "Password is invalid.", QMessageBox::Warning);
     return false;
   }
 
   QString password_confirm = ui->passwordConfirmInput->text();
   if (password_ != password_confirm) {
-    MessageBoxDecorator::ShowMessageBox(this, "Invalid Password",
+    MessageBoxDecorator::showMessageBox(this, "Invalid Password",
                                         "Passwords do not match.",
                                         QMessageBox::Warning);
     return false;
   }
   return true;
+}
+
+void CreateRepositoryDialog::initRepository() {
+  timestamp_ = TimeUtil::GetCurrentTimestamp();
+
+  if (type_ == "local") {
+    setRepository(new LocalRepository(path_.toStdString(), name_.toStdString(),
+                                      password_.toStdString(), timestamp_));
+  } else if (type_ == "nfs") {
+    setRepository(new NFSRepository(path_.toStdString(), name_.toStdString(),
+                                    password_.toStdString(), timestamp_));
+  } else if (type_ == "remote") {
+    setRepository(new RemoteRepository(path_.toStdString(), name_.toStdString(),
+                                       password_.toStdString(), timestamp_));
+  } else {
+    MessageBoxDecorator::showMessageBox(
+        this, "Failure", "Could not create repository due to invalid type.",
+        QMessageBox::Warning);
+
+    Logger::SystemLog("GUI | Repository creation failure due to invalid type.",
+                      LogLevel::ERROR);
+    return;
+  }
+
+  ProgressBoxDecorator::runProgressBox(
+      this,
+      [&]() -> bool {
+        try {
+          if (repository_->Exists()) {
+            QMetaObject::invokeMethod(this, [=]() {
+              MessageBoxDecorator::showMessageBox(
+                  this, "Error",
+                  "Repository already exists at location: " +
+                      QString::fromStdString(repository_->GetPath()),
+                  QMessageBox::Warning);
+            });
+            return false;
+          }
+          repository_->Initialize();
+          Logger::SystemLog(
+              "GUI | Repository: " + name_.toStdString() + " [" +
+              RepodataManager::GetFormattedTypeString(repository_->GetType()) +
+              "] created at location: " + repository_->GetPath());
+          return true;
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "GUI | Cannot initialize repository: " + std::string(e.what()),
+              LogLevel::ERROR);
+          return false;
+        }
+      },
+      "Initializing repository...",
+      "Repository: " + name_ + " [" +
+          QString::fromStdString(
+              RepodataManager::GetFormattedTypeString(repository_->GetType())) +
+          "] created at location: " +
+          QString::fromStdString(repository_->GetPath()),
+      "Repository creation failed.",
+      [&](bool success) {
+        if (success) {
+          repodata_mgr_->AddEntry({repository_->GetName(),
+                                   repository_->GetPath(), type_.toStdString(),
+                                   repository_->GetHashedPassword(),
+                                   timestamp_});
+          accept();
+        } else {
+          ui->nextButton->setEnabled(true);
+        }
+      });
 }

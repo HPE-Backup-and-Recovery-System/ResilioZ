@@ -3,6 +3,7 @@
 
 #include <QWidget>
 
+#include "backup_restore/backup.hpp"
 #include "repositories/repository.h"
 #include "services/all.h"
 #include "systems/system.h"
@@ -27,14 +28,20 @@ class BackupTab : public QWidget {
   void on_useRepoButton_clicked();
 
  private:
+  Ui::BackupTab* ui;
+  Repository* repository_;
+  Backup* backup_;
+  BackupType backup_type_ = BackupType::FULL;
+  std::string source_path_, destination_path_ = "temp", remarks_ = "";
+
   void updateProgress();
   void updateButtons();
 
-  Ui::BackupTab* ui;
+  bool handleSelectRepo();
+  bool handleBackupDetails();
+  bool handleSchedule();
 
-  Repository* repository_;
-  RepositoryService* repo_service_;
-  SchedulerService* scheduler_service_;
+  void initBackup();
 };
 
 #endif  // BACKUP_TAB_H
