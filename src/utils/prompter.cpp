@@ -80,11 +80,6 @@ std::string Prompter::PromptLocalPath(const std::string& prompt_msg) {
                                     prompt_msg);
 }
 
-std::string Prompter::PromptMountPath(const std::string& prompt_msg) {
-  return Prompter::PromptUntilValid(Validator::IsValidMountPath, "Mount Path",
-                                    prompt_msg);
-}
-
 std::string Prompter::PromptSftpPath(const std::string& prompt_msg) {
   return Prompter::PromptUntilValid(Validator::IsValidSftpPath, "SFTP Path",
                                     prompt_msg);

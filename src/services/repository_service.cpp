@@ -141,28 +141,24 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, server_ip, server_backup_path, client_mount_path, password;
+  std::string name, client_mount_path, password;
   name = Prompter::PromptRepoName();
-  server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
-  server_backup_path =
-      Prompter::PromptPath("Server Backup Path (e.g., /backup_pool)");
+  client_mount_path = Prompter::PromptPath("Client Mount Path (e.g., /mnt)");
+  if (client_mount_path.empty()) {
+    client_mount_path = ".";
+  }
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
-  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path + "/" + name);
-
   NFSRepository* repo = nullptr;
   try {
-    repo = new NFSRepository(server_ip, server_backup_path, name, password,
-                             timestamp);
+    repo = new NFSRepository(client_mount_path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " +
-                            repo->GetPath());
+      ErrorUtil::ThrowError("Repository already exists at location: " + repo->GetPath());
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name +
-                  " created at location: " + repo->GetPath());
+      Logger::Log("Repository: " + name + " created at location: " + repo->GetPath());
       Logger::TerminalLog(
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
@@ -171,9 +167,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
         {name, repo->GetPath(), "nfs", repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
-  } catch (const std::exception& e) {
+  } catch (...) {
     ErrorUtil::ThrowNested("NFS repository not initialized");
-
     if (repo != repository_) {
       delete repo;
     }
@@ -286,8 +281,8 @@ Repository* RepositoryService::SelectExistingRepository() {
       config_file.close();
 
       repo = new NFSRepository(
-          config.at("server_ip"), config.at("server_backup_path"),
-          selected_repo.name, password, selected_repo.created_at);
+          config.at("client_mount_path"), selected_repo.name, password,
+          selected_repo.created_at);
     } else if (selected_repo.type == "remote") {
       repo = new RemoteRepository(selected_repo.path, selected_repo.name,
                                   password, selected_repo.created_at);
