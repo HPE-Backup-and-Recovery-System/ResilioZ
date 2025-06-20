@@ -10,24 +10,33 @@
 
 class ProgressBoxDecorator {
  public:
-  // Determinate Task (with Progress Callback)
-  static void runProgressBox(
-      QWidget* parent, std::function<bool(std::function<void(int)>)> task,
-      const QString& message,
-      const QString& success_message = "Operation completed.",
-      const QString& failure_message = "Operation failed.",
+  static void runProgressBoxDeterminate(
+      QWidget* parent,
+      std::function<bool(std::function<void(int)> setProgress,
+                         std::function<void(const QString&)> setWaitMessage,
+                         std::function<void(const QString&)> setSuccessMessage,
+                         std::function<void(const QString&)> setFailureMessage)>
+          task,
+      QString wait_message = "Please wait...",
+      QString success_message = "Operation completed.",
+      QString failure_message = "Operation failed.",
       std::function<void(bool)> onFinishCallback = [](bool) {});
 
-  // Indeterminate Task (No Progress)
-  static void runProgressBox(
-      QWidget* parent, std::function<bool()> task, const QString& message,
-      const QString& success_message = "Operation completed.",
-      const QString& failure_message = "Operation failed.",
+  static void runProgressBoxIndeterminate(
+      QWidget* parent,
+      std::function<bool(std::function<void(const QString&)> setWaitMessage,
+                         std::function<void(const QString&)> setSuccessMessage,
+                         std::function<void(const QString&)> setFailureMessage)>
+          task,
+      QString wait_message = "Please wait...",
+      QString success_message = "Operation completed.",
+      QString failure_message = "Operation failed.",
       std::function<void(bool)> onFinishCallback = [](bool) {});
 
  private:
   static QString getStyleSheet();
-  static QDialog* createProgressDialog(QWidget* parent, const QString& message,
+  static QDialog* createProgressDialog(QWidget* parent, QLabel*& label,
+                                       const QString& message,
                                        bool determinate);
 };
 

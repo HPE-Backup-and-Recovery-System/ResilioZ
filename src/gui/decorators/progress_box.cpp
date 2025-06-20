@@ -26,23 +26,27 @@ QString ProgressBoxDecorator::getStyleSheet() {
 }
 
 QDialog* ProgressBoxDecorator::createProgressDialog(QWidget* parent,
+                                                    QLabel*& label,
                                                     const QString& message,
                                                     bool determinate) {
   QDialog* dialog = new QDialog(parent);
-  dialog->setWindowTitle("Please wait");
+  dialog->setWindowTitle("Please Wait");
   dialog->setModal(true);
   dialog->setMinimumSize(360, 120);
+  dialog->setWindowFlags(dialog->windowFlags() & ~Qt::WindowCloseButtonHint);
+  dialog->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 
-  QLabel* label = new QLabel(message, dialog);
+  label = new QLabel(message, dialog);
   label->setAlignment(Qt::AlignCenter);
-  label->setStyleSheet("font-size: 12pt; font-weight: 500;");
+  label->setStyleSheet(
+      "font-size: 12pt; font-weight: 500; color: rgb(29, 31, 39)");
 
   QProgressBar* progressBar = new QProgressBar(dialog);
   progressBar->setObjectName("progressBar");
   progressBar->setStyleSheet(getStyleSheet());
   progressBar->setTextVisible(true);
   if (!determinate) {
-    progressBar->setRange(0, 0);  // Indeterminate (pulsing)
+    progressBar->setRange(0, 0);
   } else {
     progressBar->setRange(0, 100);
     progressBar->setValue(0);
@@ -58,19 +62,32 @@ QDialog* ProgressBoxDecorator::createProgressDialog(QWidget* parent,
   return dialog;
 }
 
-// Determinate
-void ProgressBoxDecorator::runProgressBox(
-    QWidget* parent, std::function<bool(std::function<void(int)>)> task,
-    const QString& message, const QString& success_message,
-    const QString& failure_message,
+void ProgressBoxDecorator::runProgressBoxDeterminate(
+    QWidget* parent,
+    std::function<bool(std::function<void(int)> setProgress,
+                       std::function<void(const QString&)> setWaitMessage,
+                       std::function<void(const QString&)> setSuccessMessage,
+                       std::function<void(const QString&)> setFailureMessage)>
+        task,
+    QString wait_message, QString success_message, QString failure_message,
     std::function<void(bool)> onFinishCallback) {
-  auto dialog = createProgressDialog(parent, message, true);
+  QLabel* label = nullptr;
+  QDialog* dialog = createProgressDialog(parent, label, wait_message, true);
   QProgressBar* bar = dialog->findChild<QProgressBar*>("progressBar");
 
-  QtConcurrent::run([=]() {
-    bool result = task([=](int value) {
+  QtConcurrent::run([=]() mutable {
+    bool result = false;
+
+    auto setProgress = [&](int value) {
       QMetaObject::invokeMethod(bar, [=]() { bar->setValue(value); });
-    });
+    };
+    auto setWaitMsg = [&](const QString& msg) {
+      QMetaObject::invokeMethod(label, [=]() { label->setText(msg); });
+    };
+    auto setSuccessMsg = [&](const QString& msg) { success_message = msg; };
+    auto setFailureMsg = [&](const QString& msg) { failure_message = msg; };
+
+    result = task(setProgress, setWaitMsg, setSuccessMsg, setFailureMsg);
 
     QMetaObject::invokeMethod(dialog, [=]() {
       dialog->accept();
@@ -81,22 +98,36 @@ void ProgressBoxDecorator::runProgressBox(
         MessageBoxDecorator::showMessageBox(parent, "Failure", failure_message,
                                             QMessageBox::Critical);
       }
-      if (onFinishCallback) {
-        onFinishCallback(result);
-      }
+      onFinishCallback(result);
     });
   });
 }
 
-// Indeterminate
-void ProgressBoxDecorator::runProgressBox(
-    QWidget* parent, std::function<bool()> task, const QString& message,
-    const QString& success_message, const QString& failure_message,
+void ProgressBoxDecorator::runProgressBoxIndeterminate(
+    QWidget* parent,
+    std::function<bool(std::function<void(const QString&)> setWaitMessage,
+                       std::function<void(const QString&)> setSuccessMessage,
+                       std::function<void(const QString&)> setFailureMessage)>
+        task,
+    QString wait_message, QString success_message, QString failure_message,
     std::function<void(bool)> onFinishCallback) {
-  auto dialog = createProgressDialog(parent, message, false);
+  QLabel* label = nullptr;
+  QDialog* dialog = createProgressDialog(parent, label, wait_message, false);
+  QProgressBar* bar = dialog->findChild<QProgressBar*>("progressBar");
 
-  QtConcurrent::run([=]() {
-    bool result = task();
+  QtConcurrent::run([=]() mutable {
+    bool result = false;
+
+    auto setProgress = [&](int value) {
+      QMetaObject::invokeMethod(bar, [=]() { bar->setValue(value); });
+    };
+    auto setWaitMsg = [&](const QString& msg) {
+      QMetaObject::invokeMethod(label, [=]() { label->setText(msg); });
+    };
+    auto setSuccessMsg = [&](const QString& msg) { success_message = msg; };
+    auto setFailureMsg = [&](const QString& msg) { failure_message = msg; };
+
+    result = task(setWaitMsg, setSuccessMsg, setFailureMsg);
 
     QMetaObject::invokeMethod(dialog, [=]() {
       dialog->accept();

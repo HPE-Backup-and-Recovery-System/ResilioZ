@@ -160,48 +160,60 @@ void DeleteRepositoryDialog::deleteRepository(int row) {
     return;
   }
 
-  ProgressBoxDecorator::runProgressBox(
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
-      [&]() -> bool {
+      [&](std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
+          setWaitMessage("Checking if repository exists...");
+
           if (!repository_->Exists()) {
             repodata_mgr_->DeleteEntry(repository_->GetName(),
                                        repository_->GetPath());
+
             Logger::SystemLog("GUI | Deleted entry for repository: " +
                               repository_->GetName() + " [" +
                               RepodataManager::GetFormattedTypeString(
                                   repository_->GetType()) +
                               "] - " + repository_->GetPath() +
                               " as it does not exist");
-            QMetaObject::invokeMethod(this, [=]() {
-              MessageBoxDecorator::showMessageBox(
-                  this, "Error",
-                  "Repository not found at location: " +
-                      QString::fromStdString(repository_->GetPath() +
-                                             "\nRepository entry is deleted."),
-                  QMessageBox::Warning);
-            });
+
+            setFailureMessage("Repository not found at location: " +
+                              QString::fromStdString(repository_->GetPath()) +
+                              "\nRepository entry has been removed.");
             return false;
           }
+
+          setWaitMessage("Deleting repository...");
           repository_->Delete();
+
           Logger::SystemLog(
               "GUI | Repository: " + repository_->GetName() + " [" +
               RepodataManager::GetFormattedTypeString(repository_->GetType()) +
               "] deleted at location: " + repository_->GetPath());
+
+          setSuccessMessage(
+              "Repository: " + QString::fromStdString(repository_->GetName()) +
+              " [" +
+              QString::fromStdString(RepodataManager::GetFormattedTypeString(
+                  repository_->GetType())) +
+              "] deleted from location: " +
+              QString::fromStdString(repository_->GetPath()));
+
           return true;
+
         } catch (const std::exception& e) {
           Logger::SystemLog(
               "GUI | Cannot delete repository: " + std::string(e.what()),
               LogLevel::ERROR);
+
+          setFailureMessage("Repository deletion failed: " +
+                            QString::fromStdString(e.what()));
           return false;
         }
       },
-      "Deleting repository...",
-      "Repository: " + QString::fromStdString(repository_->GetName()) + " [" +
-          QString::fromStdString(
-              RepodataManager::GetFormattedTypeString(repository_->GetType())) +
-          "] deleted from location: " +
-          QString::fromStdString(repository_->GetPath()),
+      "Deleting repository...", "Repository deleted successfully.",
       "Repository deletion failed.",
       [&](bool success) {
         if (success) {
