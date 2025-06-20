@@ -16,12 +16,6 @@ bool Validator::IsValidLocalPath(const std::string& path) {
   return std::regex_match(path, pattern);
 }
 
-bool Validator::IsValidMountPath(const std::string& path) {
-  // Matches: /mnt/path
-  std::regex pattern(R"(^/mnt/[^/]+$)");
-  return std::regex_match(path, pattern);
-}
-
 bool Validator::IsValidSftpPath(const std::string& path) {
   // Matches: user@hostname:/absolute/path
   std::regex pattern(R"(^(""|(".*?")|([\w.\-]+))@([\w.\-]+):\/[^\s]+$)");
