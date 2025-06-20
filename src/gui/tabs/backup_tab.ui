@@ -761,7 +761,7 @@ QRadioButton:checked {
                             <string>Re-enter Password of Repository</string>
                            </property>
                            <property name="echoMode">
-                            <enum>QLineEdit::Password</enum>
+                            <enum>QLineEdit::Normal</enum>
                            </property>
                           </widget>
                          </item>
@@ -780,7 +780,7 @@ QRadioButton:checked {
                             <string>Enter Password of Repository</string>
                            </property>
                            <property name="echoMode">
-                            <enum>QLineEdit::PasswordEchoOnEdit</enum>
+                            <enum>QLineEdit::Normal</enum>
                            </property>
                           </widget>
                          </item>

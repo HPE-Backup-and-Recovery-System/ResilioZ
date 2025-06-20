@@ -179,7 +179,7 @@ void BackupTab::initBackup() {
           std::function<void(const QString&)> setSuccessMessage,
           std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
-          setWaitMessage("Creating backup directory...");
+          setWaitMessage("Creating backup...");
           backup->BackupDirectory();
 
           if (repository_->GetType() == RepositoryType::REMOTE) {
