@@ -31,6 +31,12 @@ class BackupTab : public QWidget {
   void on_createRepoButton_clicked();
   void on_useRepoButton_clicked();
 
+  void on_listBackupButton_clicked();
+  void on_chooseRepoButton_list_clicked();
+
+  void on_compareBackupButton_clicked();
+  void on_chooseRepoButton_compare_clicked();
+
  private:
   Ui::BackupTab* ui;
   Repository* repository_;
@@ -53,8 +59,11 @@ class BackupTab : public QWidget {
   bool handleSelectRepo();
   bool handleBackupDetails();
   bool handleSchedule();
+  bool handleSelectBackups();
 
   void initBackup();
+  void listBackups();
+  void compareBackups();
 };
 
 #endif  // BACKUP_TAB_H
