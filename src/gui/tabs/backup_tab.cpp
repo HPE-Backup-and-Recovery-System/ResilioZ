@@ -11,12 +11,25 @@
 BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
 
-  ui->stackedWidget->setCurrentIndex(0);
+  ui->stackedWidget->setCurrentIndex(1);
   ui->stackedWidget_createBackup->setCurrentIndex(0);
+  ui->stackedWidget_listBackup->setCurrentIndex(0);
+  ui->stackedWidget_compareBackup->setCurrentIndex(0);
+
   ui->backButton->setAutoDefault(true);
   ui->backButton->setDefault(false);
   ui->nextButton->setAutoDefault(true);
   ui->nextButton->setDefault(true);
+
+  ui->backButton_2->setAutoDefault(true);
+  ui->backButton_2->setDefault(false);
+  ui->nextButton_2->setAutoDefault(true);
+  ui->nextButton_2->setDefault(true);
+
+  ui->backButton_3->setAutoDefault(true);
+  ui->backButton_3->setDefault(false);
+  ui->nextButton_3->setAutoDefault(true);
+  ui->nextButton_3->setDefault(true);
 
   repository_ = nullptr;
   backup_ = nullptr;
@@ -25,6 +38,7 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
           &BackupTab::updateButtons);
 
   updateButtons();
+  checkRepoSelection();
 }
 
 BackupTab::~BackupTab() {
@@ -33,8 +47,34 @@ BackupTab::~BackupTab() {
   if (repository_) delete repository_;
 }
 
+void BackupTab::resizeEvent(QResizeEvent* event) {
+  QWidget::resizeEvent(event);
+  setColSize(ui->listTable->viewport()->width());
+}
+
+void BackupTab::setColSize(int tableWidth) {
+  int col_name = 300;
+  int col_type = 160;
+  int col_time = 200;
+  int col_rem = tableWidth - col_name - col_type - col_time;
+
+  ui->listTable->setColumnWidth(0, col_name);  // Name
+  ui->listTable->setColumnWidth(1, col_type);  // Type
+  ui->listTable->setColumnWidth(2, col_type);  // Time
+  ui->listTable->setColumnWidth(3, col_rem);   // Remarks
+
+  ui->compareTable->setColumnWidth(0, col_name);  // Name
+  ui->compareTable->setColumnWidth(1, col_type);  // Type
+  ui->compareTable->setColumnWidth(2, col_type);  // Time
+  ui->compareTable->setColumnWidth(3, col_rem);   // Remarks
+}
+
+void BackupTab::fillListTable() { ui->listTable->clearContents(); }
+
+void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
+
 void BackupTab::on_createBackupButton_clicked() {
-  ui->stackedWidget->setCurrentIndex(1);
+  ui->stackedWidget->setCurrentIndex(2);
 }
 
 void BackupTab::updateProgress() {
@@ -57,6 +97,10 @@ void BackupTab::updateButtons() {
   } else {
     ui->nextButton->setText("Next");
   }
+}
+
+void BackupTab::checkRepoSelection() {
+  ui->nextButton->setEnabled(repository_ != nullptr);
 }
 
 void BackupTab::on_backButton_clicked() {
@@ -108,6 +152,7 @@ void BackupTab::on_createRepoButton_clicked() {
   } else {
     repository_ = nullptr;
   }
+  checkRepoSelection();
 }
 
 void BackupTab::on_useRepoButton_clicked() {
@@ -118,6 +163,7 @@ void BackupTab::on_useRepoButton_clicked() {
   } else {
     repository_ = nullptr;
   }
+  checkRepoSelection();
 }
 
 bool BackupTab::handleSelectRepo() {
@@ -172,6 +218,7 @@ void BackupTab::initBackup() {
 
   // TODO: Check and Refine
   auto* backup = backup_;
+  auto* repository = repository_;
   ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
       [this, backup](
@@ -187,10 +234,10 @@ void BackupTab::initBackup() {
 
             auto* remote_repository =
                 dynamic_cast<RemoteRepository*>(repository_);
-            remote_repository->UploadDirectory(destination_path_);
+            remote_repository->UploadDirectory("temp");
 
             setWaitMessage("Cleaning up temporary backup files...");
-            fs::remove_all(destination_path_);
+            fs::remove_all("temp");
           }
 
           Logger::SystemLog("GUI | Backup created successfully.");
@@ -212,9 +259,27 @@ void BackupTab::initBackup() {
         if (success) {
           delete backup;
           backup_ = nullptr;
+
           ui->stackedWidget->setCurrentIndex(0);
+          checkRepoSelection();
         } else {
           ui->nextButton->setEnabled(true);
         }
       });
 }
+
+void BackupTab::checkBackupSelection() {
+  // QModelIndexList selected =
+  // ui->compareTable->selectionModel()->selectedRows();
+
+  // bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
+  // ui->nextButton->setEnabled(validSelection);
+}
+
+void BackupTab::on_nextButton_2_clicked() {}
+
+void BackupTab::on_backButton_2_clicked() {}
+
+void BackupTab::on_nextButton_3_clicked() {}
+
+void BackupTab::on_backButton_3_clicked() {}
