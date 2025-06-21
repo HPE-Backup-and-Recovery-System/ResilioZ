@@ -21,6 +21,10 @@ RestoreTab::RestoreTab(QWidget* parent)
   ui->nextButton->setAutoDefault(true);
   ui->nextButton->setDefault(true);
 
+  repository_ = nullptr;
+  backup_file = "";
+  backup_destination = "";
+
   connect(ui->stackedWidget_attemptRestore, &QStackedWidget::currentChanged,
           this, &RestoreTab::onAttemptRestorePageChanged);
 }
@@ -60,9 +64,34 @@ void RestoreTab::updateButtons() {
 void RestoreTab::on_nextButton_clicked() {
   int index = ui->stackedWidget_attemptRestore->currentIndex();
   int total = ui->stackedWidget_attemptRestore->count();
+
+  bool valid = true;
+  switch (index) {
+    case 0:
+      valid = handleSelectRepo();
+      break;
+    case 1:
+      valid = handleSelectFile();
+      break;
+    case 2:
+      valid = handleSelectDestination();
+      break;
+    default:
+      break;
+  }
+
+  if (!valid) {
+    return;
+  }
+
   if (index < total - 1) {
     ui->stackedWidget_attemptRestore->setCurrentIndex(index + 1);
   } else {
+    std:: string message = "Repo: " + repository_->GetFullPath() + " \n" + "File: " + backup_file + " \n" + "Dest: " + backup_destination + "\n";
+    MessageBoxDecorator::showMessageBox(
+        this, "Invalid Input",
+        QString::fromStdString(message),
+        QMessageBox::Warning);
     // TODO: Trigger Restore Process
   }
   updateProgress();
@@ -82,24 +111,22 @@ void RestoreTab::on_chooseRepoButton_clicked() {
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
-    repository_ = nullptr;  // TODO...
-    MessageBoxDecorator::showMessageBox(this, "Success", "Repository selected.",
-                                        QMessageBox::Information);
+    repository_ = dialog.getRepository();
   } else {
     repository_ = nullptr;
-    MessageBoxDecorator::showMessageBox(
-        this, "Error", "Repository not selected.", QMessageBox::Warning);
   }
 }
 
 void RestoreTab::onAttemptRestorePageChanged(int index) {
   updateButtons();
   if (index == 1) {
+    // Loading the backup file entries.
     QTimer::singleShot(0, this, [this]() { loadFileTable(); });
   }
 }
 
 void RestoreTab::loadFileTable() {
+  // Clear previous data
   ui->fileTable->clearContents();
 
   auto* header = ui->fileTable->horizontalHeader();
@@ -119,8 +146,14 @@ void RestoreTab::loadFileTable() {
   ui->fileTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   ui->fileTable->verticalHeader()->setVisible(false);
 
-  // To do: Take input of previous step here
-  QString directoryPath = "/home/user/Desktop/HPE/NykajRepo/backup";
+  // To do: Handle remote repos
+  if (!repository_){
+    return;
+  }
+
+  // For local repos
+  std::string path_ = repository_->GetFullPath() + "/backup";
+  QString directoryPath = QString::fromStdString(path_);
   QDir dir(directoryPath);
 
   // Filter only files, and sort
@@ -147,10 +180,9 @@ void RestoreTab::loadFileTable() {
 void RestoreTab::onFileSelected() {
   QList<QTableWidgetItem*> selectedItems = ui->fileTable->selectedItems();
   if (!selectedItems.isEmpty()) {
-    QString fileName = selectedItems.first()->text();
-    // To do
+    backup_file = selectedItems.first()->text().toStdString();
   } else {
-    // To do
+    backup_file = "";
   }
 }
 
@@ -159,6 +191,43 @@ void RestoreTab::on_chooseDestination_clicked() {
       this, "Choose Backup Directory", QDir::homePath(),
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   if (!selectedDir.isEmpty()) {
-    // To do
+    backup_destination = selectedDir.toStdString();
   }
+  else{
+    backup_destination = "";
+  }
+}
+
+
+// Handle repo selection
+bool RestoreTab::handleSelectRepo(){
+  if (repository_ == nullptr) {
+    MessageBoxDecorator::showMessageBox(
+        this, "No Repository Selected",
+        "Please select a repository to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
+}
+
+// Handle backup file selection
+bool RestoreTab::handleSelectFile(){
+  if (backup_file == "") {
+    MessageBoxDecorator::showMessageBox(
+        this, "No File Selected",
+        "Please select a backup file to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
+}
+
+// Handle destination selection
+bool RestoreTab::handleSelectDestination(){
+  if (backup_destination == "") {
+    MessageBoxDecorator::showMessageBox(
+        this, "No Destination Selected",
+        "Please select a destination folder to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
 }

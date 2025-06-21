@@ -48,7 +48,8 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 UseRepositoryDialog::~UseRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
-  if (repository_) delete repository_;
+  // To do: Fix the pointer deletion issue, currently just commented out
+  // if (repository_) delete repository_;
 }
 
 void UseRepositoryDialog::setRepository(Repository* repository) {
@@ -223,6 +224,8 @@ void UseRepositoryDialog::useRepository(int row) {
         if (success) {
           accept();
         } else {
+          repodata_mgr_->DeleteEntry(repository_->GetName(),
+                                     repository_->GetPath());
           ui->nextButton->setEnabled(true);
         }
       });

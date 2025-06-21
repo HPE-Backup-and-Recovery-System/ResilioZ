@@ -86,7 +86,7 @@ QLabel {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="menu_page">
          <property name="autoFillBackground">
@@ -595,6 +595,9 @@ QRadioButton:checked {
                         <widget class="QRadioButton" name="useOriginalLocation">
                          <property name="text">
                           <string>Use original location</string>
+                         </property>
+                         <property name="checked">
+                          <bool>true</bool>
                          </property>
                         </widget>
                        </item>
