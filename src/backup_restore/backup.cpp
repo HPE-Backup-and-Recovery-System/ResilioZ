@@ -39,7 +39,6 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
   metadata_.type = type;
   metadata_.timestamp = std::chrono::system_clock::now();
   metadata_.remarks = remarks;
-  metadata_.original_path = input_path_.string();
 
   // For incremental/differential backups, load previous metadata
   if (type != BackupType::FULL) {
@@ -138,10 +137,12 @@ void Backup::BackupDirectory() {
 
   // First, check for deleted files
 
-  for (const auto& [file_path, _] : metadata_.files) {
-    if (!fs::exists(file_path)) {
+  for (auto it = metadata_.files.begin(); it != metadata_.files.end(); ) {
+    if (!fs::exists(it->first)) {
       deleted_files++;
-      metadata_.files.erase(file_path);
+      it = metadata_.files.erase(it);  // erase returns the next valid iterator
+    } else {
+      ++it;
     }
   }
 
@@ -189,7 +190,6 @@ void Backup::SaveMetadata() {
       std::chrono::system_clock::to_time_t(metadata_.timestamp);
   metadata_json["previous_backup"] = metadata_.previous_backup;
   metadata_json["remarks"] = metadata_.remarks;
-  metadata_json["original_path"] = metadata_.original_path;
 
   nlohmann::json files_json;
   for (const auto& [file_path, file_metadata] : metadata_.files) {
