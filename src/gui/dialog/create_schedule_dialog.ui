@@ -1,17 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>CreateScheduleDialog</class>
- <widget name="CreateScheduleDialog" class="QDialog">
+ <widget class="QDialog" name="CreateScheduleDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>1074</width>
+    <height>666</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">* {
+	font-family: &quot;Ubuntu Sans&quot;;
+}
+
+QDialog#CreateScheduleDialog {
+	background-color: rgb(6, 134, 103);
+}
+
+QFrame {
+	background: white;
+}
+
+QPushButton {
+	padding: 16px 32px;
+	font-size: 32px;
+	font-weight: 500;
+	qproperty-iconSize: 36px 36px;
+	background-color: rgb(6, 134, 103);
+	color: white;
+	text-align: left;
+}
+
+QRadioButton {
+	padding: 32px;
+	font-size: 24px;
+	font-weight: 500;
+	background-color: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QRadioButton::indicator {
+	width: 0;
+	height: 0;
+}
+
+QRadioButton:hover {
+	background-color: rgb(234, 234, 234);
+}
+
+QRadioButton:checked {
+	color: white;
+	background-color: rgb(6, 134, 103);
+	border: none;
+}
+
+QProgressBar {
+    border: 1px solid rgb(29, 31, 39);
+    height: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+QProgressBar::chunk {
+    background-color: rgb(6, 134, 103);
+}
+
+QLabel {
+    color: rgb(29, 31, 39);
+    font-weight: bold;
+}</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QFrame" name="frame_4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QFrame" name="frame_5">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel {
+	text-align: center;
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Plain</enum>
+           </property>
+           <property name="lineWidth">
+            <number>0</number>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QFrame" name="frame_7">
+              <property name="styleSheet">
+               <string notr="true">QLabel {
+	font-size: 24pt;
+	color: rgb(6, 134, 103);
+}</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_5">
+                 <property name="text">
+                  <string>1</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>2</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_7">
+                 <property name="text">
+                  <string>3</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_8">
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>Endpoint Selection</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_2">
+                 <property name="text">
+                  <string>Backup Selection</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Schedule Selection</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QProgressBar" name="progressBar">
+              <property name="value">
+               <number>33</number>
+              </property>
+              <property name="textVisible">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="frame_2">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <widget class="QStackedWidget" name="stackedWidget_createSchedule">
+           <property name="styleSheet">
+            <string notr="true">QWidget#endpoint_page,  
+QWidget#backup_page, 
+QWidget#schedule_page {
+	background-color: rgb(234, 234, 234);
+}
+
+QLabel {
+	background-color: rgb(234, 234, 234);
+	font-weight: 500;
+	font-size: 16pt;
+}
+
+QLineEdit {
+	color: rgb(6, 134, 103);
+	font-weight: 700;
+	font-size: 16pt;
+	padding: 4px;
+	border: 1px solid rgb(6, 134, 103);
+}
+
+QLineEdit:disabled {
+	background: rgba(6, 134, 103, 0.5);
+}</string>
+           </property>
+           <widget class="QWidget" name="endpoint_page">
+            <layout class="QGridLayout" name="gridLayout_3">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_2">
+               <property name="leftMargin">
+                <number>30</number>
+               </property>
+               <property name="topMargin">
+                <number>30</number>
+               </property>
+               <property name="rightMargin">
+                <number>30</number>
+               </property>
+               <property name="bottomMargin">
+                <number>30</number>
+               </property>
+               <property name="spacing">
+                <number>30</number>
+               </property>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>Destination</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="destinationInput"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label">
+                 <property name="text">
+                  <string>Source</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="sourceInput"/>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="backup_page">
+            <property name="styleSheet">
+             <string notr="true">QFrame {
+	background: rgb(234, 234, 234);
+}
+
+QLabel {
+	background-color: rgb(234, 234, 234);
+	font-weight: 500;
+	font-size: 16pt;
+}
+
+QLineEdit {
+	color: rgb(6, 134, 103);
+	font-weight: 700;
+	font-size: 16pt;
+	padding: 4px;
+	border: 1px solid rgb(6, 134, 103);
+}
+
+QRadioButton {
+	padding: 0px auto;
+	font-size: 16pt;
+	font-weight: 500;
+	background-color: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QRadioButton::indicator {
+	width: 0;
+	height: 0;
+}
+
+QRadioButton:hover {
+	background-color: rgb(234, 234, 234);
+}
+
+QRadioButton:checked {
+	color: white;
+	background-color: rgb(6, 134, 103);
+	border: none;
+}
+</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_5">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_4">
+               <property name="leftMargin">
+                <number>30</number>
+               </property>
+               <property name="topMargin">
+                <number>30</number>
+               </property>
+               <property name="rightMargin">
+                <number>30</number>
+               </property>
+               <property name="bottomMargin">
+                <number>30</number>
+               </property>
+               <property name="spacing">
+                <number>30</number>
+               </property>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_10">
+                 <property name="text">
+                  <string>Remarks</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_9">
+                 <property name="text">
+                  <string>Backup type</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="remarksInput"/>
+               </item>
+               <item row="0" column="1">
+                <layout class="QVBoxLayout" name="verticalLayout_5">
+                 <item>
+                  <widget class="QRadioButton" name="fullButton">
+                   <property name="text">
+                    <string>Full Backup</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="incButton">
+                   <property name="text">
+                    <string>Incremental Backup</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="diffButton">
+                   <property name="text">
+                    <string>Differential Backup</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="schedule_page">
+            <layout class="QGridLayout" name="gridLayout_7">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_6">
+               <property name="leftMargin">
+                <number>30</number>
+               </property>
+               <property name="topMargin">
+                <number>30</number>
+               </property>
+               <property name="rightMargin">
+                <number>30</number>
+               </property>
+               <property name="bottomMargin">
+                <number>30</number>
+               </property>
+               <property name="spacing">
+                <number>30</number>
+               </property>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="scheduleInput"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_11">
+                 <property name="text">
+                  <string>Cron String</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_9">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}
+
+QPushButton#nextButton:disabled {
+	background: grey;
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="spacing">
+             <number>30</number>
+            </property>
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="rightMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="backButton">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Back</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="nextButton">
+              <property name="text">
+               <string>Next</string>
+              </property>
+              <property name="shortcut">
+               <string>Ctrl+S</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

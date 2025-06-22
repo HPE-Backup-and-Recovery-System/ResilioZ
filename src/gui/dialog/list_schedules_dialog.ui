@@ -157,7 +157,7 @@ QLabel {
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <widget class="QTableWidget" name="tableWidget">
+          <widget class="QTableWidget" name="schedule_table">
            <property name="styleSheet">
             <string notr="true">* {
     font-size: 12pt;
@@ -208,6 +208,36 @@ QTableView {
 }
 </string>
            </property>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Schedule</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Source</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Destination</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Remarks</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Type</string>
+            </property>
+           </column>
           </widget>
          </item>
          <item>
