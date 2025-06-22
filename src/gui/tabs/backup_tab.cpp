@@ -1,5 +1,9 @@
 #include "gui/tabs/backup_tab.h"
 
+#include <QModelIndexList>
+#include <QThread>
+#include <QTimer>
+
 #include "backup_restore/backup.hpp"
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
@@ -11,7 +15,7 @@
 BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
 
-  ui->stackedWidget->setCurrentIndex(1);
+  ui->stackedWidget->setCurrentIndex(0);
   ui->stackedWidget_createBackup->setCurrentIndex(0);
   ui->stackedWidget_listBackup->setCurrentIndex(0);
   ui->stackedWidget_compareBackup->setCurrentIndex(0);
@@ -34,10 +38,38 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   repository_ = nullptr;
   backup_ = nullptr;
 
+  auto *header_list = ui->listTable->horizontalHeader(),
+       *header_compare = ui->compareTable->horizontalHeader();
+  header_list->setSectionResizeMode(QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(QHeaderView::Fixed);
+  ui->listTable->verticalHeader()->setVisible(false);
+  ui->compareTable->verticalHeader()->setVisible(false);
+
+  // Polished Features for Tables
+  ui->listTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  ui->compareTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+  ui->listTable->setSelectionMode(QAbstractItemView::NoSelection);
+  ui->compareTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->compareTable->setSelectionMode(QAbstractItemView::MultiSelection);
+
+  ui->listTable->setShowGrid(true);
+  ui->compareTable->setShowGrid(true);
+  ui->listTable->setFocusPolicy(Qt::NoFocus);
+  ui->compareTable->setFocusPolicy(Qt::NoFocus);
+
+  // Table Size
+  QTimer::singleShot(
+      0, this, [this]() { setColSize(ui->listTable->viewport()->width()); });
+
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
+  // connect(ui->compareTable->selectionModel(),
+  //         &QItemSelectionModel::selectionChanged, this,
+  //         &BackupTab::checkBackupSelection);
 
   updateButtons();
+  updateProgress();
   checkRepoSelection();
 }
 
@@ -74,39 +106,142 @@ void BackupTab::fillListTable() { ui->listTable->clearContents(); }
 void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
 
 void BackupTab::on_createBackupButton_clicked() {
+  repository_ = nullptr;
+  ui->stackedWidget->setCurrentIndex(1);
+  checkRepoSelection();
+  updateProgress();
+}
+
+void BackupTab::on_listBackupButton_clicked() {
+  repository_ = nullptr;
   ui->stackedWidget->setCurrentIndex(2);
+  checkRepoSelection();
+  updateProgress();
+}
+
+void BackupTab::on_compareBackupButton_clicked() {
+  repository_ = nullptr;
+  ui->stackedWidget->setCurrentIndex(3);
+  checkRepoSelection();
+  updateProgress();
 }
 
 void BackupTab::updateProgress() {
-  int index = ui->stackedWidget_createBackup->currentIndex();
-  int total = ui->stackedWidget_createBackup->count();
-  int percent = ((index + 1) * 100) / total;
-  ui->progressBar->setValue(percent);
+  switch (ui->stackedWidget->currentIndex()) {
+    case 1: {
+      ui->progressBar->setValue(
+          ((ui->stackedWidget_createBackup->currentIndex() + 1) * 100) /
+          ui->stackedWidget_createBackup->count());
+      break;
+    }
+    case 2: {
+      ui->progressBar_2->setValue(
+          ((ui->stackedWidget_listBackup->currentIndex() + 1) * 100) /
+          ui->stackedWidget_listBackup->count());
+      break;
+    }
+    case 3: {
+      ui->progressBar_3->setValue(
+          ((ui->stackedWidget_compareBackup->currentIndex() + 1) * 100) /
+          ui->stackedWidget_compareBackup->count());
+      break;
+    }
+    default: {
+      break;
+    }
+  }
 }
 
 void BackupTab::updateButtons() {
-  int index = ui->stackedWidget_createBackup->currentIndex();
-  int total = ui->stackedWidget_createBackup->count();
-  if (index == 0) {
-    // ui->backButton->setEnabled(false);
-  } else {
-    ui->backButton->setEnabled(true);
-  }
-  if (index == total - 1) {
-    ui->nextButton->setText("Start");
-  } else {
-    ui->nextButton->setText("Next");
+  switch (ui->stackedWidget->currentIndex()) {
+    case 1: {
+      int index = ui->stackedWidget_createBackup->currentIndex();
+      int total = ui->stackedWidget_createBackup->count();
+      if (index == 0) {
+        // ui->backButton->setEnabled(false);
+      } else {
+        ui->backButton->setEnabled(true);
+      }
+      if (index == total - 1) {
+        ui->nextButton->setText("Start");
+      } else {
+        ui->nextButton->setText("Next");
+      }
+      break;
+    }
+    case 2: {
+      int index = ui->stackedWidget_listBackup->currentIndex();
+      int total = ui->stackedWidget_listBackup->count();
+      if (index == 0) {
+        // ui->backButton_2->setEnabled(false);
+      } else {
+        ui->backButton_2->setEnabled(true);
+      }
+      if (index == total - 1) {
+        ui->nextButton_2->setVisible(false);
+      } else {
+        ui->nextButton_2->setVisible(true);
+      }
+      break;
+    }
+    case 3: {
+      int index = ui->stackedWidget_compareBackup->currentIndex();
+      int total = ui->stackedWidget_compareBackup->count();
+      if (index == 0) {
+        // ui->backButton_3->setEnabled(false);
+      } else {
+        ui->backButton_3->setEnabled(true);
+      }
+      if (index == total - 1) {
+        ui->nextButton_3->setText("Compare");
+      } else {
+        ui->nextButton_3->setText("Next");
+      }
+      break;
+    }
+    default:
+      break;
   }
 }
 
 void BackupTab::checkRepoSelection() {
   ui->nextButton->setEnabled(repository_ != nullptr);
+  ui->nextButton_2->setEnabled(repository_ != nullptr);
+  ui->nextButton_3->setEnabled(repository_ != nullptr);
+}
+
+void BackupTab::checkBackupSelection() {
+  // QModelIndexList selected =
+  // ui->compareTable->selectionModel()->selectedRows();
+
+  // bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
+  // ui->nextButton_3->setEnabled(validSelection);
 }
 
 void BackupTab::on_backButton_clicked() {
   int index = ui->stackedWidget_createBackup->currentIndex();
   if (index > 0) {
     ui->stackedWidget_createBackup->setCurrentIndex(index - 1);
+  } else {
+    ui->stackedWidget->setCurrentIndex(0);
+  }
+  updateProgress();
+}
+
+void BackupTab::on_backButton_2_clicked() {
+  int index = ui->stackedWidget_listBackup->currentIndex();
+  if (index > 0) {
+    ui->stackedWidget_listBackup->setCurrentIndex(index - 1);
+  } else {
+    ui->stackedWidget->setCurrentIndex(0);
+  }
+  updateProgress();
+}
+
+void BackupTab::on_backButton_3_clicked() {
+  int index = ui->stackedWidget_compareBackup->currentIndex();
+  if (index > 0) {
+    ui->stackedWidget_compareBackup->setCurrentIndex(index - 1);
   } else {
     ui->stackedWidget->setCurrentIndex(0);
   }
@@ -144,6 +279,51 @@ void BackupTab::on_nextButton_clicked() {
   updateProgress();
 }
 
+void BackupTab::on_nextButton_2_clicked() {
+  int index = ui->stackedWidget_listBackup->currentIndex();
+  int total = ui->stackedWidget_listBackup->count();
+
+  if (!handleSelectRepo()) {
+    return;
+  }
+
+  if (index < total - 1) {
+    ui->stackedWidget_listBackup->setCurrentIndex(index + 1);
+  } else {
+    ui->nextButton_2->setEnabled(false);
+    listBackups();
+  }
+  updateProgress();
+}
+
+void BackupTab::on_nextButton_3_clicked() {
+  int index = ui->stackedWidget_compareBackup->currentIndex();
+  int total = ui->stackedWidget_compareBackup->count();
+
+  bool valid = true;
+  switch (index) {
+    case 0:
+      valid = handleSelectRepo();
+      break;
+    case 1:
+      valid = handleBackupDetails();
+      break;
+    default:
+      break;
+  }
+  if (!valid) {
+    return;
+  }
+
+  if (index < total - 1) {
+    ui->stackedWidget_compareBackup->setCurrentIndex(index + 1);
+  } else {
+    ui->nextButton_3->setEnabled(false);
+    compareBackups();
+  }
+  updateProgress();
+}
+
 void BackupTab::on_createRepoButton_clicked() {
   CreateRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
@@ -158,6 +338,30 @@ void BackupTab::on_createRepoButton_clicked() {
 void BackupTab::on_useRepoButton_clicked() {
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
+  if (dialog.exec() == QDialog::Accepted) {
+    repository_ = dialog.getRepository();
+  } else {
+    repository_ = nullptr;
+  }
+  checkRepoSelection();
+}
+
+void BackupTab::on_chooseRepoButton_list_clicked() {
+  UseRepositoryDialog dialog(this);
+  dialog.setWindowFlags(Qt::Window);
+  dialog.setWindowTitle("Choose Repository for Listing Backups");
+  if (dialog.exec() == QDialog::Accepted) {
+    repository_ = dialog.getRepository();
+  } else {
+    repository_ = nullptr;
+  }
+  checkRepoSelection();
+}
+
+void BackupTab::on_chooseRepoButton_compare_clicked() {
+  UseRepositoryDialog dialog(this);
+  dialog.setWindowFlags(Qt::Window);
+  dialog.setWindowTitle("Choose Repository for Comparing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
   } else {
@@ -198,6 +402,10 @@ bool BackupTab::handleBackupDetails() {
     backup_type_ = BackupType::FULL;
   }
   return true;
+}
+
+bool BackupTab::handleSelectBackups() {
+  return true;  // TODO: Implement backup selection logic
 }
 
 bool BackupTab::handleSchedule() {
@@ -268,18 +476,6 @@ void BackupTab::initBackup() {
       });
 }
 
-void BackupTab::checkBackupSelection() {
-  // QModelIndexList selected =
-  // ui->compareTable->selectionModel()->selectedRows();
+void BackupTab::listBackups() {}
 
-  // bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
-  // ui->nextButton->setEnabled(validSelection);
-}
-
-void BackupTab::on_nextButton_2_clicked() {}
-
-void BackupTab::on_backButton_2_clicked() {}
-
-void BackupTab::on_nextButton_3_clicked() {}
-
-void BackupTab::on_backButton_3_clicked() {}
+void BackupTab::compareBackups() {}
