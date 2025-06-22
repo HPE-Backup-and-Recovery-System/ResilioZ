@@ -25,7 +25,13 @@ class ServicesTab : public QWidget {
   void on_listRepo_clicked();
   void on_deleteRepo_clicked();
 
-  private:
+  void on_listSch_clicked();
+
+  void on_createSch_clicked();
+
+  void on_deleteSch_clicked();
+
+private:
   Ui::ServicesTab *ui;
 };
 

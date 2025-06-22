@@ -3,6 +3,11 @@
 #include "gui/dialog/create_repository_dialog.h"
 #include "gui/dialog/delete_repository_dialog.h"
 #include "gui/dialog/list_repositories_dialog.h"
+
+#include "gui/dialog/create_schedule_dialog.h"
+#include "gui/dialog/delete_schedule_dialog.h"
+#include "gui/dialog/list_schedules_dialog.h"
+
 #include "gui/tabs/ui_services_tab.h"
 
 ServicesTab::ServicesTab(QWidget *parent)
@@ -46,3 +51,39 @@ void ServicesTab::on_deleteRepo_clicked() {
   dialog.setWindowFlags(Qt::Window);
   dialog.exec();
 }
+
+void ServicesTab::on_listSch_clicked()
+{
+    ListSchedulesDialog dialog(this);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+
+    } else {
+
+    }
+}
+
+
+void ServicesTab::on_createSch_clicked()
+{
+    CreateScheduleDialog dialog(this);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+
+    } else {
+
+    }
+}
+
+
+void ServicesTab::on_deleteSch_clicked()
+{
+    DeleteScheduleDialog dialog(this);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+
+    } else {
+
+    }
+}
+
