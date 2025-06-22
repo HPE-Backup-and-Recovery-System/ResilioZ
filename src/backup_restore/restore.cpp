@@ -81,13 +81,17 @@ void Restore::LoadMetadata() {
   }
 }
 
-void Restore::RestoreFile(const std::string& filename) {
-  auto file_metadata = FindFileMetadata(filename);
+void Restore::RestoreFile(const std::filesystem::path & file_path) {
+  // Get file metadata
+  auto file_metadata = FindFileMetadata(file_path.string());
   if (!file_metadata) {
-    ErrorUtil::ThrowError("File not found in backup: " + filename);
+    ErrorUtil::ThrowError("File not found in backup: " + file_path.string());
   }
 
-  fs::path output_file = PrepareOutputPath(filename, file_metadata->first);
+  std::string filename = file_metadata->second.original_filename;
+
+  fs::path output_file = PrepareOutputPath(filename, file_path);
+
   ProgressBar progress(file_metadata->second.total_size,
                        file_metadata->second.chunk_hashes.size(),
                        "restore of " + filename);
@@ -104,10 +108,10 @@ void Restore::RestoreFile(const std::string& filename) {
 }
 
 std::optional<std::pair<std::string, FileMetadata>> Restore::FindFileMetadata(
-    const std::string& filename) {
+    const std::string& file_path) {
   auto it = std::find_if(metadata_.files.begin(), metadata_.files.end(),
-                         [&filename](const auto& pair) {
-                           return pair.second.original_filename == filename;
+                         [&file_path](const auto& pair) {
+                           return pair.first == file_path;
                          });
 
   if (it == metadata_.files.end()) {
@@ -118,20 +122,24 @@ std::optional<std::pair<std::string, FileMetadata>> Restore::FindFileMetadata(
 }
 
 fs::path Restore::PrepareOutputPath(const std::string& filename,
-                                    const std::string& original_path) {
+                                    const fs::path& original_path) {
 
-  // If output path is a directory, use it directly
-  if (fs::is_directory(output_path_)) {
-    return output_path_ / filename;
-  }
+  // Get the parent path from the original file path
+  fs::path parent_path = fs::path(original_path).parent_path();
+  Logger::Log("Parent Path: " + parent_path.string());
 
-  // If output path doesn't exist, create it
-  if (!fs::exists(output_path_)) {
-    fs::create_directories(output_path_);
-  }
+  // Create the parent directories inside the output path
+  fs::path output_parent = output_path_;
+  Logger::Log("Output Parent Path: " + output_parent.string());
+  // Modify parent path to remove beginning /
+  std::string path = parent_path.string();
+  output_parent.append(path.substr(1, path.size() - 1));
 
-  // Return the output path with the filename
-  return output_path_ / filename;
+  // Create parent path in output path
+  fs::create_directories(output_parent);
+
+  // Create the final output path using the original filename
+  return output_parent / filename;
 }
 
 Chunk Restore::GetNextChunk(const FileMetadata& file_metadata,
@@ -159,7 +167,7 @@ Chunk Restore::GetNextChunk(const FileMetadata& file_metadata,
 
 void Restore::RestoreAll() {
   for (const auto& [file_path, metadata] : metadata_.files) {
-    RestoreFile(metadata.original_filename);
+    RestoreFile(file_path);
   }
 }
 
@@ -281,40 +289,40 @@ void Restore::CompareBackups(const std::string& backup1,
   Logger::TerminalLog(comparison.str());
 }
 
-void Restore::RestoreBackup(const fs::path& backup_path,
-                            const fs::path& restore_path,
-                            const std::string& backup_name) {
-  // Load backup metadata
-  input_path_ = backup_path;
-  backup_name_ = backup_name;
-  LoadMetadata();
+// void Restore::RestoreBackup(const fs::path& backup_path,
+//                             const fs::path& restore_path,
+//                             const std::string& backup_name) {
+//   // Load backup metadata
+//   input_path_ = backup_path;
+//   backup_name_ = backup_name;
+//   LoadMetadata();
 
-  // Set output path
-  output_path_ = restore_path;
+//   // Set output path
+//   output_path_ = restore_path;
 
-  // Process each file in the backup
-  for (const auto& [file_path, file_metadata] : metadata_.files) {
-    try {
-      // Create the full restore path for this file
-      auto file_restore_path =
-          PrepareOutputPath(file_metadata.original_filename, file_path);
+//   // Process each file in the backup
+//   for (const auto& [file_path, file_metadata] : metadata_.files) {
+//     try {
+//       // Create the full restore path for this file
+//       auto file_restore_path =
+//           PrepareOutputPath(file_metadata.original_filename, file_path);
 
-      // Initialize progress tracking
-      ProgressBar progress(file_metadata.total_size,
-                           file_metadata.chunk_hashes.size(),
-                           "restore of " + file_metadata.original_filename);
+//       // Initialize progress tracking
+//       ProgressBar progress(file_metadata.total_size,
+//                            file_metadata.chunk_hashes.size(),
+//                            "restore of " + file_metadata.original_filename);
 
-      // Combine chunks into the restored file
-      chunker_.StreamCombineChunks(
-          [&]() -> Chunk { return GetNextChunk(file_metadata, progress); },
-          file_restore_path, file_metadata.total_size);
+//       // Combine chunks into the restored file
+//       chunker_.StreamCombineChunks(
+//           [&]() -> Chunk { return GetNextChunk(file_metadata, progress); },
+//           file_restore_path, file_metadata.total_size);
 
-      // Set file timestamps
-      fs::last_write_time(file_restore_path, file_metadata.mtime);
+//       // Set file timestamps
+//       fs::last_write_time(file_restore_path, file_metadata.mtime);
 
-    } catch (const std::exception& e) {
-      ErrorUtil::ThrowNested("Error restoring file " + file_path + ": " +
-                             e.what());
-    }
-  }
-}
+//     } catch (const std::exception& e) {
+//       ErrorUtil::ThrowNested("Error restoring file " + file_path + ": " +
+//                              e.what());
+//     }
+//   }
+// }
