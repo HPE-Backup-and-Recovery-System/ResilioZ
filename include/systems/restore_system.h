@@ -16,7 +16,7 @@ class RestoreSystem : public System {
   void RestoreFromBackup(); 
   void ListBackups();
   void CompareBackups();
-  void ResumeFailedRestore();
+  // void ResumeFailedRestore();
 
   RepositoryService* repo_service_;
 };

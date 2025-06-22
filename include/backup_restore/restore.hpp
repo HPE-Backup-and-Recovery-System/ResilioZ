@@ -26,7 +26,7 @@ class Restore {
                                          const std::string& backup_name);
 
   // Restore a single file
-  void RestoreFile(const std::string& filename);
+  void RestoreFile(const fs::path & file_path);
 
   // Restore all files from backup
   void RestoreAll();
@@ -57,7 +57,7 @@ class Restore {
   std::optional<std::pair<std::string, FileMetadata>> FindFileMetadata(
       const std::string& filename);
   fs::path PrepareOutputPath(const std::string& filename,
-                             const std::string& original_path);
+                             const fs::path & original_path);
   Chunk GetNextChunk(const FileMetadata& file_metadata, ProgressBar& progress);
 
   fs::path input_path_;
