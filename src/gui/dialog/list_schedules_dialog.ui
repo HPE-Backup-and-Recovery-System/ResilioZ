@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ListSchedulesDialog</class>
+ <widget class="QDialog" name="ListSchedulesDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1015</width>
+    <height>636</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog#ListSchedulesDialog {
+	background-color: rgb(6, 134, 103);
+}
+
+QFrame {
+	background: white;
+}
+
+QPushButton {
+	padding: 16px 32px;
+	font-size: 32px;
+	font-weight: 500;
+	qproperty-iconSize: 36px 36px;
+	background-color: rgb(6, 134, 103);
+	color: white;
+	text-align: left;
+}
+
+QRadioButton {
+	padding: 32px;
+	font-size: 24px;
+	font-weight: 500;
+	background-color: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QRadioButton::indicator {
+	width: 0;
+	height: 0;
+}
+
+QRadioButton:hover {
+	background-color: rgb(234, 234, 234);
+}
+
+QRadioButton:checked {
+	color: white;
+	background-color: rgb(6, 134, 103);
+	border: none;
+}
+
+QProgressBar {
+    border: 1px solid rgb(29, 31, 39);
+    height: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+QProgressBar::chunk {
+    background-color: rgb(6, 134, 103);
+}
+
+QLabel {
+    color: rgb(29, 31, 39);
+    font-weight: bold;
+}</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QFrame" name="frame">
+     <property name="styleSheet">
+      <string notr="true">* {
+	font-family: &quot;Ubuntu Sans&quot;;
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QFrame" name="frame_2">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel {
+	text-align: center;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QFrame" name="frame_7">
+           <property name="styleSheet">
+            <string notr="true">QLabel {
+	font-size: 16pt;
+	color: rgb(6, 134, 103);
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label_7">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>List of Schedules</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="frame_3">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QTableWidget" name="tableWidget">
+           <property name="styleSheet">
+            <string notr="true">* {
+    font-size: 12pt;
+    color: rgb(29, 31, 39);
+}
+
+QHeaderView::section {
+    background-color: rgb(6, 134, 103);
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    border: none;
+}
+
+QTableCornerButton::section {
+    background-color: rgb(6, 134, 103);
+    border: none;
+}
+
+QTableWidget {
+    background-color: white;
+    selection-background-color: rgb(6, 134, 103);
+    selection-color: white;
+    gridline-color: transparent;
+    border: 1px solid rgb(220, 220, 220);
+    show-decoration-selected: 1;
+}
+
+QTableWidget::item {
+    padding: 6px 10px;
+    border: none;
+    font-weight: normal;
+    color: rgb(29, 31, 39);
+}
+
+QTableWidget::item:hover {
+    background-color: rgba(6, 134, 103, 0.1);
+}
+
+QTableWidget::item:selected {
+    background-color: rgba(6, 134, 103, 0.5);
+    color: white;
+    font-weight: 700;
+}
+
+QTableView {
+    show-decoration-selected: 1;
+}
+</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_4">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+	font-size: 14pt;
+	padding: 8px;
+	text-align: center;
+}
+
+QPushButton#backButton {
+	background: white;
+	color: rgb(29, 31, 39);
+	border: 1px solid rgb(29, 31, 39);
+}
+
+QPushButton#backButton:hover {
+	background: rgb(234, 234, 234);
+}
+
+QPushButton#backButton:disabled {
+	background: lightgrey;
+	color: darkgrey;
+	border: none;
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QPushButton" name="backButton">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Back</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
