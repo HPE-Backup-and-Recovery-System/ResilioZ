@@ -15,45 +15,15 @@
 #include "utils/user_io.h"
 
 SchedulerService::SchedulerService(){
-    int port = 8080;
+    request_mgr = new SchedulerRequestManager();
+}
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
+SchedulerService::~SchedulerService(){
+    delete request_mgr;
 }
 
 void SchedulerService::Log(){
     Logger::TerminalLog("Scheduler service is running...");
-}
-
-
-void SchedulerService::SendRequest(const char *message){
-    int client_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (client_fd < 0) {
-        ErrorUtil::ThrowError("Socket creation failed");
-    }
-
-    // Convert IPv4 and connect
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        ErrorUtil::ThrowError("Invalid address or address not supported!");
-    }
-
-    if (connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        ErrorUtil::ThrowError("Connection to scheduler server failed!");
-        return;
-    }
-
-    send(client_fd, message, strlen(message), 0);
-
-    // Fetch server response and display
-    char server_msg[1024];
-    if (recv(client_fd, server_msg, sizeof(server_msg), 0 ) < 0){
-        ErrorUtil::ThrowError("Message from scheduler server not received!");
-    }
-
-    std::cout << server_msg;
-    
-    close(client_fd);
-    return;
 }
 
 void SchedulerService::AddSchedule(){
@@ -73,15 +43,9 @@ void SchedulerService::AddSchedule(){
     type = static_cast<BackupType>(choice);
     remarks = Prompter::PromptInput("Remarks for Backup (Optional)");
     
-    nlohmann::json reqBody;
-    reqBody["action"] = "add";
-    reqBody["payload"] = schedule;
-    reqBody["source"] = source;
-    reqBody["destination"] = destination;
-    reqBody["type"] = type;
-    reqBody["remarks"] = remarks;
-
-    SendRequest(reqBody.dump().c_str());
+    std::string schedule_id = request_mgr->SendAddRequest(schedule, source, destination, remarks, type);
+    
+    Logger::Log("Schedule " + schedule_id + " created!");
 }
 
 void SchedulerService::RemoveSchedule(){
@@ -90,33 +54,34 @@ void SchedulerService::RemoveSchedule(){
     
     schedule_id = Prompter::PromptScheduleId("Schedule ID");
     
-    nlohmann::json reqBody;
-    reqBody["action"] = "remove";
-    reqBody["payload"] = schedule_id;
-    
-    SendRequest(reqBody.dump().c_str());
+    bool done = request_mgr->SendDeleteRequest(schedule_id);
+    if (done){
+        Logger::Log("Schedule " + schedule_id + " deleted!");
+    }
+    else{
+        ErrorUtil::ThrowError("Schedule deletion failed!");
+    }
 }
 
 void SchedulerService::ViewSchedules(){
     UserIO::DisplayTitle("Viewing All Schedules");
-            
-    nlohmann::json reqBody;
-    reqBody["action"] = "view";
+    
+    std::vector<Schedule> schedules = request_mgr->SendViewRequest();
 
-    SendRequest(reqBody.dump().c_str());
-}
+    if (schedules.empty()){
+        Logger::TerminalLog("No schedules yet!");
+        return;
+    }
 
-void SchedulerService::TerminateScheduler(){
-    // Making sure server shuts down
-    char confirm;
-    std::cout << "Enter Y to confirm termination of scheduler\n";
-    std::cin >> confirm; 
-    std::cin.ignore();
+    for (auto s: schedules){
+        std::string message;
+        message += "-- Backup Type: " + s.backup_type + "\n" ;
+        message += "-- Backup Schedule: " + s.schedule + "\n";
+        message += "-- Source: " + s.source + "\n";
+        message += "-- Destination: " + s.destination + "\n";
+        message += "-- Remarks: " + s.remarks + "\n\n";
 
-    if (confirm == 'Y' || confirm == 'y'){
-        nlohmann::json reqBody;
-        reqBody["action"] = "exit";
-        SendRequest(reqBody.dump().c_str());
+        Logger::TerminalLog(message);
     }
 }
 
