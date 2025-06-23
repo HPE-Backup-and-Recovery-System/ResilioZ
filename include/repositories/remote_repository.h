@@ -25,6 +25,12 @@ class RemoteRepository : public Repository {
   bool UploadDirectory(const std::string& local_dir,
                        const std::string& remote_path = "") const;
 
+  bool DownloadFile(const std::string& remote_file,
+                    const std::string& local_path) const;
+
+  bool DownloadDirectory(const std::string& remote_dir,
+                         const std::string& local_path) const;
+
  private:
   std::string user_;
   std::string host_;
