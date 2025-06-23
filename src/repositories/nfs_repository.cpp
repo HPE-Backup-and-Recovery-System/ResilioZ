@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <nfsc/libnfs.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "utils/error_util.h"
 
@@ -307,33 +308,146 @@ std::vector<std::string> NFSRepository::ListFiles(const std::string& remote_dir)
 }
 
 bool NFSRepository::DownloadFile(const std::string& remote_file, const std::string& local_file) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_full_path = remote_file.empty() ? repo_dir : (repo_dir + "/" + remote_file);
+
   struct nfs_context* nfs = nfs_init_context();
   if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
-  if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
-    std::string err = nfs_get_error(nfs);
-    nfs_destroy_context(nfs);
-    ErrorUtil::ThrowError("Mount failed: " + err);
-  }
-  struct nfsfh* fh;
-  if (nfs_open(nfs, remote_file.c_str(), O_RDONLY, &fh) < 0) {
-    nfs_umount(nfs);
-    nfs_destroy_context(nfs);
-    return false;
-  }
-  std::ofstream out(local_file, std::ios::binary);
-  if (!out) {
+  try {
+    fs::path remote_fs_path(remote_file);
+    std::string filename = remote_fs_path.filename().string();
+
+    std::string local_full_path;
+    if (local_file.empty()) {
+      local_full_path = filename;
+    } else {
+      fs::path local_fs_path(local_file);
+      if (fs::is_directory(local_fs_path) || local_file.back() == '/') {
+        local_full_path = (local_fs_path / filename).string();
+      } else {
+        local_full_path = local_file;
+      }
+    }
+
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+
+    struct nfsfh* fh;
+    if (nfs_open(nfs, remote_full_path.c_str(), O_RDONLY, &fh) < 0) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Unable to open remote file for reading: " + remote_full_path);
+    }
+
+    std::ofstream output(local_full_path, std::ios::binary);
+    if (!output) {
+      nfs_close(nfs, fh);
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Failed to open local file for writing: " + local_full_path);
+    }
+
+    char buffer[1048576];
+    ssize_t n;
+    while ((n = nfs_read(nfs, fh, sizeof(buffer), buffer)) > 0) {
+      output.write(buffer, n);
+    }
+
+    if (n < 0) {
+      nfs_close(nfs, fh);
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Error reading from remote file: " + remote_full_path);
+    }
+
     nfs_close(nfs, fh);
     nfs_umount(nfs);
     nfs_destroy_context(nfs);
-    return false;
+    return true;
+
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot download file from remote NFS path: " + remote_full_path);
   }
-  char buffer[1048576];
-  ssize_t n;
-  while ((n = nfs_read(nfs, fh, sizeof(buffer), buffer)) > 0) {
-    out.write(buffer, n);
+}
+
+bool NFSRepository::DownloadDirectory(const std::string& remote_dir, const std::string& local_path) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_root = remote_dir.empty() ? repo_dir : (repo_dir + "/" + remote_dir);
+
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (!fs::exists(local_path)) {
+      fs::create_directories(local_path);
+    }
+
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+
+    std::function<void(const std::string&, const fs::path&)> download_recursive;
+    download_recursive = [&](const std::string& remote_subpath, const fs::path& local_subdir) {
+      struct nfsdir* dir;
+      if (nfs_opendir(nfs, remote_subpath.c_str(), &dir) < 0) {
+        ErrorUtil::ThrowError("Cannot open remote directory: " + remote_subpath);
+      }
+
+      fs::create_directories(local_subdir);
+
+      struct nfsdirent* entry;
+      while ((entry = nfs_readdir(nfs, dir)) != nullptr) {
+        std::string name = entry->name;
+        if (name == "." || name == "..") {
+          continue;
+        }
+
+        std::string full_remote = remote_subpath + "/" + name;
+        fs::path full_local = local_subdir / name;
+
+        struct nfs_stat_64 st;
+        if (nfs_stat64(nfs, full_remote.c_str(), &st) == 0) {
+          if (S_ISDIR(st.nfs_mode)) {
+            download_recursive(full_remote, full_local);
+          } else if (S_ISREG(st.nfs_mode)) {
+            struct nfsfh* fh;
+            if (nfs_open(nfs, full_remote.c_str(), O_RDONLY, &fh) < 0) {
+              continue;
+            }
+
+            std::ofstream output(full_local, std::ios::binary);
+            if (!output) {
+              nfs_close(nfs, fh);
+              continue;
+            }
+
+            char buffer[1048576];
+            ssize_t n;
+            while ((n = nfs_read(nfs, fh, sizeof(buffer), buffer)) > 0) {
+              output.write(buffer, n);
+            }
+
+            nfs_close(nfs, fh);
+          }
+        }
+      }
+
+      nfs_closedir(nfs, dir);
+    };
+
+    download_recursive(remote_root, fs::path(local_path));
+
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+    return true;
+
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot download directory from remote NFS path: " + remote_root);
   }
-  nfs_close(nfs, fh);
-  nfs_umount(nfs);
-  nfs_destroy_context(nfs);
-  return true;
 }
