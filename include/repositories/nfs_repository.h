@@ -8,10 +8,7 @@
 class NFSRepository : public Repository {
  public:
   NFSRepository();
-  NFSRepository(const std::string& nfs_mount_path, const std::string& name,
-                const std::string& password, const std::string& created_at);
-  NFSRepository(const std::string& server_ip,
-                const std::string& server_backup_path, const std::string& name,
+  NFSRepository(const std::string& nfs_path, const std::string& name,
                 const std::string& password, const std::string& created_at);
   ~NFSRepository() {}
 
@@ -21,21 +18,25 @@ class NFSRepository : public Repository {
 
   void WriteConfig() const override;
   static NFSRepository FromConfigJson(const nlohmann::json& config);
-  
-  void SetMountPoint(const std::string& mount_point);
+
+  bool UploadFile(const std::string& local_file,
+                  const std::string& remote_path = "") const;
+
+  bool UploadDirectory(const std::string& local_dir,
+                      const std::string& remote_path = "") const;
+
+  // Add methods for restore system
+  std::vector<std::string> ListFiles(const std::string& remote_dir) const;
+  bool DownloadFile(const std::string& remote_file, const std::string& local_file) const;
 
  private:
-  bool UploadFile(const std::string& local_file,
-                  const std::string& remote_path) const;
+  void ParseNfsPath(const std::string& nfs_path);
   bool NFSMountExists() const;
-  void EnsureNFSMounted() const;
   void CreateRemoteDirectory() const;
   void RemoveRemoteDirectory() const;
-  bool MountNFSShare() const;
 
   std::string server_ip_;
   std::string server_backup_path_;
-  std::string mount_point_;
 };
 
 #endif  // NFS_REPOSITORY_H_

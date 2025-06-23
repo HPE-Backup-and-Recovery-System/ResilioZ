@@ -94,7 +94,7 @@ void BackupSystem::CreateBackup() {
     type = new_repo ? BackupType::FULL : static_cast<BackupType>(choice);
     remarks = Prompter::PromptInput("Remarks for Backup (Optional)");
 
-    if (repository_->GetType() != RepositoryType::REMOTE) {
+    if (repository_->GetType() != RepositoryType::REMOTE && repository_->GetType() != RepositoryType::NFS) {
       destination = repository_->GetFullPath();
     }
 
@@ -105,6 +105,12 @@ void BackupSystem::CreateBackup() {
       auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
       if (remote_repo) {
         remote_repo->UploadDirectory("temp");
+        fs::remove_all("temp");
+      }
+    } else if (repository_->GetType() == RepositoryType::NFS) {
+      auto* nfs_repo = dynamic_cast<NFSRepository*>(repository_);
+      if (nfs_repo) {
+        nfs_repo->UploadDirectory("temp");
         fs::remove_all("temp");
       }
     }

@@ -19,5 +19,54 @@
     "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
     "path": "/home/user/Desktop/HPE",
     "type": "local"
+  },
+  {
+    "created_at": "2025-06-23T11:48:56Z",
+    "name": "ntest1",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "192.168.8.146:/backups",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-23T11:58:52Z",
+    "name": "ntest2",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "192.168.8.146:/backups",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-23T12:02:17Z",
+    "name": "ntest",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "192.168.8.146:/backups",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-23T12:15:24Z",
+    "name": "ntest4",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "192.168.8.146:/backups",
+    "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-23T14:21:25Z",
+    "name": "local",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/centronox/Downloads/tester",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-23T15:33:39Z",
+    "name": "rtest",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "centro@192.168.8.146:/home/centro/Downloads",
+    "type": "remote"
+  },
+  {
+    "created_at": "2025-06-23T17:42:04Z",
+    "name": "rtest_1",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "centro@192.168.8.146:/home/centro/Downloads",
+    "type": "remote"
   }
 ]

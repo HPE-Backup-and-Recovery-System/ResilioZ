@@ -28,6 +28,9 @@ std::string PromptMountPath(
 std::string PromptSftpPath(
     const std::string& prompt_msg = "SFTP Path (Ex. user@host:/path)");
 
+std::string PromptNfsPath(
+    const std::string& prompt_msg = "NFS Path (Ex. 192.168.8.146:/backups)");
+
 std::string PromptIpAddress(const std::string& prompt_msg = "IP Address");
 
 std::string PromptInput(const std::string& prompt_msg = "Input");
