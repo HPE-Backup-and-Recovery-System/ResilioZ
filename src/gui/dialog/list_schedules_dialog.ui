@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Set Schedules</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QDialog#ListSchedulesDialog {
@@ -210,7 +210,7 @@ QTableView {
            </property>
            <column>
             <property name="text">
-             <string>Name</string>
+             <string>Id</string>
             </property>
            </column>
            <column>
