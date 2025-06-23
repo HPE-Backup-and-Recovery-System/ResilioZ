@@ -126,11 +126,10 @@ fs::path Restore::PrepareOutputPath(const std::string& filename,
 
   // Get the parent path from the original file path
   fs::path parent_path = fs::path(original_path).parent_path();
-  Logger::Log("Parent Path: " + parent_path.string());
 
   // Create the parent directories inside the output path
   fs::path output_parent = output_path_;
-  Logger::Log("Output Parent Path: " + output_parent.string());
+
   // Modify parent path to remove beginning /
   std::string path = parent_path.string();
   output_parent.append(path.substr(1, path.size() - 1));

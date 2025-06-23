@@ -138,8 +138,6 @@ void RestoreSystem::RestoreFromBackup() {
     fs::create_directories(restore_dir);
 
     // Create the actual restore operation
-
-    Logger::Log(restore_dir.string());
     Restore restore_op(backup_path, restore_dir.string(), backup_name);
     restore_op.RestoreAll();
     
