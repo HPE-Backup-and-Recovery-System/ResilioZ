@@ -28,6 +28,7 @@ class NFSRepository : public Repository {
   // Add methods for restore system
   std::vector<std::string> ListFiles(const std::string& remote_dir) const;
   bool DownloadFile(const std::string& remote_file, const std::string& local_file) const;
+  bool DownloadDirectory(const std::string& remote_dir, const std::string& local_path) const;
 
  private:
   void ParseNfsPath(const std::string& nfs_path);
