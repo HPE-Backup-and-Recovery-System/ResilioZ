@@ -13,6 +13,7 @@ QMessageBox {
 
 QLabel {
     font-weight: 500;
+    color: rgb(29, 31, 39);
 }
 
 QPushButton {

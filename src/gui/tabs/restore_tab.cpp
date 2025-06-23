@@ -8,8 +8,11 @@
 #include <QTimer>
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
 #include "gui/dialog/use_repository_dialog.h"
 #include "gui/tabs/ui_restore_tab.h"
+#include "utils/utils.h"
+#include "backup_restore/restore.hpp"
 
 RestoreTab::RestoreTab(QWidget* parent)
     : QWidget(parent), ui(new Ui::RestoreTab) {
@@ -20,6 +23,10 @@ RestoreTab::RestoreTab(QWidget* parent)
   ui->backButton->setDefault(false);
   ui->nextButton->setAutoDefault(true);
   ui->nextButton->setDefault(true);
+
+  repository_ = nullptr;
+  backup_file = "";
+  backup_destination = "";
 
   connect(ui->stackedWidget_attemptRestore, &QStackedWidget::currentChanged,
           this, &RestoreTab::onAttemptRestorePageChanged);
@@ -60,10 +67,32 @@ void RestoreTab::updateButtons() {
 void RestoreTab::on_nextButton_clicked() {
   int index = ui->stackedWidget_attemptRestore->currentIndex();
   int total = ui->stackedWidget_attemptRestore->count();
+
+  bool valid = true;
+  switch (index) {
+    case 0:
+      valid = handleSelectRepo();
+      break;
+    case 1:
+      valid = handleSelectFile();
+      break;
+    case 2:
+      valid = handleSelectDestination();
+      break;
+    default:
+      break;
+  }
+
+  if (!valid) {
+    return;
+  }
+
   if (index < total - 1) {
     ui->stackedWidget_attemptRestore->setCurrentIndex(index + 1);
   } else {
+    std:: string message = "Repo: " + repository_->GetFullPath() + " \n" + "File: " + backup_file + " \n" + "Dest: " + backup_destination + "\n";
     // TODO: Trigger Restore Process
+    restoreBackup();
   }
   updateProgress();
 }
@@ -82,24 +111,22 @@ void RestoreTab::on_chooseRepoButton_clicked() {
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
-    repository_ = nullptr;  // TODO...
-    MessageBoxDecorator::showMessageBox(this, "Success", "Repository selected.",
-                                        QMessageBox::Information);
+    repository_ = dialog.getRepository();
   } else {
     repository_ = nullptr;
-    MessageBoxDecorator::showMessageBox(
-        this, "Error", "Repository not selected.", QMessageBox::Warning);
   }
 }
 
 void RestoreTab::onAttemptRestorePageChanged(int index) {
   updateButtons();
   if (index == 1) {
+    // Loading the backup file entries.
     QTimer::singleShot(0, this, [this]() { loadFileTable(); });
   }
 }
 
 void RestoreTab::loadFileTable() {
+  // Clear previous data
   ui->fileTable->clearContents();
 
   auto* header = ui->fileTable->horizontalHeader();
@@ -119,8 +146,14 @@ void RestoreTab::loadFileTable() {
   ui->fileTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   ui->fileTable->verticalHeader()->setVisible(false);
 
-  // To do: Take input of previous step here
-  QString directoryPath = "/home/user/Desktop/HPE/NykajRepo/backup";
+  // To do: Handle remote repos
+  if (!repository_){
+    return;
+  }
+
+  // For local repos
+  std::string path_ = repository_->GetFullPath() + "/backup";
+  QString directoryPath = QString::fromStdString(path_);
   QDir dir(directoryPath);
 
   // Filter only files, and sort
@@ -147,10 +180,9 @@ void RestoreTab::loadFileTable() {
 void RestoreTab::onFileSelected() {
   QList<QTableWidgetItem*> selectedItems = ui->fileTable->selectedItems();
   if (!selectedItems.isEmpty()) {
-    QString fileName = selectedItems.first()->text();
-    // To do
+    backup_file = selectedItems.first()->text().toStdString();
   } else {
-    // To do
+    backup_file = "";
   }
 }
 
@@ -159,6 +191,102 @@ void RestoreTab::on_chooseDestination_clicked() {
       this, "Choose Backup Directory", QDir::homePath(),
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   if (!selectedDir.isEmpty()) {
-    // To do
+    backup_destination = selectedDir.toStdString();
   }
+  else{
+    backup_destination = "";
+  }
+}
+
+
+// Handle repo selection
+bool RestoreTab::handleSelectRepo(){
+  if (repository_ == nullptr) {
+    MessageBoxDecorator::showMessageBox(
+        this, "No Repository Selected",
+        "Please select a repository to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
+}
+
+// Handle backup file selection
+bool RestoreTab::handleSelectFile(){
+  if (backup_file == "") {
+    MessageBoxDecorator::showMessageBox(
+        this, "No File Selected",
+        "Please select a backup file to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
+}
+
+// Handle destination selection
+bool RestoreTab::handleSelectDestination(){
+  if (backup_destination == "") {
+    MessageBoxDecorator::showMessageBox(
+        this, "No Destination Selected",
+        "Please select a destination folder to continue.", QMessageBox::Warning);
+    return false;
+  }
+  return true;
+}
+
+void RestoreTab::restoreBackup(){
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
+      this,
+      [&](std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
+        try {
+          setWaitMessage("Checking if repository exists...");
+          if (!repository_->Exists()) {
+            setFailureMessage("Repository does not exist at location: " +
+                              QString::fromStdString(repository_->GetPath()));
+            return false;
+          }
+
+          setWaitMessage("Checking if backup file exists...");
+          std::string backup_file_path = repository_->GetFullPath() + "/backup/" + backup_file;
+          QFileInfo file(QString::fromStdString(backup_file_path));
+          if (!file.exists() || !file.isFile()) {
+            setFailureMessage("Backup file does not exist at location: " +
+                              QString::fromStdString(backup_file_path));
+            return false;
+          }
+
+          setWaitMessage("Checking if destination folder exists...");
+          std::string restore_file_path = backup_destination;
+          if (!QDir(QString::fromStdString(backup_destination)).exists()){
+            setFailureMessage("Destination folder does not exist at location: " +
+                              QString::fromStdString(backup_destination));
+            return false;
+          }
+
+          setWaitMessage("Attempting restore...");
+          Restore restore(repository_->GetFullPath(),backup_destination,backup_file);
+          restore.RestoreAll();
+
+          setSuccessMessage("Restore successfully completed.");
+          return true;
+
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "Restore operation failed: " + std::string(e.what()),
+              LogLevel::ERROR);
+
+          setFailureMessage("Restore operation failed: " +
+                            QString::fromStdString(e.what()));
+          return false;
+        }
+      },
+      "Attempting restore...", "Restore operation successful.",
+      "Restore operation failed.",
+      [&](bool success) {
+        if (success) {
+          delete repository_;
+        } else {
+          ui->nextButton->setEnabled(true);
+        }
+      });
 }

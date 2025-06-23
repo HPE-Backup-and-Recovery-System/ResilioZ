@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "schedulers/scheduler.h"
+#include "schedulers/schedule.h"
 #include "utils/logger.h"
 #include "utils/time_util.h"
 #include "backup_restore/backup.hpp"
@@ -92,30 +93,28 @@ std::string Scheduler::AddSchedule(nlohmann::json reqBody){
         // Pending nonlocal backups
     }); 
     
-    std::string message = schedule_name + " added!\n";
-    return message;
+    return schedule_id;
 }
 
 std::string Scheduler::ViewSchedules(){
-    std::string message;
-    auto count = schedules.size();
-
-    if (count == 0){
-        message += "No schedules set!\n";
-        return message;
-    }
-
+    nlohmann::json res;
+    nlohmann::json schedule_array = nlohmann::json::array();
+    
     for (auto p: schedules){
-        count--;
-        std::string schedule_info = GenerateScheduleInfoString(p.first);
-        message += schedule_info;
-
-        if (count != 0){
-            message += "\n";
-        }
+        nlohmann::json metaData = nlohmann::json::parse(p.second);
+        nlohmann::json schedule_json;
+        schedule_json["name"] = p.first;
+        schedule_json["schedule"] = metaData["schedule"].get<std::string>();
+        schedule_json["source"] = metaData["source"].get<std::string>();
+        schedule_json["destination"] = metaData["destination"].get<std::string>();
+        schedule_json["remarks"] = metaData["remarks"].get<std::string>();
+        schedule_json["backup_type"] = metaData["type"].get<std::string>();
+    
+        schedule_array.push_back(schedule_json);
     }
-
-    return message;
+    
+    res["schedules"] = schedule_array;
+    return res.dump();
 }
 
 std::string Scheduler::RemoveSchedule(nlohmann::json reqBody){
@@ -125,7 +124,7 @@ std::string Scheduler::RemoveSchedule(nlohmann::json reqBody){
     cron.remove_schedule(name);
     schedules.erase(schedule_id);
 
-    return name + " removed!\n";
+    return schedule_id;
 }
 
 void Scheduler::Run(){
