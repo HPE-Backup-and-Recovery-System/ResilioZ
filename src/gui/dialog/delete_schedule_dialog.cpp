@@ -2,8 +2,11 @@
 #include "gui/dialog/ui_delete_schedule_dialog.h"
 
 #include <QTimer>
+#include <QDir>
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
+#include "utils/utils.h"
 
 DeleteScheduleDialog::DeleteScheduleDialog(QWidget *parent) :
     QDialog(parent),
@@ -61,9 +64,9 @@ void DeleteScheduleDialog::checkSelection() {
 }
 
 void DeleteScheduleDialog::setColSize(int tableWidth) {
-    int col_name = 100;
-    int col_schedule = 200;
-    int col_backup_type = 200;
+    int col_name = 90;
+    int col_schedule = 125;
+    int col_backup_type = 180;
     int col_remarks = 200;
     
     int space_left = tableWidth - col_name - col_schedule - col_backup_type - col_remarks;
@@ -81,6 +84,7 @@ void DeleteScheduleDialog::setColSize(int tableWidth) {
 void DeleteScheduleDialog::fillTable(){
     ui->schedule_table->clearContents();
     int schedule_count = static_cast<int>(schedules.size());
+    ui->schedule_table->setRowCount(schedule_count + 1);
 
     ui->schedule_table->setSpan(0, 0, 1, 6);
     auto* noSelection = new QTableWidgetItem("< No Selection >");
@@ -88,7 +92,6 @@ void DeleteScheduleDialog::fillTable(){
     noSelection->setForeground(Qt::darkGray);
     ui->schedule_table->setItem(0, 0, noSelection);
 
-    ui->schedule_table->setRowCount(schedule_count + 1);
 
     for (int row_ = 0; row_ < schedule_count; row_++) {
         const Schedule& schedule = schedules[row_];
@@ -154,7 +157,38 @@ void DeleteScheduleDialog::on_nextButton_clicked() {
 void DeleteScheduleDialog::deleteSchedule(int row) {
     std::string schedule_id = ui->schedule_table->item(row, 0)->text().toStdString();
 
-    // To do progress bar
-    request_mgr->SendDeleteRequest(schedule_id);
-    accept();
+    ProgressBoxDecorator::runProgressBoxIndeterminate(
+    this,
+    [&](auto setWaitMessage, auto setSuccessMessage, auto setFailureMessage) -> bool {
+        try {
+            setWaitMessage("Deleting schedule...");
+
+            bool remove = request_mgr->SendDeleteRequest(schedule_id);
+            
+            if (!remove) {
+                setFailureMessage("Schedule not found or could not be removed.");
+                return false;
+            }
+
+            Logger::SystemLog("Schedule " + schedule_id + "deleted successfully.");
+            setSuccessMessage("Schedule " + QString::fromStdString(schedule_id) + " deleted successfully.");
+            return true;
+        } catch (const std::exception& e) {
+            std::string issue = e.what();
+            Logger::SystemLog("Schedule deletion failed: " + issue);
+            setFailureMessage("Schedule deletion failed: " + QString::fromStdString(issue));
+            return false;
+        }
+    },
+    "Deleting schedule...",
+    "Schedule deleted successfully.",
+    "Failed to delete schedule.",
+    [&](bool success) {
+        if (success) {
+            accept();  
+        } else {
+            ui->nextButton->setEnabled(true);
+        }
+    });
+
 }

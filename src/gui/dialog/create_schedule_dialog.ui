@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Create Schedule</string>
   </property>
   <property name="styleSheet">
    <string notr="true">* {
@@ -291,19 +291,6 @@ QLineEdit:disabled {
                <property name="spacing">
                 <number>30</number>
                </property>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_8">
-                 <property name="text">
-                  <string>Destination</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QLineEdit" name="destinationInput"/>
-               </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label">
                  <property name="text">
@@ -314,8 +301,21 @@ QLineEdit:disabled {
                  </property>
                 </widget>
                </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="destinationInput"/>
+               </item>
                <item row="0" column="1">
                 <widget class="QLineEdit" name="sourceInput"/>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>Destination</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -387,7 +387,7 @@ QRadioButton:checked {
                <item row="1" column="0">
                 <widget class="QLabel" name="label_10">
                  <property name="text">
-                  <string>Remarks</string>
+                  <string>Remarks (optional)</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -559,6 +559,17 @@ QPushButton#nextButton:disabled {
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>sourceInput</tabstop>
+  <tabstop>destinationInput</tabstop>
+  <tabstop>fullButton</tabstop>
+  <tabstop>incButton</tabstop>
+  <tabstop>diffButton</tabstop>
+  <tabstop>remarksInput</tabstop>
+  <tabstop>scheduleInput</tabstop>
+  <tabstop>backButton</tabstop>
+  <tabstop>nextButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

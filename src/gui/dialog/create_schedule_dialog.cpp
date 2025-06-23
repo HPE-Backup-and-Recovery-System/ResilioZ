@@ -2,8 +2,11 @@
 #include "gui/dialog/ui_create_schedule_dialog.h"
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
 #include "backup_restore/backup.hpp"
 #include "utils/utils.h"
+
+#include <QDir>
 
 CreateScheduleDialog::CreateScheduleDialog(QWidget *parent) :
     QDialog(parent),
@@ -92,13 +95,13 @@ bool CreateScheduleDialog::handleEndpointDetails(){
     std::string source_path_ = ui->sourceInput->text().toStdString();
     std::string destination_path_ = ui->destinationInput->text().toStdString();
 
-    if (!Validator::IsValidPath(source_path_)){
+    if (source_path_ == "" || !Validator::IsValidPath(source_path_)){
         MessageBoxDecorator::showMessageBox(
             this, "Invalid Source", "Source path is invalid.", QMessageBox::Warning);
         return false;
     }
 
-    if (!Validator::IsValidPath(destination_path_)){
+    if (destination_path_ == "" || !Validator::IsValidPath(destination_path_)){
         MessageBoxDecorator::showMessageBox(
             this, "Invalid Destination", "Destination path is invalid.", QMessageBox::Warning);
         return false;
@@ -129,7 +132,7 @@ bool CreateScheduleDialog::handleBackupDetails(){
 bool CreateScheduleDialog::handleScheduleDetails(){
     std::string cron_string_ = ui->scheduleInput->text().toStdString();
 
-    if (!Validator::IsValidCronString(cron_string_)){
+    if (cron_string_ == "" || !Validator::IsValidCronString(cron_string_)){
         MessageBoxDecorator::showMessageBox(
             this, "Invalid cron string", "Cron string is invalid.", QMessageBox::Warning);
         return false;
@@ -139,6 +142,50 @@ bool CreateScheduleDialog::handleScheduleDetails(){
 }
 
 void CreateScheduleDialog::addSchedule(){
-    request_mgr-> SendAddRequest(cron_string, source_path, destination_path, remarks, type);
-    accept();
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
+    this,
+    [&](auto setWaitMessage, auto setSuccessMessage, auto setFailureMessage) -> bool {
+        try {
+            setWaitMessage("Checking if source exists...");
+            if (!QDir(QString::fromStdString(source_path)).exists()){
+              setFailureMessage("Source path could not be found.");
+              return false;
+            }
+
+            setWaitMessage("Checking if destination exists...");
+            if (!QDir(QString::fromStdString(destination_path)).exists()){
+              setFailureMessage("Destination path could not be found.");
+              return false;
+            }
+
+            setWaitMessage("Creating schedule...");
+
+            std::string new_schedule_id = request_mgr->SendAddRequest(cron_string, source_path, destination_path, remarks, type);
+            bool validation = true;
+            if (!validation) {
+                setFailureMessage("Failed to add schedule.");
+                return false;
+            }
+            
+            Logger::SystemLog("Schedule " + new_schedule_id + "created successfully.");
+            setSuccessMessage("Schedule " + QString::fromStdString(new_schedule_id) + " created successfully.");
+            return true;
+
+        } catch (const std::exception& e) {
+            std::string issue = e.what();
+            Logger::SystemLog("Schedule creation failed: " + issue);
+            setFailureMessage("Schedule creation failed: " + QString::fromStdString(issue));
+            return false;
+        }
+    },
+    "Creating schedule...",
+    "Schedule created successfully.",
+    "Failed to create schedule.",
+    [&](bool success) {
+        if (success) {
+            accept();  // Close dialog or notify success
+        } else {
+            ui->nextButton->setEnabled(true);
+        }
+    });
 }

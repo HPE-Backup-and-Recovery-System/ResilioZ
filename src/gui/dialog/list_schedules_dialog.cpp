@@ -1,11 +1,8 @@
 #include "gui/dialog/list_schedules_dialog.h"
-
 #include "gui/dialog/ui_list_schedules_dialog.h"
 
 #include "utils/scheduler_request_manager.h"
 #include "schedulers/schedule.h"
-#include <iostream>
-
 
 #include <QTimer>
 
@@ -43,9 +40,9 @@ void ListSchedulesDialog::resizeEvent(QResizeEvent* event) {
 }
 
 void ListSchedulesDialog::setColSize(int tableWidth) {
-    int col_name = 100;
-    int col_schedule = 200;
-    int col_backup_type = 200;
+    int col_name = 90;
+    int col_schedule = 125;
+    int col_backup_type = 180;
     int col_remarks = 200;
     
     int space_left = tableWidth - col_name - col_schedule - col_backup_type - col_remarks;

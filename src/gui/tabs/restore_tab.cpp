@@ -88,11 +88,11 @@ void RestoreTab::on_nextButton_clicked() {
     ui->stackedWidget_attemptRestore->setCurrentIndex(index + 1);
   } else {
     std:: string message = "Repo: " + repository_->GetFullPath() + " \n" + "File: " + backup_file + " \n" + "Dest: " + backup_destination + "\n";
+    // TODO: Trigger Restore Process
     MessageBoxDecorator::showMessageBox(
         this, "Invalid Input",
         QString::fromStdString(message),
         QMessageBox::Warning);
-    // TODO: Trigger Restore Process
   }
   updateProgress();
 }
