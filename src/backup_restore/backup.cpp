@@ -41,8 +41,10 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
   metadata_.remarks = remarks;
 
   // For incremental/differential backups, load previous metadata
+  Logger::TerminalLog("Getting latest backup from " + output_path_.string());
   if (type != BackupType::FULL) {
     std::string previous_backup;
+    Logger::TerminalLog("Getting latest backup from " + output_path_.string());
     if (type == BackupType::INCREMENTAL) {
       previous_backup = GetLatestBackup(output_path_);
     } else {  // DIFFERENTIAL
@@ -317,6 +319,7 @@ BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
 
 std::string Backup::GetLatestBackup(const fs::path& backup_dir) {
   auto backups = ListBackups(backup_dir);
+  Logger::TerminalLog("Getting latest backup from " + backup_dir.string());
   return backups.empty() ? "" : backups[0];
 }
 

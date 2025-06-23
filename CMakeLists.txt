@@ -71,6 +71,7 @@ find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBSSH REQUIRED libssh) 
 pkg_check_modules(ZSTD REQUIRED libzstd)
+pkg_check_modules(LIBNFS REQUIRED libnfs)
 
 # Packages which can only be Installed via Git Repos or URLs
 include(FetchContent)
@@ -123,6 +124,7 @@ target_include_directories(main PRIVATE
     ${ZLIB_INCLUDE_DIRS}
     ${ZSTD_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
+    ${LIBNFS_INCLUDE_DIRS}
 )
 
 # Include Directories for Libraries in Scheduler
@@ -138,6 +140,7 @@ target_link_libraries(main PRIVATE
     utils
     libcron
     ${LIBSSH_LIBRARIES}
+    ${LIBNFS_LIBRARIES}
     ${ZLIB_LIBRARIES}
     ${ZSTD_LIBRARIES}
     OpenSSL::SSL 

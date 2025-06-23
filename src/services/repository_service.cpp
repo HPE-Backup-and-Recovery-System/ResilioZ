@@ -141,19 +141,16 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, client_mount_path, password;
+  std::string name, nfs_path, password;
   name = Prompter::PromptRepoName();
-  client_mount_path = Prompter::PromptPath("Client Mount Path (e.g., /mnt)");
-  if (client_mount_path.empty()) {
-    client_mount_path = ".";
-  }
+  nfs_path = Prompter::PromptNfsPath();
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   NFSRepository* repo = nullptr;
   try {
-    repo = new NFSRepository(client_mount_path, name, password, timestamp);
+    repo = new NFSRepository(nfs_path, name, password, timestamp);
     if (repo->Exists()) {
       ErrorUtil::ThrowError("Repository already exists at location: " + repo->GetPath());
     } else {
@@ -270,19 +267,7 @@ Repository* RepositoryService::SelectExistingRepository() {
       repo = new LocalRepository(selected_repo.path, selected_repo.name,
                                  password, selected_repo.created_at);
     } else if (selected_repo.type == "nfs") {
-      // Read server IP and backup path from config file
-      std::string config_path = selected_repo.path + "/config.json";
-      std::ifstream config_file(config_path);
-      if (!config_file.is_open()) {
-        ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
-      }
-      nlohmann::json config;
-      config_file >> config;
-      config_file.close();
-
-      repo = new NFSRepository(
-          config.at("client_mount_path"), selected_repo.name, password,
-          selected_repo.created_at);
+      repo = new NFSRepository(selected_repo.path, selected_repo.name, password, selected_repo.created_at);
     } else if (selected_repo.type == "remote") {
       repo = new RemoteRepository(selected_repo.path, selected_repo.name,
                                   password, selected_repo.created_at);
