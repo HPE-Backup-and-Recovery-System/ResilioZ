@@ -8,8 +8,11 @@
 #include <QTimer>
 
 #include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
 #include "gui/dialog/use_repository_dialog.h"
 #include "gui/tabs/ui_restore_tab.h"
+#include "utils/utils.h"
+#include "backup_restore/restore.hpp"
 
 RestoreTab::RestoreTab(QWidget* parent)
     : QWidget(parent), ui(new Ui::RestoreTab) {
@@ -89,10 +92,7 @@ void RestoreTab::on_nextButton_clicked() {
   } else {
     std:: string message = "Repo: " + repository_->GetFullPath() + " \n" + "File: " + backup_file + " \n" + "Dest: " + backup_destination + "\n";
     // TODO: Trigger Restore Process
-    MessageBoxDecorator::showMessageBox(
-        this, "Invalid Input",
-        QString::fromStdString(message),
-        QMessageBox::Warning);
+    restoreBackup();
   }
   updateProgress();
 }
@@ -230,4 +230,63 @@ bool RestoreTab::handleSelectDestination(){
     return false;
   }
   return true;
+}
+
+void RestoreTab::restoreBackup(){
+  ProgressBoxDecorator::runProgressBoxIndeterminate(
+      this,
+      [&](std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
+        try {
+          setWaitMessage("Checking if repository exists...");
+          if (!repository_->Exists()) {
+            setFailureMessage("Repository does not exist at location: " +
+                              QString::fromStdString(repository_->GetPath()));
+            return false;
+          }
+
+          setWaitMessage("Checking if backup file exists...");
+          std::string backup_file_path = repository_->GetFullPath() + "/backup/" + backup_file;
+          QFileInfo file(QString::fromStdString(backup_file_path));
+          if (!file.exists() || !file.isFile()) {
+            setFailureMessage("Backup file does not exist at location: " +
+                              QString::fromStdString(backup_file_path));
+            return false;
+          }
+
+          setWaitMessage("Checking if destination folder exists...");
+          std::string restore_file_path = backup_destination;
+          if (!QDir(QString::fromStdString(backup_destination)).exists()){
+            setFailureMessage("Destination folder does not exist at location: " +
+                              QString::fromStdString(backup_destination));
+            return false;
+          }
+
+          setWaitMessage("Attempting restore...");
+          Restore restore(repository_->GetFullPath(),backup_destination,backup_file);
+          restore.RestoreAll();
+
+          setSuccessMessage("Restore successfully completed.");
+          return true;
+
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "Restore operation failed: " + std::string(e.what()),
+              LogLevel::ERROR);
+
+          setFailureMessage("Restore operation failed: " +
+                            QString::fromStdString(e.what()));
+          return false;
+        }
+      },
+      "Attempting restore...", "Restore operation successful.",
+      "Restore operation failed.",
+      [&](bool success) {
+        if (success) {
+          delete repository_;
+        } else {
+          ui->nextButton->setEnabled(true);
+        }
+      });
 }

@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include "repositories/repository.h"
-#include "services/all.h"
+#include "services/repository_service.h"
 #include "systems/system.h"
 
 namespace Ui {
@@ -65,6 +65,8 @@ private slots:
     bool handleSelectRepo();
     bool handleSelectFile();
     bool handleSelectDestination();
+    
+    void restoreBackup();
   };
   
 #endif  // RESTORE_TAB_H
