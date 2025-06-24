@@ -41,10 +41,8 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
   metadata_.remarks = remarks;
 
   // For incremental/differential backups, load previous metadata
-  Logger::TerminalLog("Getting latest backup from " + output_path_.string());
   if (type != BackupType::FULL) {
     std::string previous_backup;
-    Logger::TerminalLog("Getting latest backup from " + output_path_.string());
     if (type == BackupType::INCREMENTAL) {
       previous_backup = GetLatestBackup(output_path_);
     } else {  // DIFFERENTIAL
@@ -73,6 +71,14 @@ void Backup::BackupFile(const fs::path& file_path) {
   }
 
   auto file_metadata = CheckFileMetadata(file_path);
+  
+  // For symlinks, we don't need to chunk content, just store the metadata
+  if (file_metadata.is_symlink) {
+    Logger::TerminalLog("Backing up symlink: " + file_path.string() + " -> " + file_metadata.symlink_target);
+    metadata_.files[file_path.string()] = file_metadata;
+    return;
+  }
+
   ProgressBar progress(file_metadata.total_size, 0,
                        "backup of " + file_path.string());
 
@@ -112,8 +118,20 @@ bool Backup::CheckFileToSkip(const fs::path& file_path) {
 FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
   FileMetadata metadata;
   metadata.original_filename = file_path.filename().string();
-  metadata.total_size = fs::file_size(file_path);
-  metadata.mtime = fs::last_write_time(file_path);
+  
+  // Check if it's a symlink
+  if (fs::is_symlink(file_path)) {
+    metadata.is_symlink = true;
+    metadata.symlink_target = fs::read_symlink(file_path).string();
+    // For symlinks, we don't need to chunk the content, just store the target
+    metadata.total_size = 0;
+    metadata.mtime = fs::last_write_time(file_path);
+  } else {
+    metadata.is_symlink = false;
+    metadata.total_size = fs::file_size(file_path);
+    metadata.mtime = fs::last_write_time(file_path);
+  }
+  
   return metadata;
 }
 
@@ -150,7 +168,8 @@ void Backup::BackupDirectory() {
 
   // Then process existing files
   for (const auto& entry : fs::recursive_directory_iterator(input_path_)) {
-    if (entry.is_regular_file()) {
+    // Handle both regular files and symlinks (both file and directory symlinks)
+    if (entry.is_regular_file() || fs::is_symlink(entry.path())) {
       std::string file_path = entry.path().string();
       current_files.insert(file_path);
 
@@ -199,6 +218,10 @@ void Backup::SaveMetadata() {
     file_json["original_filename"] = file_metadata.original_filename;
     file_json["chunk_hashes"] = file_metadata.chunk_hashes;
     file_json["total_size"] = file_metadata.total_size;
+    file_json["is_symlink"] = file_metadata.is_symlink;
+    if (file_metadata.is_symlink) {
+      file_json["symlink_target"] = file_metadata.symlink_target;
+    }
 
     // Convert file times to seconds since epoch
     auto mtime_seconds = std::chrono::duration_cast<std::chrono::seconds>(
@@ -310,6 +333,12 @@ BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
     file_metadata.mtime = fs::file_time_type(
         std::chrono::duration_cast<fs::file_time_type::duration>(
             std::chrono::seconds(file_json["mtime"].get<time_t>())));
+    
+    // Load symlink information (with backward compatibility)
+    file_metadata.is_symlink = file_json.value("is_symlink", false);
+    if (file_metadata.is_symlink) {
+      file_metadata.symlink_target = file_json["symlink_target"];
+    }
 
     metadata.files[file_path] = file_metadata;
   }
@@ -446,6 +475,26 @@ void Backup::CompareBackups(const fs::path& backup_dir,
 
 bool Backup::CheckFileForChanges(const fs::path& file_path,
                                  const FileMetadata& previous_metadata) {
+  // Check if it's a symlink
+  if (fs::is_symlink(file_path)) {
+    std::string current_target = fs::read_symlink(file_path).string();
+    auto mtime = fs::last_write_time(file_path);
+    
+    // Convert both times to seconds for comparison
+    auto current_mtime_seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch())
+            .count();
+    auto previous_mtime_seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            previous_metadata.mtime.time_since_epoch())
+            .count();
+
+    // For symlinks, check if target or modification time changed
+    return current_target != previous_metadata.symlink_target ||
+           current_mtime_seconds != previous_mtime_seconds;
+  }
+
+  // Regular file check
   auto file_status = fs::status(file_path);
   auto mtime = fs::last_write_time(file_path);
   auto size = fs::file_size(file_path);

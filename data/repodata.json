@@ -75,5 +75,19 @@
     "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "path": "192.168.8.146:/backups",
     "type": "nfs"
+  },
+  {
+    "created_at": "2025-06-24T05:40:00Z",
+    "name": "lt",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/centronox/Downloads",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T07:53:09Z",
+    "name": "lt2",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/centronox/Downloads",
+    "type": "local"
   }
 ]

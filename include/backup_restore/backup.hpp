@@ -20,6 +20,8 @@ struct FileMetadata {
   std::vector<std::string> chunk_hashes;
   uint64_t total_size;
   fs::file_time_type mtime;
+  bool is_symlink = false;
+  std::string symlink_target;
 };
 
 struct BackupMetadata {

@@ -77,6 +77,13 @@ void Restore::LoadMetadata() {
     file_metadata.mtime = fs::file_time_type(
         std::chrono::duration_cast<fs::file_time_type::duration>(
             std::chrono::seconds(file_json["mtime"].get<time_t>())));
+    
+    // Load symlink information (with backward compatibility)
+    file_metadata.is_symlink = file_json.value("is_symlink", false);
+    if (file_metadata.is_symlink) {
+      file_metadata.symlink_target = file_json["symlink_target"];
+    }
+    
     metadata_.files[file_path] = file_metadata;
   }
 }
@@ -89,8 +96,19 @@ void Restore::RestoreFile(const std::filesystem::path & file_path) {
   }
 
   std::string filename = file_metadata->second.original_filename;
-
   fs::path output_file = PrepareOutputPath(filename, file_path);
+
+  // Handle symlinks
+  if (file_metadata->second.is_symlink) {
+    Logger::TerminalLog("Restoring symlink: " + output_file.string() + " -> " + file_metadata->second.symlink_target);
+    
+    // Create the symlink
+    fs::create_symlink(file_metadata->second.symlink_target, output_file);
+    
+    // Restore file metadata (timestamps)
+    fs::last_write_time(output_file, file_metadata->second.mtime);
+    return;
+  }
 
   ProgressBar progress(file_metadata->second.total_size,
                        file_metadata->second.chunk_hashes.size(),
