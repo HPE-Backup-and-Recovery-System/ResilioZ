@@ -177,5 +177,6 @@ CMakeLists.txt.user*
 
 *.pyc
 
-# Ignore data directory
+# Ignore directories
 /data/
+/logs/

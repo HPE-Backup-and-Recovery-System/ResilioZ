@@ -22,7 +22,22 @@ class Repository {
   RepositoryType GetType() const;
 
   std::string GetHashedPassword() const;
+  std::string GetRepositoryInfoString() const;
+
+  static std::string GetRepositoryInfoString(const std::string& name,
+                                             const std::string& type,
+                                             const std::string& path);
+  static std::string GetRepositoryInfoString(const std::string& name,
+                                             const RepositoryType& type,
+                                             const std::string& path);
+
   static std::string GetHashedPassword(const std::string& password);
+  static std::string GetResolvedPath(const std::string& path);
+
+  static std::string GetFormattedTypeString(const std::string& type,
+                                            bool upper = true);
+  static std::string GetFormattedTypeString(const RepositoryType& type,
+                                            bool upper = true);
 
  protected:
   std::string name_;

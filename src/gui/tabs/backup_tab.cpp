@@ -35,6 +35,9 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->nextButton_3->setAutoDefault(true);
   ui->nextButton_3->setDefault(true);
 
+  ui->repoInfoLabel->setText("<NONE>");
+  ui->repoInfoLabel_list->setText("<NONE>");
+  ui->repoInfoLabel_cmp->setText("<NONE>");
   repository_ = nullptr;
   backup_ = nullptr;
 
@@ -107,6 +110,7 @@ void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
 
 void BackupTab::on_createBackupButton_clicked() {
   repository_ = nullptr;
+  ui->repoInfoLabel->setText("<NONE>");
   ui->stackedWidget->setCurrentIndex(1);
   ui->stackedWidget_createBackup->setCurrentIndex(0);
   checkRepoSelection();
@@ -115,6 +119,7 @@ void BackupTab::on_createBackupButton_clicked() {
 
 void BackupTab::on_listBackupButton_clicked() {
   repository_ = nullptr;
+  ui->repoInfoLabel_list->setText("<NONE>");
   ui->stackedWidget->setCurrentIndex(2);
   ui->stackedWidget_listBackup->setCurrentIndex(0);
   checkRepoSelection();
@@ -123,6 +128,7 @@ void BackupTab::on_listBackupButton_clicked() {
 
 void BackupTab::on_compareBackupButton_clicked() {
   repository_ = nullptr;
+  ui->repoInfoLabel_cmp->setText("<NONE>");
   ui->stackedWidget->setCurrentIndex(3);
   ui->stackedWidget_compareBackup->setCurrentIndex(0);
   checkRepoSelection();
@@ -336,8 +342,11 @@ void BackupTab::on_createRepoButton_clicked() {
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
+    ui->repoInfoLabel->setText(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
+    ui->repoInfoLabel->setText("<NONE>");
   }
   checkRepoSelection();
 }
@@ -351,8 +360,11 @@ void BackupTab::on_useRepoButton_clicked() {
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
+    ui->repoInfoLabel->setText(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
+    ui->repoInfoLabel->setText("<NONE>");
   }
   checkRepoSelection();
 }
@@ -367,8 +379,11 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
   dialog.setWindowTitle("Choose Repository for Listing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
+    ui->repoInfoLabel_list->setText(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
+    ui->repoInfoLabel_list->setText("<NONE>");
   }
   checkRepoSelection();
 }
@@ -383,8 +398,11 @@ void BackupTab::on_chooseRepoButton_compare_clicked() {
   dialog.setWindowTitle("Choose Repository for Comparing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
+    ui->repoInfoLabel_cmp->setText(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
+    ui->repoInfoLabel_cmp->setText("<NONE>");
   }
   checkRepoSelection();
 }
@@ -410,8 +428,9 @@ bool BackupTab::handleBackupDetails() {
     return false;
   }
   if (!fs::exists(source_path_)) {
-    MessageBoxDecorator::showMessageBox(
-        this, "Invalid Input", "Source path does not exist.", QMessageBox::Warning);
+    MessageBoxDecorator::showMessageBox(this, "Invalid Input",
+                                        "Source path does not exist.",
+                                        QMessageBox::Warning);
     return false;
   }
 
@@ -447,16 +466,15 @@ void BackupTab::initBackup() {
       backup_ = nullptr;
     }
     if (repository_->GetType() == RepositoryType::REMOTE) {
-      backup_ = new Backup(source_path_, "temp", backup_type_, remarks_);
+      backup_ = new Backup(source_path_, ".temp", backup_type_, remarks_);
     } else {
       backup_ =
           new Backup(source_path_, destination_path_, backup_type_, remarks_);
     }
   } catch (const std::exception& e) {
-    MessageBoxDecorator::showMessageBox(
-        this, "Backup Initialization Failure",
-        QString::fromStdString(e.what()),
-        QMessageBox::Warning);
+    MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Warning);
     Logger::SystemLog(
         "GUI | Failed to initialize backup: " + std::string(e.what()),
         LogLevel::ERROR);
@@ -466,10 +484,9 @@ void BackupTab::initBackup() {
   // TODO: Check and Refine
   ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
-      [this](
-          std::function<void(const QString&)> setWaitMessage,
-          std::function<void(const QString&)> setSuccessMessage,
-          std::function<void(const QString&)> setFailureMessage) -> bool {
+      [this](std::function<void(const QString&)> setWaitMessage,
+             std::function<void(const QString&)> setSuccessMessage,
+             std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
           setWaitMessage("Creating backup...");
           backup_->BackupDirectory();
@@ -479,10 +496,10 @@ void BackupTab::initBackup() {
 
             auto* remote_repository =
                 dynamic_cast<RemoteRepository*>(repository_);
-            remote_repository->UploadDirectory("temp");
+            remote_repository->UploadDirectory(".temp");
 
             setWaitMessage("Cleaning up temporary backup files...");
-            fs::remove_all("temp");
+            fs::remove_all(".temp");
           }
 
           Logger::SystemLog("GUI | Backup created successfully.");
