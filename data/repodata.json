@@ -19,5 +19,47 @@
     "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
     "path": "/home/user/Desktop/HPE",
     "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T09:22:24Z",
+    "name": "atest",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "amk11@localhost:/home/amk11/work/HPE",
+    "type": "remote"
+  },
+  {
+    "created_at": "2025-06-24T11:22:42Z",
+    "name": "check",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:31:58Z",
+    "name": "testtt",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:33:17Z",
+    "name": "crashies",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:35:15Z",
+    "name": "crashy",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:42:39Z",
+    "name": "fakerepo",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
   }
 ]
