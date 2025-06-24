@@ -1,6 +1,7 @@
 #include "gui/decorators/progress_box.h"
 
 #include <QApplication>
+#include <QCloseEvent>
 #include <QMetaObject>
 #include <QProgressBar>
 #include <QThread>
@@ -29,7 +30,15 @@ QDialog* ProgressBoxDecorator::createProgressDialog(QWidget* parent,
                                                     QLabel*& label,
                                                     const QString& message,
                                                     bool determinate) {
-  QDialog* dialog = new QDialog(parent);
+  class BlockingDialog : public QDialog {
+   public:
+    using QDialog::QDialog;
+
+   protected:
+    void closeEvent(QCloseEvent* event) override { event->ignore(); }
+  };
+
+  QDialog* dialog = new BlockingDialog(parent);
   dialog->setWindowTitle("Please Wait");
   dialog->setModal(true);
   dialog->setMinimumSize(360, 120);
