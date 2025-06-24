@@ -21,73 +21,45 @@
     "type": "local"
   },
   {
-    "created_at": "2025-06-23T11:48:56Z",
-    "name": "ntest1",
+    "created_at": "2025-06-24T09:22:24Z",
+    "name": "atest",
     "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "192.168.8.146:/backups",
-    "type": "nfs"
-  },
-  {
-    "created_at": "2025-06-23T11:58:52Z",
-    "name": "ntest2",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "192.168.8.146:/backups",
-    "type": "nfs"
-  },
-  {
-    "created_at": "2025-06-23T12:02:17Z",
-    "name": "ntest",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "192.168.8.146:/backups",
-    "type": "nfs"
-  },
-  {
-    "created_at": "2025-06-23T12:15:24Z",
-    "name": "ntest4",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "192.168.8.146:/backups",
-    "type": "nfs"
-  },
-  {
-    "created_at": "2025-06-23T14:21:25Z",
-    "name": "local",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "/home/centronox/Downloads/tester",
-    "type": "local"
-  },
-  {
-    "created_at": "2025-06-23T15:33:39Z",
-    "name": "rtest",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "centro@192.168.8.146:/home/centro/Downloads",
+    "path": "amk11@localhost:/home/amk11/work/HPE",
     "type": "remote"
   },
   {
-    "created_at": "2025-06-23T17:42:04Z",
-    "name": "rtest_1",
+    "created_at": "2025-06-24T11:22:42Z",
+    "name": "check",
     "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "centro@192.168.8.146:/home/centro/Downloads",
-    "type": "remote"
-  },
-  {
-    "created_at": "2025-06-23T19:10:32Z",
-    "name": "ntest5",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "192.168.8.146:/backups",
-    "type": "nfs"
-  },
-  {
-    "created_at": "2025-06-24T05:40:00Z",
-    "name": "lt",
-    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "/home/centronox/Downloads",
+    "path": "/home/amk11/work/HPE/codebase/build",
     "type": "local"
   },
   {
-    "created_at": "2025-06-24T07:53:09Z",
-    "name": "lt2",
+    "created_at": "2025-06-24T11:31:58Z",
+    "name": "testtt",
     "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "path": "/home/centronox/Downloads",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:33:17Z",
+    "name": "crashies",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:35:15Z",
+    "name": "crashy",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
+    "type": "local"
+  },
+  {
+    "created_at": "2025-06-24T11:42:39Z",
+    "name": "fakerepo",
+    "password_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "/home/amk11/work/HPE/codebase/build",
     "type": "local"
   }
 ]
