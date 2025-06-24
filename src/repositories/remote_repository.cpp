@@ -73,7 +73,7 @@ void RemoteRepository::WriteConfig() const {
   out << config.dump(4);
   out.close();
 
-  if (!UploadFile(temp_file, remote_dir_)) {
+  if (!UploadFile(temp_file)) {
     ErrorUtil::ThrowError("Failed to upload config to remote");
   }
 

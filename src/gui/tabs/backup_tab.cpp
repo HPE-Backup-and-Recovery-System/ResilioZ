@@ -108,6 +108,7 @@ void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
 void BackupTab::on_createBackupButton_clicked() {
   repository_ = nullptr;
   ui->stackedWidget->setCurrentIndex(1);
+  ui->stackedWidget_createBackup->setCurrentIndex(0);
   checkRepoSelection();
   updateProgress();
 }
@@ -115,6 +116,7 @@ void BackupTab::on_createBackupButton_clicked() {
 void BackupTab::on_listBackupButton_clicked() {
   repository_ = nullptr;
   ui->stackedWidget->setCurrentIndex(2);
+  ui->stackedWidget_listBackup->setCurrentIndex(0);
   checkRepoSelection();
   updateProgress();
 }
@@ -122,6 +124,7 @@ void BackupTab::on_listBackupButton_clicked() {
 void BackupTab::on_compareBackupButton_clicked() {
   repository_ = nullptr;
   ui->stackedWidget->setCurrentIndex(3);
+  ui->stackedWidget_compareBackup->setCurrentIndex(0);
   checkRepoSelection();
   updateProgress();
 }
@@ -325,6 +328,10 @@ void BackupTab::on_nextButton_3_clicked() {
 }
 
 void BackupTab::on_createRepoButton_clicked() {
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   CreateRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
@@ -336,6 +343,10 @@ void BackupTab::on_createRepoButton_clicked() {
 }
 
 void BackupTab::on_useRepoButton_clicked() {
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
@@ -347,6 +358,10 @@ void BackupTab::on_useRepoButton_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_list_clicked() {
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Listing Backups");
@@ -359,6 +374,10 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_compare_clicked() {
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   UseRepositoryDialog dialog(this);
   dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Comparing Backups");
@@ -390,6 +409,11 @@ bool BackupTab::handleBackupDetails() {
         this, "Invalid Input", "Source path is invalid.", QMessageBox::Warning);
     return false;
   }
+  if (!fs::exists(source_path_)) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Invalid Input", "Source path does not exist.", QMessageBox::Warning);
+    return false;
+  }
 
   destination_path_ = repository_->GetFullPath();
   remarks_ = ui->remarksInput->text().toStdString();
@@ -417,25 +441,38 @@ bool BackupTab::handleSchedule() {
 }
 
 void BackupTab::initBackup() {
-  if (repository_->GetType() == RepositoryType::REMOTE) {
-    backup_ = new Backup(source_path_, "temp", backup_type_, remarks_);
-  } else {
-    backup_ =
-        new Backup(source_path_, destination_path_, backup_type_, remarks_);
+  try {
+    if (backup_) {
+      delete backup_;
+      backup_ = nullptr;
+    }
+    if (repository_->GetType() == RepositoryType::REMOTE) {
+      backup_ = new Backup(source_path_, "temp", backup_type_, remarks_);
+    } else {
+      backup_ =
+          new Backup(source_path_, destination_path_, backup_type_, remarks_);
+    }
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Backup Initialization Failure",
+        QString::fromStdString(e.what()),
+        QMessageBox::Warning);
+    Logger::SystemLog(
+        "GUI | Failed to initialize backup: " + std::string(e.what()),
+        LogLevel::ERROR);
+    return;
   }
 
   // TODO: Check and Refine
-  auto* backup = backup_;
-  auto* repository = repository_;
   ProgressBoxDecorator::runProgressBoxIndeterminate(
       this,
-      [this, backup](
+      [this](
           std::function<void(const QString&)> setWaitMessage,
           std::function<void(const QString&)> setSuccessMessage,
           std::function<void(const QString&)> setFailureMessage) -> bool {
         try {
           setWaitMessage("Creating backup...");
-          backup->BackupDirectory();
+          backup_->BackupDirectory();
 
           if (repository_->GetType() == RepositoryType::REMOTE) {
             setWaitMessage("Uploading backup to remote repository...");
@@ -463,11 +500,8 @@ void BackupTab::initBackup() {
       },
       "Creating backup...", "Backup created successfully.",
       "Backup creation failed.",
-      [this, backup](bool success) {
+      [this](bool success) {
         if (success) {
-          delete backup;
-          backup_ = nullptr;
-
           ui->stackedWidget->setCurrentIndex(0);
           checkRepoSelection();
         } else {
