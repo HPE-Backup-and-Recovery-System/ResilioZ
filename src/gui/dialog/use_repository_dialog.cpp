@@ -180,10 +180,7 @@ void UseRepositoryDialog::useRepository(int row) {
                                        repository_->GetPath());
 
             Logger::SystemLog("GUI | Deleted entry for repository: " +
-                              repository_->GetName() + " [" +
-                              RepodataManager::GetFormattedTypeString(
-                                  repository_->GetType()) +
-                              "] - " + repository_->GetPath() +
+                              repository_->GetRepositoryInfoString() +
                               " as it does not exist");
 
             setFailureMessage("Repository not found at location: " +
@@ -197,14 +194,14 @@ void UseRepositoryDialog::useRepository(int row) {
 
           Logger::SystemLog(
               "GUI | Repository: " + repository_->GetName() + " [" +
-              RepodataManager::GetFormattedTypeString(repository_->GetType()) +
+              Repository::GetFormattedTypeString(repository_->GetType()) +
               "] loaded from location: " + repository_->GetPath());
 
           setSuccessMessage(
               "Repository: " + QString::fromStdString(repository_->GetName()) +
               " [" +
-              QString::fromStdString(RepodataManager::GetFormattedTypeString(
-                  repository_->GetType())) +
+              QString::fromStdString(
+                  Repository::GetFormattedTypeString(repository_->GetType())) +
               "] selected from location: " +
               QString::fromStdString(repository_->GetPath()));
           return true;

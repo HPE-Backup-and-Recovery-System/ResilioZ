@@ -27,13 +27,6 @@ class RepodataManager {
                                     const std::string& path) const;
   std::vector<RepoEntry> GetAll() const;
 
-  static std::string GetResolvedPath(const std::string& path);
-
-  static std::string GetFormattedTypeString(const std::string& type,
-                                            bool upper = true);
-  static std::string GetFormattedTypeString(const RepositoryType& type,
-                                            bool upper = true);
-
  private:
   std::vector<RepoEntry> entries_;
   std::string data_file_;

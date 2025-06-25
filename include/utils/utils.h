@@ -5,6 +5,7 @@
 #include "utils/logger.h"
 #include "utils/prompter.h"
 #include "utils/repodata_manager.h"
+#include "utils/setup.h"
 #include "utils/time_util.h"
 #include "utils/user_io.h"
 #include "utils/validator.h"

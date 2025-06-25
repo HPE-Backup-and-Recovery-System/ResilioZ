@@ -150,7 +150,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
-  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path + "/" + name);
+  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path +
+                      "/" + name);
 
   NFSRepository* repo = nullptr;
   try {
@@ -227,7 +228,7 @@ void RepositoryService::ListRepositories() {
     UserIO::DisplayMinTitle("Repository List");
     for (const auto& repo : repos) {
       std::cout << " - Name: " << repo.name << " ["
-                << RepodataManager::GetFormattedTypeString(repo.type) << "]"
+                << Repository::GetFormattedTypeString(repo.type) << "]"
                 << "\n\t Path: " << repo.path
                 << "\n\t Created at: " << repo.created_at << "\n\n";
     }
@@ -248,9 +249,8 @@ Repository* RepositoryService::SelectExistingRepository() {
 
   std::vector<std::string> repo_menu = {"Go BACK..."};
   for (const auto& repo : repodata_entries) {
-    repo_menu.push_back(repo.name + " [" +
-                        RepodataManager::GetFormattedTypeString(repo.type) +
-                        "] - " + repo.path);
+    repo_menu.push_back(
+        Repository::GetRepositoryInfoString(repo.name, repo.type, repo.path));
   }
 
   try {
@@ -302,7 +302,7 @@ Repository* RepositoryService::SelectExistingRepository() {
     }
 
     Logger::Log("Repository: " + selected_repo.name + " [" +
-                RepodataManager::GetFormattedTypeString(selected_repo.type) +
+                Repository::GetFormattedTypeString(selected_repo.type) +
                 "] loaded from: " + repo->GetPath());
     SetRepository(repo);
     return repo;
@@ -323,9 +323,8 @@ void RepositoryService::DeleteRepository() {
 
     if (!repo->Exists()) {
       repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
-      Logger::Log("Deleted entry for repository: " + repo->GetName() + " [" +
-                  RepodataManager::GetFormattedTypeString(repo->GetType()) +
-                  "] - " + repo->GetPath() + " as it does not exist");
+      Logger::Log("Deleted entry for repository: " +
+                  repo->GetRepositoryInfoString() + " as it does not exist");
       delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
     }
@@ -333,7 +332,7 @@ void RepositoryService::DeleteRepository() {
 
     repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     Logger::Log("Repository: " + repo->GetName() + " [" +
-                RepodataManager::GetFormattedTypeString(repo->GetType()) +
+                Repository::GetFormattedTypeString(repo->GetType()) +
                 "] deleted from location: " + repo->GetPath());
 
     SetRepository(repo);

@@ -270,6 +270,7 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
     ErrorUtil::ThrowNested("Cannot upload file to remote path: " +
                            remote_full_path);
   }
+  return false;
 }
 
 bool RemoteRepository::UploadDirectory(const std::string& local_dir,
@@ -380,6 +381,7 @@ bool RemoteRepository::UploadDirectory(const std::string& local_dir,
     ErrorUtil::ThrowNested("Cannot upload directory to remote path: " +
                            (remote_path_));
   }
+  return false;
 }
 
 bool RemoteRepository::DownloadFile(const std::string& remote_file,
@@ -459,6 +461,7 @@ bool RemoteRepository::DownloadFile(const std::string& remote_file,
     ErrorUtil::ThrowNested("Cannot download file from remote path: " +
                            remote_full_path);
   }
+  return false;
 }
 
 bool RemoteRepository::DownloadDirectory(const std::string& remote_dir,
@@ -555,4 +558,5 @@ bool RemoteRepository::DownloadDirectory(const std::string& remote_dir,
     ErrorUtil::ThrowNested("Cannot download directory from remote path: " +
                            remote_root);
   }
+  return false;
 }

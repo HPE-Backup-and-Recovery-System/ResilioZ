@@ -1,7 +1,3 @@
-#ifndef PROJECT_ROOT_DIR
-#define PROJECT_ROOT_DIR "."
-#endif
-
 #include "utils/repodata_manager.h"
 
 #include <cstdlib>
@@ -10,16 +6,14 @@
 #include <iostream>
 
 #include "repositories/repository.h"
-#include "utils/error_util.h"
-#include "utils/logger.h"
-#include "utils/validator.h"
+#include "utils/utils.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 RepodataManager::RepodataManager() {
   try {
-    std::string base_dir = std::string(PROJECT_ROOT_DIR) + "/data";
+    std::string base_dir = Setup::GetAppDataPath() + "/.data";
     fs::create_directories(base_dir);
     data_file_ = base_dir + "/repodata.json";
     EnsureDataFileExists();
@@ -102,7 +96,7 @@ void RepodataManager::AddEntry(const RepoEntry& entry) {
 
 bool RepodataManager::DeleteEntry(const std::string& name,
                                   const std::string& path) {
-  std::string resolved_path = GetResolvedPath(path);
+  std::string resolved_path = Repository::GetResolvedPath(path);
   auto it =
       std::remove_if(entries_.begin(), entries_.end(), [&](const RepoEntry& e) {
         return e.name == name && e.path == resolved_path;
@@ -121,7 +115,7 @@ bool RepodataManager::DeleteEntry(const std::string& name,
 
 std::optional<RepoEntry> RepodataManager::GetEntry(
     const std::string& name, const std::string& path) const {
-  std::string resolved_path = GetResolvedPath(path);
+  std::string resolved_path = Repository::GetResolvedPath(path);
   for (const auto& entry : entries_) {
     if (entry.name == name && entry.path == resolved_path) return entry;
   }
@@ -129,25 +123,3 @@ std::optional<RepoEntry> RepodataManager::GetEntry(
 }
 
 std::vector<RepoEntry> RepodataManager::GetAll() const { return entries_; }
-
-std::string RepodataManager::GetResolvedPath(const std::string& path) {
-  return Validator::IsValidSftpPath(path)
-             ? path
-             : fs::weakly_canonical(fs::absolute(path)).string();
-}
-
-std::string RepodataManager::GetFormattedTypeString(const std::string& type,
-                                                    bool upper) {
-  if (type == "local") return (upper ? "LOCAL" : "Local");
-  if (type == "nfs") return "NFS";
-  if (type == "remote") return (upper ? "REMOTE" : "Remote");
-  return (upper ? "UNKNOWN" : "Unknown");
-}
-
-std::string RepodataManager::GetFormattedTypeString(const RepositoryType& type,
-                                                    bool upper) {
-  if (type == RepositoryType::LOCAL) return (upper ? "LOCAL" : "Local");
-  if (type == RepositoryType::NFS) return "NFS";
-  if (type == RepositoryType::REMOTE) return (upper ? "REMOTE" : "Remote");
-  return (upper ? "UNKNOWN" : "Unknown");
-}
