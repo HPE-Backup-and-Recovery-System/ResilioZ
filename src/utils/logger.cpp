@@ -1,7 +1,3 @@
-#ifndef PROJECT_ROOT_DIR
-#define PROJECT_ROOT_DIR "."
-#endif
-
 #include "utils/logger.h"
 
 #include <ctime>
@@ -11,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "utils/setup.h"
 #include "utils/time_util.h"
 
 namespace fs = std::filesystem;
@@ -81,7 +78,7 @@ void Logger::TerminalLog(const std::string& message, const LogLevel level) {
 }
 
 void Logger::SystemLog(const std::string& message, const LogLevel level) {
-  std::string base_dir = std::string(PROJECT_ROOT_DIR) + "/logs";
+  std::string base_dir = Setup::GetAppDataPath() + "/.logs";
   fs::create_directories(base_dir);
   std::string log_file_path = base_dir + "/sys.log";
 

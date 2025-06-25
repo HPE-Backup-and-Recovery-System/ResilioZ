@@ -173,10 +173,7 @@ void DeleteRepositoryDialog::deleteRepository(int row) {
                                        repository_->GetPath());
 
             Logger::SystemLog("GUI | Deleted entry for repository: " +
-                              repository_->GetName() + " [" +
-                              RepodataManager::GetFormattedTypeString(
-                                  repository_->GetType()) +
-                              "] - " + repository_->GetPath() +
+                              repository_->GetRepositoryInfoString() +
                               " as it does not exist");
 
             setFailureMessage("Repository not found at location: " +
@@ -190,14 +187,14 @@ void DeleteRepositoryDialog::deleteRepository(int row) {
 
           Logger::SystemLog(
               "GUI | Repository: " + repository_->GetName() + " [" +
-              RepodataManager::GetFormattedTypeString(repository_->GetType()) +
+              Repository::GetFormattedTypeString(repository_->GetType()) +
               "] deleted at location: " + repository_->GetPath());
 
           setSuccessMessage(
               "Repository: " + QString::fromStdString(repository_->GetName()) +
               " [" +
-              QString::fromStdString(RepodataManager::GetFormattedTypeString(
-                  repository_->GetType())) +
+              QString::fromStdString(
+                  Repository::GetFormattedTypeString(repository_->GetType())) +
               "] deleted from location: " +
               QString::fromStdString(repository_->GetPath()));
 

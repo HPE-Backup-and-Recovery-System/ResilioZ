@@ -1,10 +1,10 @@
 #include "systems/restore_system.h"
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <filesystem>
-#include <fstream>
 
 #include "backup_restore/all.h"
 #include "utils/utils.h"
@@ -12,20 +12,15 @@
 
 namespace fs = std::filesystem;
 
-RestoreSystem::RestoreSystem() {
-  repo_service_ = new RepositoryService();
-}
+RestoreSystem::RestoreSystem() { repo_service_ = new RepositoryService(); }
 
-RestoreSystem::~RestoreSystem() {
-  delete repo_service_;
-}
+RestoreSystem::~RestoreSystem() { delete repo_service_; }
 
 void RestoreSystem::Run() {
   std::string title = UserIO::DisplayMaxTitle("RESTORE SYSTEM", false);
-  std::vector<std::string> main_menu = {"Go BACK...", "Restore from Backup",
-                                       "List Backups of Path",
-                                       "Compare Backups of Path",
-                                       "Resume Failed Restore"};
+  std::vector<std::string> main_menu = {
+      "Go BACK...", "Restore from Backup", "List Backups of Path",
+      "Compare Backups of Path", "Resume Failed Restore"};
   while (true) {
     try {
       int choice = UserIO::HandleMenuWithSelect(title, main_menu);
@@ -60,23 +55,25 @@ void RestoreSystem::RestoreFromBackup() {
     // Get list of available repositories
     const auto repos = repo_service_->GetAllRepositories();
     if (repos.empty()) {
-      ErrorUtil::ThrowError("No repositories found. Please create a repository first.");
+      ErrorUtil::ThrowError(
+          "No repositories found. Please create a repository first.");
     }
 
     // Create repository selection menu
     std::vector<std::string> repo_menu = {"Go BACK..."};
     for (const auto& repo : repos) {
-      repo_menu.push_back(repo.name + " [" + RepodataManager::GetFormattedTypeString(repo.type) + "] - " + repo.path);
+      repo_menu.push_back(
+          Repository::GetRepositoryInfoString(repo.name, repo.type, repo.path));
     }
 
     // Let user select repository
     int repo_choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Select Repository", false), repo_menu);
- 
+
     if (repo_choice == 0) {
       std::cout << " - Going Back...\n";
       return;
-      }
+    }
 
     // Get selected repository path 
     std::string backup_path = repos[repo_choice - 1].path + "/" + repos[repo_choice - 1].name;
@@ -111,14 +108,13 @@ void RestoreSystem::RestoreFromBackup() {
     }
 
     std::string backup_name = backups[choice - 1];
-    
+
     // Ask if user wants to restore to original location
-    std::vector<std::string> location_options = {
-        "Restore to original location",
-        "Restore to custom location"
-    };
+    std::vector<std::string> location_options = {"Restore to original location",
+                                                 "Restore to custom location"};
     int location_choice = UserIO::HandleMenuWithSelect(
-        UserIO::DisplayMinTitle("Select Restore Location", false), location_options);
+        UserIO::DisplayMinTitle("Select Restore Location", false),
+        location_options);
 
     fs::path restore_dir;
     std::string timestamp = TimeUtil::GetCurrentTimestamp();
@@ -127,14 +123,15 @@ void RestoreSystem::RestoreFromBackup() {
     }
     else {
       // Get custom restore destination path
-      std::string restore_path = Prompter::PromptPath("Enter Path to Restore Destination");
+      std::string restore_path =
+          Prompter::PromptPath("Enter Path to Restore Destination");
       if (!Validator::IsValidPath(restore_path)) {
         ErrorUtil::ThrowError("Invalid restore path format");
       }
       // Create a restore directory with timestamp
       restore_dir = fs::path(restore_path) / ("restore_" + timestamp);
     }
-  
+
     fs::create_directories(restore_dir);
 
     // Create the actual restore operation
@@ -238,9 +235,10 @@ void RestoreSystem::ListBackups() {
 
     std::vector<std::string> backups;
     for (const auto& entry : fs::directory_iterator(backup_dir)) {
-      if (entry.is_regular_file()) {if (!Validator::IsValidPath(backup_path)) {
-      ErrorUtil::ThrowError("Invalid backup path format");
-    }
+      if (entry.is_regular_file()) {
+        if (!Validator::IsValidPath(backup_path)) {
+          ErrorUtil::ThrowError("Invalid backup path format");
+        }
         backups.push_back(entry.path().filename().string());
       }
     }

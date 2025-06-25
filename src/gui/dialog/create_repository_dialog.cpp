@@ -233,13 +233,13 @@ void CreateRepositoryDialog::initRepository() {
 
           Logger::SystemLog(
               "GUI | Repository: " + name_.toStdString() + " [" +
-              RepodataManager::GetFormattedTypeString(repository_->GetType()) +
+              Repository::GetFormattedTypeString(repository_->GetType()) +
               "] created at location: " + repository_->GetPath());
 
           setSuccessMessage(
               "Repository: " + name_ + " [" +
-              QString::fromStdString(RepodataManager::GetFormattedTypeString(
-                  repository_->GetType())) +
+              QString::fromStdString(
+                  Repository::GetFormattedTypeString(repository_->GetType())) +
               "] created at location: " +
               QString::fromStdString(repository_->GetPath()));
           return true;

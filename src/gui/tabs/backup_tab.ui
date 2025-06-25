@@ -587,13 +587,11 @@ QPushButton#nextButton:disabled {
                   </property>
                   <property name="styleSheet">
                    <string notr="true">QPushButton {
-	padding-top: 128px;
-	padding-bottom: 128px;
-	font-size: 28px;
+	font-size: 20pt;
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>2</number>
+                   <number>0</number>
                   </property>
                   <widget class="QWidget" name="backupRepoPage">
                    <property name="sizePolicy">
@@ -605,79 +603,123 @@ QPushButton#nextButton:disabled {
                    <property name="layoutDirection">
                     <enum>Qt::LeftToRight</enum>
                    </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
                    <layout class="QGridLayout" name="gridLayout_8">
-                    <property name="leftMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="spacing">
-                     <number>30</number>
-                    </property>
-                    <item row="0" column="1">
-                     <widget class="QPushButton" name="useRepoButton">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="layoutDirection">
-                       <enum>Qt::LeftToRight</enum>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true"/>
-                      </property>
-                      <property name="text">
-                       <string> Use Existing Repository</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../resources/assets.qrc">
-                        <normaloff>:/assets/icons/icons/box-open.svg</normaloff>:/assets/icons/icons/box-open.svg</iconset>
-                      </property>
-                      <property name="iconSize">
-                       <size>
-                        <width>36</width>
-                        <height>36</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
                     <item row="0" column="0">
-                     <widget class="QPushButton" name="createRepoButton">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
+                     <layout class="QVBoxLayout" name="verticalLayout_9">
+                      <property name="spacing">
+                       <number>9</number>
                       </property>
-                      <property name="layoutDirection">
-                       <enum>Qt::LeftToRight</enum>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true"/>
-                      </property>
-                      <property name="text">
-                       <string> Create New Repository</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../resources/assets.qrc">
-                        <normaloff>:/assets/icons/icons/square-plus.svg</normaloff>:/assets/icons/icons/square-plus.svg</iconset>
-                      </property>
-                      <property name="iconSize">
-                       <size>
-                        <width>36</width>
-                        <height>36</height>
-                       </size>
-                      </property>
-                     </widget>
+                      <item>
+                       <layout class="QHBoxLayout" name="horizontalLayout_11">
+                        <property name="spacing">
+                         <number>30</number>
+                        </property>
+                        <item>
+                         <widget class="QPushButton" name="createRepoButton">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="layoutDirection">
+                           <enum>Qt::LeftToRight</enum>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true"/>
+                          </property>
+                          <property name="text">
+                           <string> Create New Repository</string>
+                          </property>
+                          <property name="icon">
+                           <iconset resource="../resources/assets.qrc">
+                            <normaloff>:/assets/icons/icons/square-plus.svg</normaloff>:/assets/icons/icons/square-plus.svg</iconset>
+                          </property>
+                          <property name="iconSize">
+                           <size>
+                            <width>36</width>
+                            <height>36</height>
+                           </size>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QPushButton" name="useRepoButton">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="layoutDirection">
+                           <enum>Qt::LeftToRight</enum>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true"/>
+                          </property>
+                          <property name="text">
+                           <string> Use Existing Repository</string>
+                          </property>
+                          <property name="icon">
+                           <iconset resource="../resources/assets.qrc">
+                            <normaloff>:/assets/icons/icons/box-open.svg</normaloff>:/assets/icons/icons/box-open.svg</iconset>
+                          </property>
+                          <property name="iconSize">
+                           <size>
+                            <width>36</width>
+                            <height>36</height>
+                           </size>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QWidget" name="repoWidget" native="true">
+                        <property name="layoutDirection">
+                         <enum>Qt::LeftToRight</enum>
+                        </property>
+                        <property name="styleSheet">
+                         <string notr="true">QLabel#repoInfoLabel {
+	font-weight: 700;
+	color: rgb(6, 134, 103);
+}
+
+QLabel {
+	font-size: 16pt;	
+}</string>
+                        </property>
+                        <layout class="QGridLayout" name="gridLayout_20">
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="repoLabel">
+                           <property name="styleSheet">
+                            <string notr="true"/>
+                           </property>
+                           <property name="text">
+                            <string>Selected Repository:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QLabel" name="repoInfoLabel">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="text">
+                            <string>&lt;NONE&gt;</string>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                     </layout>
                     </item>
                    </layout>
                   </widget>
@@ -1240,23 +1282,8 @@ QPushButton#nextButton_2:disabled {
                    <property name="layoutDirection">
                     <enum>Qt::LeftToRight</enum>
                    </property>
-                   <layout class="QGridLayout" name="gridLayout_11">
-                    <property name="leftMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="spacing">
-                     <number>30</number>
-                    </property>
-                    <item row="0" column="0">
+                   <layout class="QVBoxLayout" name="verticalLayout_10">
+                    <item>
                      <widget class="QPushButton" name="chooseRepoButton_list">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1283,6 +1310,48 @@ QPushButton#nextButton_2:disabled {
                         <height>36</height>
                        </size>
                       </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QWidget" name="repoWidget_list" native="true">
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel#repoInfoLabel_list {
+	font-weight: 700;
+	color: rgb(6, 134, 103);
+}
+
+QLabel {
+	font-size: 16pt;	
+}</string>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_23">
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="repoLabel_list">
+                         <property name="styleSheet">
+                          <string notr="true"/>
+                         </property>
+                         <property name="text">
+                          <string>Selected Repository:</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="1">
+                        <widget class="QLabel" name="repoInfoLabel_list">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="text">
+                          <string>&lt;NONE&gt;</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
                      </widget>
                     </item>
                    </layout>
@@ -1636,7 +1705,7 @@ QPushButton#nextButton_3:disabled {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>1</number>
+                   <number>0</number>
                   </property>
                   <widget class="QWidget" name="selectRepoPage_compare">
                    <property name="sizePolicy">
@@ -1648,23 +1717,8 @@ QPushButton#nextButton_3:disabled {
                    <property name="layoutDirection">
                     <enum>Qt::LeftToRight</enum>
                    </property>
-                   <layout class="QGridLayout" name="gridLayout_16">
-                    <property name="leftMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>9</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>30</number>
-                    </property>
-                    <property name="spacing">
-                     <number>30</number>
-                    </property>
-                    <item row="0" column="0">
+                   <layout class="QVBoxLayout" name="verticalLayout_11">
+                    <item>
                      <widget class="QPushButton" name="chooseRepoButton_compare">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1691,6 +1745,48 @@ QPushButton#nextButton_3:disabled {
                         <height>36</height>
                        </size>
                       </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QWidget" name="repoWidget_cmp" native="true">
+                      <property name="layoutDirection">
+                       <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel#repoInfoLabel_cmp {
+	font-weight: 700;
+	color: rgb(6, 134, 103);
+}
+
+QLabel {
+	font-size: 16pt;	
+}</string>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_24">
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="repoLabel_cmp">
+                         <property name="styleSheet">
+                          <string notr="true"/>
+                         </property>
+                         <property name="text">
+                          <string>Selected Repository:</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="1">
+                        <widget class="QLabel" name="repoInfoLabel_cmp">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="text">
+                          <string>&lt;NONE&gt;</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
                      </widget>
                     </item>
                    </layout>

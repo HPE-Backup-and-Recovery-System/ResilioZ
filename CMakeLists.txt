@@ -54,12 +54,6 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# Compile Definitions (Similar to #define - Dynamic)
-add_compile_definitions(
-    PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-
 # ------------------------------------------------------------------------------
 # Dependencies...
 
