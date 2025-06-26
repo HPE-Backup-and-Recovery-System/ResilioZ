@@ -19,6 +19,7 @@ class RestoreSystem : public System {
   // void ResumeFailedRestore();
 
   RepositoryService* repo_service_;
+  Repository* repository_;
 };
 
 #endif  // RESTORE_SYSTEM_H

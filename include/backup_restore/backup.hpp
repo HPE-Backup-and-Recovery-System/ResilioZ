@@ -32,6 +32,10 @@ struct BackupMetadata {
   std::string previous_backup;
   std::string remarks;
   std::map<std::string, FileMetadata> files;
+  BackupMetadata(){};
+  BackupMetadata(BackupType type_,std::chrono::system_clock::time_point timestamp_,
+                std::string previous_backup_,std::map<std::string, FileMetadata> files_):
+                type(type_),timestamp(timestamp_),previous_backup(previous_backup_),files(files_) {};
 };
 
 struct BackupDetails {
@@ -49,7 +53,7 @@ class Backup {
   Backup(Repository* repo, const fs::path& input_path,
          BackupType type = BackupType::FULL, const std::string& remarks = "",
          size_t average_chunk_size = 1024 * 1024);
-
+  ~Backup();
   void BackupDirectory();
 
   // Utility functions
@@ -80,7 +84,7 @@ class Backup {
   Repository* repo_;
   Chunker chunker_;
   BackupType backup_type_;
-  BackupMetadata metadata_;
+  BackupMetadata metadata_ ;
 
 };
 

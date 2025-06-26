@@ -71,6 +71,12 @@ Backup::Backup(Repository* repo, const fs::path& input_path,
   }
 }
 
+Backup::~Backup(){
+  if (fs::exists(temp_dir_)) {
+    fs::remove_all(temp_dir_);
+  }
+}
+
 void Backup::BackupFile(const fs::path& file_path) {
   if (CheckFileToSkip(file_path)) {
     return;
