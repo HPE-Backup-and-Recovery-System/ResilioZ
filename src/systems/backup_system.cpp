@@ -114,7 +114,7 @@ void BackupSystem::CreateBackup() {
         UserIO::DisplayMinTitle("Automate Backup?", false), menu);
 
     if (choice == 0) {
-      ScheduleBackup();
+      ScheduleBackup(source, destination, type, remarks);
     }
 
     Logger::Log("Backup creation success");
@@ -151,8 +151,8 @@ void BackupSystem::CompareBackups() {
   }
 }
 
-void BackupSystem::ScheduleBackup() {
-  // TODO: Schedule Backup
+void BackupSystem::ScheduleBackup(std::string source, std::string destination, BackupType type, std::string remarks) {
+  scheduler_service_->AttachSchedule(source, destination, type, remarks);
 }
 
 void BackupSystem::Log() {

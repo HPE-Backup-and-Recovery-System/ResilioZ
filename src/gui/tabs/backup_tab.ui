@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>603</height>
+    <width>1126</width>
+    <height>675</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -98,7 +98,7 @@ QLabel {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="menuPage">
          <property name="autoFillBackground">
@@ -591,7 +591,7 @@ QPushButton#nextButton:disabled {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>0</number>
+                   <number>2</number>
                   </property>
                   <widget class="QWidget" name="backupRepoPage">
                    <property name="sizePolicy">

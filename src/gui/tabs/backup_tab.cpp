@@ -9,8 +9,12 @@
 #include "gui/decorators/progress_box.h"
 #include "gui/dialog/create_repository_dialog.h"
 #include "gui/dialog/use_repository_dialog.h"
+#include "gui/dialog/attach_schedule_dialog.h"
 #include "gui/tabs/ui_backup_tab.h"
 #include "utils/utils.h"
+
+
+#include <iostream>
 
 BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
@@ -40,6 +44,8 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->repoInfoLabel_cmp->setText("<NONE>");
   repository_ = nullptr;
   backup_ = nullptr;
+
+  request_mgr = new SchedulerRequestManager();
 
   auto *header_list = ui->listTable->horizontalHeader(),
        *header_compare = ui->compareTable->horizontalHeader();
@@ -80,6 +86,7 @@ BackupTab::~BackupTab() {
   delete ui;
   if (backup_) delete backup_;
   if (repository_) delete repository_;
+  if (request_mgr) delete request_mgr;
 }
 
 void BackupTab::resizeEvent(QResizeEvent* event) {
@@ -530,3 +537,23 @@ void BackupTab::initBackup() {
 void BackupTab::listBackups() {}
 
 void BackupTab::compareBackups() {}
+
+void BackupTab::on_yesSchButton_clicked()
+{
+    AttachScheduleDialog dialog(this, source_path_,destination_path_,remarks_,backup_type_);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+      std::cout << "HERE!\n";
+      std::string schedule = dialog.getSchedule();
+      
+      std::string schedule_id = request_mgr->SendAddRequest(schedule, source_path_, destination_path_, remarks_, backup_type_);
+      QString success_message = QString::fromStdString("Schedule " + schedule_id + " successfully created.");
+      MessageBoxDecorator::showMessageBox(this, "Success", success_message,
+                                            QMessageBox::Information);
+
+    } else {
+      
+    }
+
+}
+

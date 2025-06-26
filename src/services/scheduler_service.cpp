@@ -26,6 +26,13 @@ void SchedulerService::Log(){
     Logger::TerminalLog("Scheduler service is running...");
 }
 
+void SchedulerService::AttachSchedule(std::string source, std::string destination, BackupType type, std::string remarks){
+    std::string schedule_string = Prompter::PromptCronString();
+    std::string schedule_id = request_mgr->SendAddRequest(schedule_string, source, destination, remarks, type);
+    
+    Logger::Log("Schedule " + schedule_id + " created!");
+}
+
 void SchedulerService::AddSchedule(){
     UserIO::DisplayTitle("Adding Schedule");
     std::string schedule, backup_type, source, destination,remarks;
