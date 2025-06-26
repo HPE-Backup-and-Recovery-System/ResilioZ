@@ -42,7 +42,7 @@ class BackupTab : public QWidget {
   Repository* repository_;
   Backup* backup_;
   BackupType backup_type_ = BackupType::FULL;
-  std::string source_path_, destination_path_ = ".temp", remarks_ = "";
+  std::string source_path_, remarks_ = "";
 
   void resizeEvent(QResizeEvent* event) override;
   void checkRepoSelection();

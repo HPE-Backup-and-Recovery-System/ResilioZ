@@ -20,15 +20,15 @@ class NFSRepository : public Repository {
   static NFSRepository FromConfigJson(const nlohmann::json& config);
 
   bool UploadFile(const std::string& local_file,
-                  const std::string& remote_path = "") const;
+                  const std::string& remote_path = "") const override;
 
   bool UploadDirectory(const std::string& local_dir,
-                      const std::string& remote_path = "") const;
+                      const std::string& remote_path = "") const override;
 
   // Add methods for restore system
   std::vector<std::string> ListFiles(const std::string& remote_dir) const;
-  bool DownloadFile(const std::string& remote_file, const std::string& local_file) const;
-  bool DownloadDirectory(const std::string& remote_dir, const std::string& local_path) const;
+  bool DownloadFile(const std::string& remote_file, const std::string& local_file) const override;
+  bool DownloadDirectory(const std::string& remote_dir, const std::string& local_path) const override;
 
  private:
   void ParseNfsPath(const std::string& nfs_path);

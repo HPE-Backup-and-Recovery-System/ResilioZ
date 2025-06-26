@@ -3,10 +3,16 @@
 
 #include <string>
 
-enum class RepositoryType { LOCAL, NFS, REMOTE };
+enum class RepositoryType
+{
+  LOCAL,
+  NFS,
+  REMOTE
+};
 
-class Repository {
- public:
+class Repository
+{
+public:
   Repository() = default;
   virtual ~Repository() {}
 
@@ -24,22 +30,27 @@ class Repository {
   std::string GetHashedPassword() const;
   std::string GetRepositoryInfoString() const;
 
-  static std::string GetRepositoryInfoString(const std::string& name,
-                                             const std::string& type,
-                                             const std::string& path);
-  static std::string GetRepositoryInfoString(const std::string& name,
-                                             const RepositoryType& type,
-                                             const std::string& path);
+  static std::string GetRepositoryInfoString(const std::string &name,
+                                             const std::string &type,
+                                             const std::string &path);
+  static std::string GetRepositoryInfoString(const std::string &name,
+                                             const RepositoryType &type,
+                                             const std::string &path);
 
-  static std::string GetHashedPassword(const std::string& password);
-  static std::string GetResolvedPath(const std::string& path);
+  static std::string GetHashedPassword(const std::string &password);
+  static std::string GetResolvedPath(const std::string &path);
 
-  static std::string GetFormattedTypeString(const std::string& type,
+  static std::string GetFormattedTypeString(const std::string &type,
                                             bool upper = true);
-  static std::string GetFormattedTypeString(const RepositoryType& type,
+  static std::string GetFormattedTypeString(const RepositoryType &type,
                                             bool upper = true);
 
- protected:
+  virtual bool UploadFile(const std::string &local_file, const std::string &local_path) const;
+  virtual bool UploadDirectory(const std::string &local_dir, const std::string &local_path) const;
+  virtual bool DownloadFile(const std::string &local_file, const std::string &local_path) const;
+  virtual bool DownloadDirectory(const std::string &local_dir, const std::string &local_path) const;
+
+protected:
   std::string name_;
   std::string path_;
   std::string password_;
@@ -47,4 +58,4 @@ class Repository {
   RepositoryType type_;
 };
 
-#endif  // REPOSITORY_H_
+#endif // REPOSITORY_H_

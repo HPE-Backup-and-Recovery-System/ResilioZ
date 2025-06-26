@@ -50,7 +50,7 @@ void BackupSystem::Run() {
 }
 
 void BackupSystem::CreateBackup() {
-  std::string source, destination = ".temp", remarks = "";
+  std::string source, destination, remarks = "";
   BackupType type;
   std::vector<std::string> menu;
   int choice;
@@ -98,22 +98,22 @@ void BackupSystem::CreateBackup() {
       destination = repository_->GetFullPath();
     }
 
-    Backup backup(source, destination, type, remarks);
+    Backup backup(repository_, source, type, remarks);
     backup.BackupDirectory();
 
-    if (repository_->GetType() == RepositoryType::REMOTE) {
-      auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
-      if (remote_repo) {
-        remote_repo->UploadDirectory(".temp");
-        fs::remove_all(".temp");
-      }
-    } else if (repository_->GetType() == RepositoryType::NFS) {
-      auto* nfs_repo = dynamic_cast<NFSRepository*>(repository_);
-      if (nfs_repo) {
-        nfs_repo->UploadDirectory("temp");
-        fs::remove_all("temp");
-      }
-    }
+    // if (repository_->GetType() == RepositoryType::REMOTE) {
+    //   auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
+    //   if (remote_repo) {
+    //     remote_repo->UploadDirectory(".temp");
+    //     fs::remove_all(".temp");
+    //   }
+    // } else if (repository_->GetType() == RepositoryType::NFS) {
+    //   auto* nfs_repo = dynamic_cast<NFSRepository*>(repository_);
+    //   if (nfs_repo) {
+    //     nfs_repo->UploadDirectory("temp");
+    //     fs::remove_all("temp");
+    //   }
+    // }
 
     menu = {"Yes", "No"};
     choice = UserIO::HandleMenuWithSelect(
@@ -132,11 +132,20 @@ void BackupSystem::CreateBackup() {
 
 void BackupSystem::ListBackups() {
   UserIO::DisplayMaxTitle("Fetch Backups of Path");
-  std::string source = Prompter::PromptPath();
-
+  std::string source = "/";
+  bool loop = true;
   try {
-    Backup backup(source, "", BackupType::FULL, "");
-    backup.DisplayAllBackupDetails(source);
+    do {
+          repository_ = repo_service_->SelectExistingRepository();
+          if (repository_ != nullptr) {
+            loop = false;
+          }
+          break;
+    } while (loop);
+    if(repository_!=nullptr){
+      Backup backup(repository_,source,BackupType::FULL, "");
+      backup.DisplayAllBackupDetails();
+    }
   } catch (...) {
     ErrorUtil::ThrowNested("Backup listing failure");
   }
@@ -144,14 +153,23 @@ void BackupSystem::ListBackups() {
 
 void BackupSystem::CompareBackups() {
   UserIO::DisplayMaxTitle("Compare Backups of Path");
-  std::string source = Prompter::PromptPath();
-
-  std::string first_backup = Prompter::PromptInput("1st Backup Name");
-  std::string second_backup = Prompter::PromptInput("2nd Backup Name");
-
+  std::string source = "/";
+  bool loop = true;
   try {
-    Backup backup(source, "", BackupType::FULL, "");
-    backup.CompareBackups(source, first_backup, second_backup);
+    do {
+          repository_ = repo_service_->SelectExistingRepository();
+          if (repository_ != nullptr) {
+            loop = false;
+          }
+          break;
+    } while (loop);
+    if(repository_!=nullptr){
+      Backup backup(repository_,source,BackupType::FULL, "");
+      backup.DisplayAllBackupDetails();
+      std::string first_backup = Prompter::PromptInput("1st Backup Name");
+      std::string second_backup = Prompter::PromptInput("2nd Backup Name");
+      backup.CompareBackups(first_backup, second_backup);
+    }
   } catch (...) {
     ErrorUtil::ThrowNested("Backup comparison failure");
   }

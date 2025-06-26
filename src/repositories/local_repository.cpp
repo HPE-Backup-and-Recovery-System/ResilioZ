@@ -61,6 +61,8 @@ bool LocalRepository::LocalDirectoryExists() const {
 
 void LocalRepository::CreateLocalDirectory() const {
   fs::create_directories(GetFullPath());
+  fs::create_directories(GetFullPath() + "/backup");
+  fs::create_directories(GetFullPath() + "/chunks");
 }
 
 void LocalRepository::RemoveLocalDirectory() const {
@@ -79,20 +81,19 @@ bool LocalRepository::UploadFile(const std::string& local_file,
     std::string filename = local_fs_path.filename().string();
 
     if (local_path.empty()) {
-      local_full_path = path_ + "/" + filename;
+      local_full_path = path_ + "/" + name_ + "/" + filename;
     } else {
       if (local_path.back() == '/') {
-        local_full_path = path_ + "/" + local_path + filename;
+        local_full_path = path_ + "/" + name_ + "/" + local_path;
       } else {
-        local_full_path = path_ + "/" + local_path + "/" + filename;
+        local_full_path = path_ + "/" + name_ + "/" + local_path + "/";
       }
     }
-
-    if (!fs::exists(local_path)) {
-      fs::create_directories(local_path);
+    if (!fs::exists(local_full_path)) {
+      fs::create_directories(local_full_path);
     }
 
-    fs::path src_path(local_file), dest_path(local_full_path);
+    fs::path src_path(local_file), dest_path(local_full_path + filename);
     fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
     return true;
 
@@ -116,12 +117,12 @@ bool LocalRepository::UploadDirectory(const std::string& local_dir,
     std::string dirname = src.filename().string();
 
     if (local_path.empty()) {
-      local_full_path = path_ + "/" + dirname;
+      local_full_path = path_ + "/" + name_ + "/" + dirname;
     } else {
       if (local_path.back() == '/') {
-        local_full_path = path_ + "/" + local_path + dirname;
+        local_full_path = path_ + "/" + name_ + "/" + local_path + dirname;
       } else {
-        local_full_path = path_ + "/" + local_path + "/" + dirname;
+        local_full_path = path_ + "/" + name_ + "/" + local_path + "/" + dirname;
       }
     }
 
@@ -152,7 +153,7 @@ bool LocalRepository::UploadDirectory(const std::string& local_dir,
 
 bool LocalRepository::DownloadFile(const std::string& local_file,
                                    const std::string& local_path) const {
-  std::string repo_full_path = path_ + "/" + local_file;
+  std::string repo_full_path = path_ + "/" + name_ + "/" + local_file;
 
   try {
     fs::path repo_fs_path(repo_full_path);
@@ -188,7 +189,7 @@ bool LocalRepository::DownloadFile(const std::string& local_file,
 
 bool LocalRepository::DownloadDirectory(const std::string& local_dir,
                                         const std::string& local_path) const {
-  std::string repo_root = path_ + "/" + local_dir;
+  std::string repo_root = path_ + "/" + name_ + "/" + local_dir;
 
   try {
     fs::path src_root(repo_root);

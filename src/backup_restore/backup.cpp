@@ -20,20 +20,26 @@
 
 namespace fs = std::filesystem;
 
-Backup::Backup(const fs::path& input_path, const fs::path& output_path,
+Backup::Backup(Repository* repo, const fs::path& input_path,
                BackupType type, const std::string& remarks,
                size_t average_chunk_size)
     : input_path_(input_path),
-      output_path_(output_path),
+      repo_(repo),
       chunker_(average_chunk_size),
+      temp_dir_ (fs::temp_directory_path() / ("backup_temp_" + repo->GetName())),
       backup_type_(type) {
   if (!fs::exists(input_path_)) {
     ErrorUtil::ThrowError("Input path does not exist: " + input_path_.string());
   }
 
   // Create necessary directories
-  fs::create_directories(output_path_ / "backup");
-  fs::create_directories(output_path_ / "chunks");
+  
+  fs::create_directories(temp_dir_);
+  fs::create_directories(temp_dir_ / "backup");
+  fs::create_directories(temp_dir_ / "chunks");
+  const fs::path prev_meta_path = temp_dir_ / "backup";
+  auto fetched_metadata = repo_->DownloadDirectory("backup/", prev_meta_path.string());
+  if(!fetched_metadata) ErrorUtil::ThrowError("Failed to load metadata");
 
   // Initialize metadata
   metadata_.type = type;
@@ -44,9 +50,9 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
   if (type != BackupType::FULL) {
     std::string previous_backup;
     if (type == BackupType::INCREMENTAL) {
-      previous_backup = GetLatestBackup(output_path_);
+      previous_backup = GetLatestBackup();
     } else {  // DIFFERENTIAL
-      previous_backup = GetLatestFullBackup(output_path_);
+      previous_backup = GetLatestFullBackup();
     }
 
     if (previous_backup.empty()) {
@@ -59,8 +65,8 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
     }
 
     metadata_.previous_backup = previous_backup;
-    BackupMetadata prev_metadata =
-        LoadPreviousMetadata(output_path_, previous_backup);
+
+    BackupMetadata prev_metadata =  LoadPreviousMetadata(previous_backup);
     metadata_.files = prev_metadata.files;
   }
 }
@@ -234,16 +240,20 @@ void Backup::SaveMetadata() {
   metadata_json["files"] = files_json;
 
   // Save metadata
-  std::ofstream metadata_file(output_path_ / "backup" / backup_name);
+  fs::path  local_meta_path = temp_dir_ / "backup" / backup_name;
+  std::ofstream metadata_file(local_meta_path);
   metadata_file << metadata_json.dump(4);
+
+  repo_->UploadFile(local_meta_path.string(),"backup/");
 }
 
 std::string Backup::GenerateChunkFilename(const std::string& hash) {
   // Use first two hex digits as subdirectory
   std::string subdir = hash.substr(0, 2);
-  fs::create_directories(output_path_ / "chunks" / subdir);
+  fs::create_directories(temp_dir_/ "chunks" / subdir);
   return subdir + "/" + hash + ".chunk";
 }
+
 
 Chunk Backup::CompressChunk(const Chunk& original_chunk) {
   // Calculate maximum compressed size
@@ -291,7 +301,7 @@ Chunk Backup::CompressChunk(const Chunk& original_chunk) {
 
 void Backup::SaveChunk(const Chunk& chunk) {
   fs::path chunk_path =
-      output_path_ / "chunks" / GenerateChunkFilename(chunk.hash);
+      temp_dir_ / "chunks" / GenerateChunkFilename(chunk.hash);
 
   if (!fs::exists(chunk_path)) {
     std::ofstream chunk_file(chunk_path, std::ios::binary);
@@ -301,12 +311,14 @@ void Backup::SaveChunk(const Chunk& chunk) {
     }
     chunk_file.write(reinterpret_cast<const char*>(chunk.data.data()),
                      chunk.data.size());
+    chunk_file.close();
+    const fs::path repo_target =  "chunks/" + chunk.hash.substr(0,2)+"/";
+    repo_->UploadFile(chunk_path.string(), repo_target.string());
   }
 }
 
-BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
-                                            const std::string& backup_name) {
-  fs::path metadata_path = backup_dir / "backup" / backup_name;
+BackupMetadata Backup::LoadPreviousMetadata(const std::string& backup_name) {
+  fs::path metadata_path = temp_dir_ / "backup" / backup_name;
   if (!fs::exists(metadata_path)) {
     ErrorUtil::ThrowError("Previous backup metadata not found: " +
                           metadata_path.string());
@@ -346,16 +358,16 @@ BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
   return metadata;
 }
 
-std::string Backup::GetLatestBackup(const fs::path& backup_dir) {
-  auto backups = ListBackups(backup_dir);
-  Logger::TerminalLog("Getting latest backup from " + backup_dir.string());
+std::string Backup::GetLatestBackup() {
+  auto backups = ListBackups();
+  Logger::TerminalLog("Getting latest backup from " + temp_dir_.string());
   return backups.empty() ? "" : backups[0];
 }
 
-std::string Backup::GetLatestFullBackup(const fs::path& backup_dir) {
-  auto backups = ListBackups(backup_dir);
+std::string Backup::GetLatestFullBackup() {
+  auto backups = ListBackups();
   for (auto it = backups.begin(); it != backups.end(); ++it) {
-    fs::path metadata_path = backup_dir / "backup" / *it;
+    fs::path metadata_path = temp_dir_ / "backup" / *it;
     std::ifstream metadata_file(metadata_path);
     nlohmann::json metadata_json;
     metadata_file >> metadata_json;
@@ -367,9 +379,9 @@ std::string Backup::GetLatestFullBackup(const fs::path& backup_dir) {
   return "";
 }
 
-std::vector<std::string> Backup::ListBackups(const fs::path& backup_dir) {
+std::vector<std::string> Backup::ListBackups() {
   std::vector<std::string> backups;
-  for (const auto& entry : fs::directory_iterator(backup_dir / "backup")) {
+  for (const auto& entry : fs::directory_iterator(temp_dir_/ "backup")) {
     if (entry.is_regular_file()) {
       backups.push_back(entry.path().filename().string());
     }
@@ -381,22 +393,11 @@ std::vector<std::string> Backup::ListBackups(const fs::path& backup_dir) {
   return backups;
 }
 
-void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
-  const auto backups = ListBackups(backup_dir);
-
-  if (backups.empty()) {
-    UserIO::DisplayMinTitle("No backups found");
-    return;
-  }
-
-  UserIO::DisplayMinTitle("Backup List");
-  std::cout << std::setw(20) << "Name" << " | " << std::setw(10) << "Type"
-            << " | " << std::setw(20) << "Time" << " | " << std::setw(30)
-            << "Remarks" << "\n";
-  std::cout << std::string(80, '-') << std::endl;
-
-  for (const auto& backup : backups) {
-    fs::path metadata_path = backup_dir / "backup" / backup;
+std::vector<BackupDetails> Backup::GetAllBackupDetails() {
+  std::vector<BackupDetails> backupDetails;
+  const auto backups = ListBackups();
+    for (const auto& backup : backups) {
+    fs::path metadata_path = temp_dir_ / "backup" / backup;
     std::ifstream metadata_file(metadata_path);
     nlohmann::json metadata_json;
     metadata_file >> metadata_json;
@@ -405,8 +406,8 @@ void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
     auto timestamp = std::chrono::system_clock::from_time_t(
         metadata_json["timestamp"].get<time_t>());
     auto time = std::chrono::system_clock::to_time_t(timestamp);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+    std::stringstream timestamp_str;
+    timestamp_str << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
 
     std::string type_str;
     switch (type) {
@@ -422,22 +423,45 @@ void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
     }
 
     std::string remarks = metadata_json.value("remarks", "");
+    BackupDetails details (type_str,timestamp_str.str(),backup,remarks);
+    backupDetails.push_back(details);
+  }
+  return backupDetails;
+}
+
+void Backup::DisplayAllBackupDetails() {
+  const auto backupDetails = GetAllBackupDetails();
+
+  if (backupDetails.empty()) {
+    UserIO::DisplayMinTitle("No backups found");
+    return;
+  }
+
+  UserIO::DisplayMinTitle("Backup List");
+  std::cout << std::setw(20) << "Name" << " | " << std::setw(10) << "Type"
+            << " | " << std::setw(20) << "Time" << " | " << std::setw(30)
+            << "Remarks" << "\n";
+  std::cout << std::string(80, '-') << std::endl;
+
+  for (const auto& backup : backupDetails) {
+
+
+    std::string remarks = backup.remarks;
     if (remarks.length() > 27) {
       remarks = remarks.substr(0, 24) + "...";
     }
 
-    std::cout << std::setw(20) << backup << " | " << std::setw(10) << type_str
-              << " | " << std::setw(20) << ss.str() << " | " << std::setw(30)
+    std::cout << std::setw(20) << backup.name << " | " << std::setw(10) << backup.type
+              << " | " << std::setw(20) << backup.timestamp << " | " << std::setw(30)
               << remarks << "\n";
   }
   std::cout << std::string(80, '-') << "\n\n";
 }
 
-void Backup::CompareBackups(const fs::path& backup_dir,
-                            const std::string& backup1,
+void Backup::CompareBackups(const std::string& backup1,
                             const std::string& backup2) {
-  BackupMetadata metadata1 = LoadPreviousMetadata(backup_dir, backup1);
-  BackupMetadata metadata2 = LoadPreviousMetadata(backup_dir, backup2);
+  BackupMetadata metadata1 = LoadPreviousMetadata(backup1);
+  BackupMetadata metadata2 = LoadPreviousMetadata(backup2);
 
   size_t changed_files = 0;
   size_t unchanged_files = 0;
@@ -495,7 +519,7 @@ bool Backup::CheckFileForChanges(const fs::path& file_path,
   }
 
   // Regular file check
-  auto file_status = fs::status(file_path);
+  // auto file_status = fs::status(file_path);
   auto mtime = fs::last_write_time(file_path);
   auto size = fs::file_size(file_path);
 

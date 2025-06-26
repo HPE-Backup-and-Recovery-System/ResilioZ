@@ -276,8 +276,8 @@ Repository* RepositoryService::SelectExistingRepository() {
     }
 
     if (!repo->Exists()) {
-      delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      delete repo;
     }
 
     Logger::Log("Repository: " + selected_repo.name + " [" +
@@ -304,12 +304,12 @@ void RepositoryService::DeleteRepository() {
       repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
       Logger::Log("Deleted entry for repository: " +
                   repo->GetRepositoryInfoString() + " as it does not exist");
-      delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      delete repo;
     }
+    repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     repo->Delete();
 
-    repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     Logger::Log("Repository: " + repo->GetName() + " [" +
                 Repository::GetFormattedTypeString(repo->GetType()) +
                 "] deleted from location: " + repo->GetPath());
@@ -323,7 +323,10 @@ void RepositoryService::DeleteRepository() {
 Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
-  delete repository_;
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   repository_ = new_repo;
 }
 
