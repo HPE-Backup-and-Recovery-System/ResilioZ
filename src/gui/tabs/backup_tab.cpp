@@ -4,7 +4,7 @@
 #include <QThread>
 #include <QTimer>
 
-#include "backup_restore/backup.hpp"
+#include "gui/decorators/core.h"
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
 #include "gui/dialog/create_repository_dialog.h"
@@ -43,8 +43,17 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
 
   auto *header_list = ui->listTable->horizontalHeader(),
        *header_compare = ui->compareTable->horizontalHeader();
-  header_list->setSectionResizeMode(QHeaderView::Fixed);
-  header_compare->setSectionResizeMode(QHeaderView::Fixed);
+
+  header_list->setSectionResizeMode(0, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(1, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(2, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(3, QHeaderView::Stretch);
+
+  header_compare->setSectionResizeMode(0, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(1, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(2, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(3, QHeaderView::Stretch);
+
   ui->listTable->verticalHeader()->setVisible(false);
   ui->compareTable->verticalHeader()->setVisible(false);
 
@@ -63,7 +72,7 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
 
   // Table Size
   QTimer::singleShot(
-      0, this, [this]() { setColSize(ui->listTable->viewport()->width()); });
+      0, this, [this]() { setColSize(ui->listTable->width()); });
 
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
@@ -84,7 +93,7 @@ BackupTab::~BackupTab() {
 
 void BackupTab::resizeEvent(QResizeEvent* event) {
   QWidget::resizeEvent(event);
-  setColSize(ui->listTable->viewport()->width());
+  setColSize(ui->listTable->width());
 }
 
 void BackupTab::setColSize(int tableWidth) {
@@ -296,7 +305,7 @@ void BackupTab::on_nextButton_2_clicked() {
     return;
   }
 
-  if (index < total - 1) {
+  if (index == 0) {
     ui->stackedWidget_listBackup->setCurrentIndex(index + 1);
   } else {
     ui->nextButton_2->setEnabled(false);
@@ -465,7 +474,7 @@ void BackupTab::initBackup() {
       backup_ = nullptr;
     }
 
-    backup_ = new Backup(repository_, source_path_, backup_type_, remarks_);
+    backup_ = new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
 
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
@@ -479,42 +488,82 @@ void BackupTab::initBackup() {
     return;
   }
 
-  // TODO: Check and Refine
-  ProgressBoxDecorator::runProgressBoxIndeterminate(
-      this,
-      [this](std::function<void(const QString&)> setWaitMessage,
-             std::function<void(const QString&)> setSuccessMessage,
-             std::function<void(const QString&)> setFailureMessage) -> bool {
-        try {
-          setWaitMessage("Creating backup...");
-          backup_->BackupDirectory();
+  try {
+    backup_->BackupDirectory([this](bool success) {
+      if (success) {
+        ui->stackedWidget->setCurrentIndex(0);
+        checkRepoSelection();
+      } else {
+        ui->nextButton->setEnabled(true);
+      }
+    });
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Finalization Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Critical);
+    Logger::SystemLog(
+        "GUI | Failed to finalize backup: " + std::string(e.what()),
+        LogLevel::ERROR);
 
-          Logger::SystemLog("GUI | Backup created successfully.");
-          setSuccessMessage("Backup created successfully");
-          return true;
-
-        } catch (const std::exception& e) {
-          Logger::SystemLog(
-              "GUI | Cannot create backup: " + std::string(e.what()),
-              LogLevel::ERROR);
-
-          setFailureMessage("Backup creation failed: " +
-                            QString::fromStdString(e.what()));
-          return false;
-        }
-      },
-      "Creating backup...", "Backup created successfully.",
-      "Backup creation failed.",
-      [this](bool success) {
-        if (success) {
-          ui->stackedWidget->setCurrentIndex(0);
-          checkRepoSelection();
-        } else {
-          ui->nextButton->setEnabled(true);
-        }
-      });
+    ui->nextButton->setEnabled(true);
+  }
 }
 
-void BackupTab::listBackups() {}
+void BackupTab::listBackups() {
+  try {
+    if (backup_) {
+      delete backup_;
+      backup_ = nullptr;
+    }
+
+    backup_ =
+        new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
+
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Critical);
+    Logger::SystemLog(
+        "GUI | Failed to initialize backup: " + std::string(e.what()),
+        LogLevel::ERROR);
+
+    ui->nextButton->setEnabled(true);
+    return;
+  }
+
+  ui->listTable->clearContents();
+  int repo_count = static_cast<int>(repos.size());
+
+  if (!repo_count) {
+    ui->listTable->setRowCount(1);
+    ui->listTable->setSpan(0, 0, 1, 4);
+    auto* noRepo = new QTableWidgetItem("< No Repositories Available >");
+    noRepo->setTextAlignment(Qt::AlignCenter);
+    noRepo->setForeground(Qt::darkGray);
+    ui->listTable->setItem(0, 0, noRepo);
+    return;
+  }
+
+  ui->listTable->setRowCount(repo_count);
+  for (int row = 0; row < repo_count; ++row) {
+    const RepoEntry& repo = repos[row];
+
+    auto* createdItem =
+        new QTableWidgetItem(QString::fromStdString(repo.created_at));
+    createdItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 0, createdItem);
+
+    ui->listTable->setItem(
+        row, 1, new QTableWidgetItem(QString::fromStdString(repo.name)));
+
+    auto* typeItem =
+        new QTableWidgetItem(QString::fromStdString(repo.type).toUpper());
+    typeItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 2, typeItem);
+
+    ui->listTable->setItem(
+        row, 3, new QTableWidgetItem(QString::fromStdString(repo.path)));
+  }
+}
 
 void BackupTab::compareBackups() {}
