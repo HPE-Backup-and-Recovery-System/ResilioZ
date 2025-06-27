@@ -528,13 +528,17 @@ void BackupTab::compareBackups() {}
 
 void BackupTab::on_yesSchButton_clicked()
 {
+    std::string destination_path_ = repository_->GetFullPath();
     AttachScheduleDialog dialog(this, source_path_,destination_path_,remarks_,backup_type_);
     dialog.setWindowFlags(Qt::Window);
     if (dialog.exec() == QDialog::Accepted) {
-      std::cout << "HERE!\n";
       std::string schedule = dialog.getSchedule();
       
-      std::string schedule_id = request_mgr->SendAddRequest(schedule, source_path_, destination_path_, remarks_, backup_type_);
+      std::string schedule_id = request_mgr->SendAddRequest(schedule, source_path_,
+            repository_->GetName(),repository_->GetPath(),
+            repository_->GetPassword(), "",
+            repository_->GetType(), remarks_, backup_type_);
+    
       QString success_message = QString::fromStdString("Schedule " + schedule_id + " successfully created.");
       MessageBoxDecorator::showMessageBox(this, "Success", success_message,
                                             QMessageBox::Information);

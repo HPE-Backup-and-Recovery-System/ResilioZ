@@ -9,6 +9,8 @@
 
 #include "services/scheduler_service.h"
 #include "backup_restore/backup.hpp"
+#include "services/repository_service.h"
+#include "repositories/all.h"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/prompter.h"
@@ -16,6 +18,7 @@
 
 SchedulerService::SchedulerService(){
     request_mgr = new SchedulerRequestManager();
+    repo_service = new RepositoryService();
 }
 
 SchedulerService::~SchedulerService(){
@@ -26,9 +29,19 @@ void SchedulerService::Log(){
     Logger::TerminalLog("Scheduler service is running...");
 }
 
-void SchedulerService::AttachSchedule(std::string source, std::string destination, BackupType type, std::string remarks){
+void SchedulerService::AttachSchedule(std::string source, 
+            std::string destination_name,
+            std::string destination_path,
+            std::string destination_password,
+            std::string destination_created_at,
+            RepositoryType destination_type,
+            BackupType type, std::string remarks)
+{
     std::string schedule_string = Prompter::PromptCronString();
-    std::string schedule_id = request_mgr->SendAddRequest(schedule_string, source, destination, remarks, type);
+    
+    std::string schedule_id = request_mgr->SendAddRequest(schedule_string, source,
+        destination_name, destination_path, destination_password, destination_created_at,
+        destination_type, remarks, type);
     
     Logger::Log("Schedule " + schedule_id + " created!");
 }
@@ -41,17 +54,19 @@ void SchedulerService::AddSchedule(){
     BackupType type;
 
     schedule = Prompter::PromptCronString();
-
+    
     source = Prompter::PromptPath("Path to Backup Source");
-    destination = Prompter::PromptPath("Path to Backup Destination");
+    Repository *repo = repo_service->SelectExistingRepository();
+
     menu = {"Full Backup", "Incremental Backup", "Differential Backup"};
     choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMinTitle("Backup Type", false), menu);
     type = static_cast<BackupType>(choice);
     remarks = Prompter::PromptInput("Remarks for Backup (Optional)");
     
-    std::string schedule_id = request_mgr->SendAddRequest(schedule, source, destination, remarks, type);
-    
+    std::string schedule_id = request_mgr->SendAddRequest(schedule, source,
+        repo->GetName(), repo->GetPath(), repo->GetPassword(), "",
+        repo->GetType(), remarks, type);
     Logger::Log("Schedule " + schedule_id + " created!");
 }
 
@@ -82,6 +97,7 @@ void SchedulerService::ViewSchedules(){
 
     for (auto s: schedules){
         std::string message;
+        message += "Schedule " + s.name + "\n";
         message += "-- Backup Type: " + s.backup_type + "\n" ;
         message += "-- Backup Schedule: " + s.schedule + "\n";
         message += "-- Source: " + s.source + "\n";

@@ -301,9 +301,6 @@ QLineEdit:disabled {
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
-                <widget class="QLineEdit" name="destinationInput"/>
-               </item>
                <item row="0" column="1">
                 <widget class="QLineEdit" name="sourceInput"/>
                </item>
@@ -316,6 +313,46 @@ QLineEdit:disabled {
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
                 </widget>
+               </item>
+               <item row="1" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <widget class="QLineEdit" name="repoInput">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>&lt;None&gt;</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                   </property>
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="repoSelect">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">padding:10px;
+font-size:18px;</string>
+                   </property>
+                   <property name="text">
+                    <string>Select Repository</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </item>
@@ -561,7 +598,6 @@ QPushButton#nextButton:disabled {
  </widget>
  <tabstops>
   <tabstop>sourceInput</tabstop>
-  <tabstop>destinationInput</tabstop>
   <tabstop>fullButton</tabstop>
   <tabstop>incButton</tabstop>
   <tabstop>diffButton</tabstop>

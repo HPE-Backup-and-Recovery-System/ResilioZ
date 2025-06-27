@@ -5,6 +5,7 @@
 
 #include "utils/scheduler_request_manager.h"
 #include "backup_restore/backup.hpp"
+#include "repositories/repository.h"
 #include "schedulers/schedule.h"
 
 namespace Ui {
@@ -23,10 +24,12 @@ private slots:
   void on_nextButton_clicked();
   void on_backButton_clicked();
 
+  void on_repoSelect_clicked();
+
 private:
     std::string cron_string;
     std::string source_path;
-    std::string destination_path;
+    Repository *repository_;
     std::string remarks;
     BackupType type;
 
