@@ -21,8 +21,8 @@ BackupSystem::~BackupSystem() {
 void BackupSystem::Run() {
   std::string title = UserIO::DisplayMaxTitle("BACKUP SYSTEM", false);
   std::vector<std::string> main_menu = {"Go BACK...", "Create Backup",
-                                        "List Backups of Path",
-                                        "Compare Backups of Path"};
+                                        "List Backups",
+                                        "Compare Backups"};
   while (true) {
     try {
       if (repository_ != nullptr) {
@@ -142,7 +142,7 @@ void BackupSystem::CreateBackup() {
 }
 
 void BackupSystem::ListBackups() {
-  UserIO::DisplayMaxTitle("Fetch Backups of Path");
+  UserIO::DisplayMaxTitle("Fetch Backups of Repository");
   std::string source = "/";
   bool loop = true;
   try {
