@@ -112,7 +112,7 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   LocalRepository* repo = nullptr;
-  try {
+  try { 
     repo = new LocalRepository(path, name, password, timestamp);
     if (repo->Exists()) {
       ErrorUtil::ThrowError("Repository already exists at location: " +
@@ -141,29 +141,21 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
 void RepositoryService::InitNFSRepositoryFromPrompt() {
   UserIO::DisplayTitle("NFS Repository");
-  std::string name, server_ip, server_backup_path, client_mount_path, password;
+  std::string name, nfs_path, password;
   name = Prompter::PromptRepoName();
-  server_ip = Prompter::PromptIpAddress("NFS Server IP Address");
-  server_backup_path =
-      Prompter::PromptPath("Server Backup Path (e.g., /backup_pool)");
+  nfs_path = Prompter::PromptNfsPath();
   password = Prompter::PromptPassword("Repository Password", true);
   std::cout << std::endl;
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
-  Logger::TerminalLog("Repository will be mounted at: " + client_mount_path +
-                      "/" + name);
-
   NFSRepository* repo = nullptr;
   try {
-    repo = new NFSRepository(server_ip, server_backup_path, name, password,
-                             timestamp);
+    repo = new NFSRepository(nfs_path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " +
-                            repo->GetPath());
+      ErrorUtil::ThrowError("Repository already exists at location: " + repo->GetPath());
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name +
-                  " created at location: " + repo->GetPath());
+      Logger::Log("Repository: " + name + " created at location: " + repo->GetPath());
       Logger::TerminalLog(
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
@@ -172,9 +164,8 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
         {name, repo->GetPath(), "nfs", repo->GetHashedPassword(), timestamp});
 
     SetRepository(repo);
-  } catch (const std::exception& e) {
+  } catch (...) {
     ErrorUtil::ThrowNested("NFS repository not initialized");
-
     if (repo != repository_) {
       delete repo;
     }
@@ -275,19 +266,7 @@ Repository* RepositoryService::SelectExistingRepository() {
       repo = new LocalRepository(selected_repo.path, selected_repo.name,
                                  password, selected_repo.created_at);
     } else if (selected_repo.type == "nfs") {
-      // Read server IP and backup path from config file
-      std::string config_path = selected_repo.path + "/config.json";
-      std::ifstream config_file(config_path);
-      if (!config_file.is_open()) {
-        ErrorUtil::ThrowError("Failed to read NFS config file: " + config_path);
-      }
-      nlohmann::json config;
-      config_file >> config;
-      config_file.close();
-
-      repo = new NFSRepository(
-          config.at("server_ip"), config.at("server_backup_path"),
-          selected_repo.name, password, selected_repo.created_at);
+      repo = new NFSRepository(selected_repo.path, selected_repo.name, password, selected_repo.created_at);
     } else if (selected_repo.type == "remote") {
       repo = new RemoteRepository(selected_repo.path, selected_repo.name,
                                   password, selected_repo.created_at);
@@ -297,8 +276,8 @@ Repository* RepositoryService::SelectExistingRepository() {
     }
 
     if (!repo->Exists()) {
-      delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      delete repo;
     }
 
     Logger::Log("Repository: " + selected_repo.name + " [" +
@@ -325,12 +304,12 @@ void RepositoryService::DeleteRepository() {
       repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
       Logger::Log("Deleted entry for repository: " +
                   repo->GetRepositoryInfoString() + " as it does not exist");
-      delete repo;
       ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      delete repo;
     }
+    repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     repo->Delete();
 
-    repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     Logger::Log("Repository: " + repo->GetName() + " [" +
                 Repository::GetFormattedTypeString(repo->GetType()) +
                 "] deleted from location: " + repo->GetPath());
@@ -344,7 +323,10 @@ void RepositoryService::DeleteRepository() {
 Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
-  delete repository_;
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   repository_ = new_repo;
 }
 

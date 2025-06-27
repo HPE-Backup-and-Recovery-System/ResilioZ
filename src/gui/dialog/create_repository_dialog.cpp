@@ -150,7 +150,7 @@ bool CreateRepositoryDialog::handleRepoDetails() {
       return false;
     }
     path_ = ui->nfsMountPathInput->text();
-    if (!Validator::IsValidMountPath(path_.toStdString())) {
+    if (!Validator::IsValidPath(path_.toStdString())) {
       MessageBoxDecorator::showMessageBox(this, "Invalid Input",
                                           "NFS mount path is invalid.",
                                           QMessageBox::Warning);

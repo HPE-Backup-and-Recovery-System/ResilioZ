@@ -82,16 +82,16 @@ std::string Scheduler::AddSchedule(nlohmann::json reqBody){
     taskContext["info"] = GenerateScheduleInfoString(schedule_id);
     
     // Adding the scheduled function
-    cron.add_schedule(GenerateScheduleName(GenerateScheduleId(conn_id)), reqBody["payload"], [taskContext = taskContext](auto&) {
-        std::string timestamp = TimeUtil::GetCurrentTimestamp();
-        std::cout << "Executed At " << timestamp << "\n";
-        std::cout << taskContext["info"].get<std::string>() << "\n";
+    // cron.add_schedule(GenerateScheduleName(GenerateScheduleId(conn_id)), reqBody["payload"], [taskContext = taskContext](auto&) {
+    //     std::string timestamp = TimeUtil::GetCurrentTimestamp();
+    //     std::cout << "Executed At " << timestamp << "\n";
+    //     std::cout << taskContext["info"].get<std::string>() << "\n";
         
-        Backup backup(taskContext["source"], taskContext["destination"], taskContext["backup_type"], taskContext["remarks"]);
-        backup.BackupDirectory();
+    //     Backup backup(taskContext["source"], taskContext["backup_type"], taskContext["remarks"]);
+    //     backup.BackupDirectory();
 
-        // Pending nonlocal backups
-    }); 
+    //     // Pending nonlocal backups
+    // }); 
     
     return schedule_id;
 }

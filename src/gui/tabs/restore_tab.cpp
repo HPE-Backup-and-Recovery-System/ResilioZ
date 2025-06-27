@@ -264,8 +264,8 @@ void RestoreTab::restoreBackup(){
           }
 
           setWaitMessage("Attempting restore...");
-          Restore restore(repository_->GetFullPath(),backup_destination,backup_file);
-          restore.RestoreAll();
+          // Restore restore(repository_);
+          // restore.RestoreAll(backup_destination,backup_file);
 
           setSuccessMessage("Restore successfully completed.");
           return true;

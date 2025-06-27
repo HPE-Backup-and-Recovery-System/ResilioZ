@@ -12,45 +12,47 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <sstream>
-#include <thread>
-#include <atomic>
 
 #include "backup_restore/progress.hpp"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/user_io.h"
-#include "utils/time_util.h"
 
 namespace fs = std::filesystem;
 
-Backup::Backup(const fs::path& input_path, const fs::path& output_path,
+Backup::Backup(Repository* repo, const fs::path& input_path,
                BackupType type, const std::string& remarks,
                size_t average_chunk_size)
     : input_path_(input_path),
-      output_path_(output_path),
+      repo_(repo),
       chunker_(average_chunk_size),
+      temp_dir_ (fs::temp_directory_path() / ("backup_temp_" + repo->GetName())),
       backup_type_(type) {
   if (!fs::exists(input_path_)) {
     ErrorUtil::ThrowError("Input path does not exist: " + input_path_.string());
   }
 
   // Create necessary directories
-  fs::create_directories(output_path_ / "backup");
-  fs::create_directories(output_path_ / "chunks");
+  
+  fs::create_directories(temp_dir_);
+  fs::create_directories(temp_dir_ / "backup");
+  fs::create_directories(temp_dir_ / "chunks");
+  const fs::path prev_meta_path = temp_dir_ / "backup";
+  auto fetched_metadata = repo_->DownloadDirectory("backup/", prev_meta_path.string());
+  if(!fetched_metadata) ErrorUtil::ThrowError("Failed to load metadata");
 
   // Initialize metadata
   metadata_.type = type;
   metadata_.timestamp = std::chrono::system_clock::now();
   metadata_.remarks = remarks;
-  metadata_.original_path = input_path_.string();
 
   // For incremental/differential backups, load previous metadata
   if (type != BackupType::FULL) {
     std::string previous_backup;
     if (type == BackupType::INCREMENTAL) {
-      previous_backup = GetLatestBackup(output_path_);
+      previous_backup = GetLatestBackup();
     } else {  // DIFFERENTIAL
-      previous_backup = GetLatestFullBackup(output_path_);
+      previous_backup = GetLatestFullBackup();
     }
 
     if (previous_backup.empty()) {
@@ -63,9 +65,15 @@ Backup::Backup(const fs::path& input_path, const fs::path& output_path,
     }
 
     metadata_.previous_backup = previous_backup;
-    BackupMetadata prev_metadata =
-        LoadPreviousMetadata(output_path_, previous_backup);
+
+    BackupMetadata prev_metadata =  LoadPreviousMetadata(previous_backup);
     metadata_.files = prev_metadata.files;
+  }
+}
+
+Backup::~Backup(){
+  if (fs::exists(temp_dir_)) {
+    fs::remove_all(temp_dir_);
   }
 }
 
@@ -74,98 +82,37 @@ void Backup::BackupFile(const fs::path& file_path) {
     return;
   }
 
-  try {
-    auto file_metadata = CheckFileMetadata(file_path);
-    ProgressBar progress(file_metadata.total_size, 0,
+  auto file_metadata = CheckFileMetadata(file_path);
+  
+  // For symlinks, we don't need to chunk content, just store the metadata
+  if (file_metadata.is_symlink) {
+    Logger::TerminalLog("Backing up symlink: " + file_path.string() + " -> " + file_metadata.symlink_target);
+    metadata_.files[file_path.string()] = file_metadata;
+    return;
+  }
+
+  ProgressBar progress(file_metadata.total_size, 0,
                        "backup of " + file_path.string());
 
-    size_t processed_bytes = 0;
-    size_t processed_chunks = 0;
+  size_t processed_bytes = 0;
+  size_t processed_chunks = 0;
 
-    // Atomic flags for thread synchronization
-    std::atomic<bool> progress_made{false};
-    std::atomic<bool> abort_requested{false};
-    std::atomic<bool> chunking_completed{false};
+  // Use streaming chunking
+  chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
+    // Compress the chunk before saving
+    Chunk compressed_chunk = CompressChunk(chunk);
+    file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
+    SaveChunk(compressed_chunk);
 
-    // Create a thread for the chunking operation
-    std::thread chunking_thread([&]() {
-      try {
-        chunker_.StreamSplitFile(file_path, [&](const Chunk& chunk) {
-          // Check for abort request
-          if (abort_requested) {
-            throw std::runtime_error("Aborted by watchdog");
-          }
+    // Update progress
+    processed_bytes += chunk.size;
+    processed_chunks++;
+    progress.Update(processed_bytes, processed_chunks);
+  });
 
-          // Process the chunk
-          try {
-        Chunk compressed_chunk = CompressChunk(chunk);
-        file_metadata.chunk_hashes.push_back(compressed_chunk.hash);
-        SaveChunk(compressed_chunk);
+  progress.Complete();
 
-        // Update progress
-        processed_bytes += chunk.size;
-        processed_chunks++;
-        progress.Update(processed_bytes, processed_chunks);
-
-            // Signal progress
-            progress_made = true;
-      } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to process chunk: " + std::string(e.what()));
-      }
-    });
-
-        chunking_completed = true;
-      } catch (const std::exception& e) {
-        // Propagate the error but ensure chunking_completed is set
-        chunking_completed = true;
-        throw;
-      }
-    });
-
-    // Watchdog loop in main thread
-    int failure_count = 0;
-    const int MAX_FAILURES = 3;
-    const auto CHECK_INTERVAL = std::chrono::seconds(3);
-
-    while (!chunking_completed) {
-      // Sleep for check interval
-      std::this_thread::sleep_for(CHECK_INTERVAL);
-
-      // Check if progress was made
-      if (progress_made) {
-        progress_made = false;  // Reset for next interval
-        failure_count = 0;      // Reset failure count on progress
-      } else {
-        failure_count++;
-        Logger::Log("No progress detected for " + std::to_string(failure_count * 3) + 
-                   " seconds while backing up " + file_path.string(), LogLevel::WARNING);
-
-        if (failure_count >= MAX_FAILURES) {
-          Logger::Log("Backup operation appears frozen, aborting backup of " + 
-                     file_path.string(), LogLevel::ERROR);
-          abort_requested = true;
-          break;
-        }
-      }
-    }
-
-    // Wait for chunking thread to finish
-    if (chunking_thread.joinable()) {
-      chunking_thread.join();
-      
-    }
-
-    // If we completed successfully, update metadata and progress
-    if (!abort_requested) {
-    progress.Complete();
-    metadata_.files[file_path.string()] = file_metadata;
-    } else {
-      throw std::runtime_error("Backup aborted due to lack of progress");
-    }
-
-  } catch (const std::exception& e) {
-    throw std::runtime_error("Failed to backup file: " + std::string(e.what()));
-  }
+  metadata_.files[file_path.string()] = file_metadata;
 }
 
 bool Backup::CheckFileToSkip(const fs::path& file_path) {
@@ -183,8 +130,20 @@ bool Backup::CheckFileToSkip(const fs::path& file_path) {
 FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
   FileMetadata metadata;
   metadata.original_filename = file_path.filename().string();
-  metadata.total_size = fs::file_size(file_path);
-  metadata.mtime = fs::last_write_time(file_path);
+  
+  // Check if it's a symlink
+  if (fs::is_symlink(file_path)) {
+    metadata.is_symlink = true;
+    metadata.symlink_target = fs::read_symlink(file_path).string();
+    // For symlinks, we don't need to chunk the content, just store the target
+    metadata.total_size = 0;
+    metadata.mtime = fs::last_write_time(file_path);
+  } else {
+    metadata.is_symlink = false;
+    metadata.total_size = fs::file_size(file_path);
+    metadata.mtime = fs::last_write_time(file_path);
+  }
+  
   return metadata;
 }
 
@@ -205,54 +164,36 @@ void Backup::BackupDirectory() {
   size_t added_files = 0;
   size_t deleted_files = 0;
 
-  // Create dumps directory for logging
-  fs::path dumps_dir = output_path_ / "dumps";
-  fs::create_directories(dumps_dir);
-    
-  // Create log files
-  std::ofstream failed_log(dumps_dir / "failed_backups.log");
-  std::ofstream success_log(dumps_dir / "successful_backups.log");
-  failed_log << "Failed Backups Log - " << TimeUtil::GetCurrentTimestamp() << "\n\n";
-  success_log << "Successful Backups Log - " << TimeUtil::GetCurrentTimestamp() << "\n\n";
-
   // Track files in current backup
   std::set<std::string> current_files;
 
   // First, check for deleted files
-  for (const auto& [file_path, _] : metadata_.files) {
-    if (!fs::exists(file_path)) {
+
+  for (auto it = metadata_.files.begin(); it != metadata_.files.end(); ) {
+    if (!fs::exists(it->first)) {
       deleted_files++;
-      metadata_.files.erase(file_path);
-      failed_log << "File deleted since last backup: " << file_path << "\n\n";
+      it = metadata_.files.erase(it);  // erase returns the next valid iterator
+    } else {
+      ++it;
     }
   }
 
   // Then process existing files
   for (const auto& entry : fs::recursive_directory_iterator(input_path_)) {
-    if (entry.is_regular_file()) {
+    // Handle both regular files and symlinks (both file and directory symlinks)
+    if (entry.is_regular_file() || fs::is_symlink(entry.path())) {
       std::string file_path = entry.path().string();
       current_files.insert(file_path);
 
-      try {
-        auto it = metadata_.files.find(file_path);
-        if (it == metadata_.files.end()) {
-          added_files++;
-          BackupFile(entry.path());
-          success_log << "Added new file: " << file_path << "\n";
-          success_log << "Size: " << entry.file_size() << " bytes\n\n";
-        } else if (CheckFileForChanges(entry.path(), it->second)) {
-          changed_files++;
-          BackupFile(entry.path());
-          success_log << "Updated changed file: " << file_path << "\n";
-          success_log << "Size: " << entry.file_size() << " bytes\n\n";
-        } else {
-          unchanged_files++;
-          success_log << "Skipped unchanged file: " << file_path << "\n\n";
-        }
-      } catch (const std::exception& e) {
-        failed_log << "Failed to backup file: " << file_path << "\n";
-        failed_log << "Error: " << e.what() << "\n\n";
-        Logger::Log("Failed to backup file: " + file_path + " - " + e.what(), LogLevel::ERROR);
+      auto it = metadata_.files.find(file_path);
+      if (it == metadata_.files.end()) {
+        added_files++;
+        BackupFile(entry.path());
+      } else if (CheckFileForChanges(entry.path(), it->second)) {
+        changed_files++;
+        BackupFile(entry.path());
+      } else {
+        unchanged_files++;
       }
     }
   }
@@ -264,10 +205,6 @@ void Backup::BackupDirectory() {
           << "\n - Added files: " << added_files
           << "\n - Deleted files: " << deleted_files << std::endl;
   Logger::TerminalLog(summary.str());
-
-  // Write summary to both logs
-  failed_log << "\nBackup Summary:\n" << summary.str();
-  success_log << "\nBackup Summary:\n" << summary.str();
 
   SaveMetadata();
 }
@@ -286,7 +223,6 @@ void Backup::SaveMetadata() {
       std::chrono::system_clock::to_time_t(metadata_.timestamp);
   metadata_json["previous_backup"] = metadata_.previous_backup;
   metadata_json["remarks"] = metadata_.remarks;
-  metadata_json["original_path"] = metadata_.original_path;
 
   nlohmann::json files_json;
   for (const auto& [file_path, file_metadata] : metadata_.files) {
@@ -294,6 +230,10 @@ void Backup::SaveMetadata() {
     file_json["original_filename"] = file_metadata.original_filename;
     file_json["chunk_hashes"] = file_metadata.chunk_hashes;
     file_json["total_size"] = file_metadata.total_size;
+    file_json["is_symlink"] = file_metadata.is_symlink;
+    if (file_metadata.is_symlink) {
+      file_json["symlink_target"] = file_metadata.symlink_target;
+    }
 
     // Convert file times to seconds since epoch
     auto mtime_seconds = std::chrono::duration_cast<std::chrono::seconds>(
@@ -306,16 +246,20 @@ void Backup::SaveMetadata() {
   metadata_json["files"] = files_json;
 
   // Save metadata
-  std::ofstream metadata_file(output_path_ / "backup" / backup_name);
+  fs::path  local_meta_path = temp_dir_ / "backup" / backup_name;
+  std::ofstream metadata_file(local_meta_path);
   metadata_file << metadata_json.dump(4);
+
+  repo_->UploadFile(local_meta_path.string(),"backup/");
 }
 
 std::string Backup::GenerateChunkFilename(const std::string& hash) {
   // Use first two hex digits as subdirectory
   std::string subdir = hash.substr(0, 2);
-  fs::create_directories(output_path_ / "chunks" / subdir);
+  fs::create_directories(temp_dir_/ "chunks" / subdir);
   return subdir + "/" + hash + ".chunk";
 }
+
 
 Chunk Backup::CompressChunk(const Chunk& original_chunk) {
   // Calculate maximum compressed size
@@ -363,7 +307,7 @@ Chunk Backup::CompressChunk(const Chunk& original_chunk) {
 
 void Backup::SaveChunk(const Chunk& chunk) {
   fs::path chunk_path =
-      output_path_ / "chunks" / GenerateChunkFilename(chunk.hash);
+      temp_dir_ / "chunks" / GenerateChunkFilename(chunk.hash);
 
   if (!fs::exists(chunk_path)) {
     std::ofstream chunk_file(chunk_path, std::ios::binary);
@@ -373,12 +317,14 @@ void Backup::SaveChunk(const Chunk& chunk) {
     }
     chunk_file.write(reinterpret_cast<const char*>(chunk.data.data()),
                      chunk.data.size());
+    chunk_file.close();
+    const fs::path repo_target =  "chunks/" + chunk.hash.substr(0,2)+"/";
+    repo_->UploadFile(chunk_path.string(), repo_target.string());
   }
 }
 
-BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
-                                            const std::string& backup_name) {
-  fs::path metadata_path = backup_dir / "backup" / backup_name;
+BackupMetadata Backup::LoadPreviousMetadata(const std::string& backup_name) {
+  fs::path metadata_path = temp_dir_ / "backup" / backup_name;
   if (!fs::exists(metadata_path)) {
     ErrorUtil::ThrowError("Previous backup metadata not found: " +
                           metadata_path.string());
@@ -405,6 +351,12 @@ BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
     file_metadata.mtime = fs::file_time_type(
         std::chrono::duration_cast<fs::file_time_type::duration>(
             std::chrono::seconds(file_json["mtime"].get<time_t>())));
+    
+    // Load symlink information (with backward compatibility)
+    file_metadata.is_symlink = file_json.value("is_symlink", false);
+    if (file_metadata.is_symlink) {
+      file_metadata.symlink_target = file_json["symlink_target"];
+    }
 
     metadata.files[file_path] = file_metadata;
   }
@@ -412,15 +364,16 @@ BackupMetadata Backup::LoadPreviousMetadata(const fs::path& backup_dir,
   return metadata;
 }
 
-std::string Backup::GetLatestBackup(const fs::path& backup_dir) {
-  auto backups = ListBackups(backup_dir);
+std::string Backup::GetLatestBackup() {
+  auto backups = ListBackups();
+  Logger::TerminalLog("Getting latest backup from " + temp_dir_.string());
   return backups.empty() ? "" : backups[0];
 }
 
-std::string Backup::GetLatestFullBackup(const fs::path& backup_dir) {
-  auto backups = ListBackups(backup_dir);
+std::string Backup::GetLatestFullBackup() {
+  auto backups = ListBackups();
   for (auto it = backups.begin(); it != backups.end(); ++it) {
-    fs::path metadata_path = backup_dir / "backup" / *it;
+    fs::path metadata_path = temp_dir_ / "backup" / *it;
     std::ifstream metadata_file(metadata_path);
     nlohmann::json metadata_json;
     metadata_file >> metadata_json;
@@ -432,9 +385,9 @@ std::string Backup::GetLatestFullBackup(const fs::path& backup_dir) {
   return "";
 }
 
-std::vector<std::string> Backup::ListBackups(const fs::path& backup_dir) {
+std::vector<std::string> Backup::ListBackups() {
   std::vector<std::string> backups;
-  for (const auto& entry : fs::directory_iterator(backup_dir / "backup")) {
+  for (const auto& entry : fs::directory_iterator(temp_dir_/ "backup")) {
     if (entry.is_regular_file()) {
       backups.push_back(entry.path().filename().string());
     }
@@ -446,22 +399,11 @@ std::vector<std::string> Backup::ListBackups(const fs::path& backup_dir) {
   return backups;
 }
 
-void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
-  const auto backups = ListBackups(backup_dir);
-
-  if (backups.empty()) {
-    UserIO::DisplayMinTitle("No backups found");
-    return;
-  }
-
-  UserIO::DisplayMinTitle("Backup List");
-  std::cout << std::setw(20) << "Name" << " | " << std::setw(10) << "Type"
-            << " | " << std::setw(20) << "Time" << " | " << std::setw(30)
-            << "Remarks" << "\n";
-  std::cout << std::string(80, '-') << std::endl;
-
-  for (const auto& backup : backups) {
-    fs::path metadata_path = backup_dir / "backup" / backup;
+std::vector<BackupDetails> Backup::GetAllBackupDetails() {
+  std::vector<BackupDetails> backupDetails;
+  const auto backups = ListBackups();
+    for (const auto& backup : backups) {
+    fs::path metadata_path = temp_dir_ / "backup" / backup;
     std::ifstream metadata_file(metadata_path);
     nlohmann::json metadata_json;
     metadata_file >> metadata_json;
@@ -470,8 +412,8 @@ void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
     auto timestamp = std::chrono::system_clock::from_time_t(
         metadata_json["timestamp"].get<time_t>());
     auto time = std::chrono::system_clock::to_time_t(timestamp);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+    std::stringstream timestamp_str;
+    timestamp_str << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
 
     std::string type_str;
     switch (type) {
@@ -487,22 +429,45 @@ void Backup::DisplayAllBackupDetails(const fs::path& backup_dir) {
     }
 
     std::string remarks = metadata_json.value("remarks", "");
+    BackupDetails details (type_str,timestamp_str.str(),backup,remarks);
+    backupDetails.push_back(details);
+  }
+  return backupDetails;
+}
+
+void Backup::DisplayAllBackupDetails() {
+  const auto backupDetails = GetAllBackupDetails();
+
+  if (backupDetails.empty()) {
+    UserIO::DisplayMinTitle("No backups found");
+    return;
+  }
+
+  UserIO::DisplayMinTitle("Backup List");
+  std::cout << std::setw(20) << "Name" << " | " << std::setw(10) << "Type"
+            << " | " << std::setw(20) << "Time" << " | " << std::setw(30)
+            << "Remarks" << "\n";
+  std::cout << std::string(80, '-') << std::endl;
+
+  for (const auto& backup : backupDetails) {
+
+
+    std::string remarks = backup.remarks;
     if (remarks.length() > 27) {
       remarks = remarks.substr(0, 24) + "...";
     }
 
-    std::cout << std::setw(20) << backup << " | " << std::setw(10) << type_str
-              << " | " << std::setw(20) << ss.str() << " | " << std::setw(30)
+    std::cout << std::setw(20) << backup.name << " | " << std::setw(10) << backup.type
+              << " | " << std::setw(20) << backup.timestamp << " | " << std::setw(30)
               << remarks << "\n";
   }
   std::cout << std::string(80, '-') << "\n\n";
 }
 
-void Backup::CompareBackups(const fs::path& backup_dir,
-                            const std::string& backup1,
+void Backup::CompareBackups(const std::string& backup1,
                             const std::string& backup2) {
-  BackupMetadata metadata1 = LoadPreviousMetadata(backup_dir, backup1);
-  BackupMetadata metadata2 = LoadPreviousMetadata(backup_dir, backup2);
+  BackupMetadata metadata1 = LoadPreviousMetadata(backup1);
+  BackupMetadata metadata2 = LoadPreviousMetadata(backup2);
 
   size_t changed_files = 0;
   size_t unchanged_files = 0;
@@ -540,7 +505,27 @@ void Backup::CompareBackups(const fs::path& backup_dir,
 
 bool Backup::CheckFileForChanges(const fs::path& file_path,
                                  const FileMetadata& previous_metadata) {
-  auto file_status = fs::status(file_path);
+  // Check if it's a symlink
+  if (fs::is_symlink(file_path)) {
+    std::string current_target = fs::read_symlink(file_path).string();
+    auto mtime = fs::last_write_time(file_path);
+    
+    // Convert both times to seconds for comparison
+    auto current_mtime_seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch())
+            .count();
+    auto previous_mtime_seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            previous_metadata.mtime.time_since_epoch())
+            .count();
+
+    // For symlinks, check if target or modification time changed
+    return current_target != previous_metadata.symlink_target ||
+           current_mtime_seconds != previous_mtime_seconds;
+  }
+
+  // Regular file check
+  // auto file_status = fs::status(file_path);
   auto mtime = fs::last_write_time(file_path);
   auto size = fs::file_size(file_path);
 

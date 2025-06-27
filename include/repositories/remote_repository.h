@@ -20,16 +20,16 @@ class RemoteRepository : public Repository {
   static RemoteRepository FromConfigJson(const nlohmann::json& config);
 
   bool UploadFile(const std::string& local_file,
-                  const std::string& remote_path = "") const;
+                  const std::string& remote_path = "") const override;
 
   bool UploadDirectory(const std::string& local_dir,
-                       const std::string& remote_path = "") const;
+                       const std::string& remote_path = "") const override;
 
   bool DownloadFile(const std::string& remote_file,
-                    const std::string& local_path) const;
+                    const std::string& local_path) const override;
 
   bool DownloadDirectory(const std::string& remote_dir,
-                         const std::string& local_path) const;
+                         const std::string& local_path) const override;
 
  private:
   std::string user_;

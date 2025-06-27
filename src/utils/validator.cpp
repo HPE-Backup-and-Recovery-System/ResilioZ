@@ -7,7 +7,7 @@
 bool Validator::Any(const std::string& str) { return true; }
 
 bool Validator::IsValidPath(const std::string& path) {
-  return IsValidLocalPath(path) || IsValidSftpPath(path);
+  return IsValidLocalPath(path) || IsValidSftpPath(path) || IsValidNfsPath(path);
 }
 
 bool Validator::IsValidLocalPath(const std::string& path) {
@@ -16,15 +16,16 @@ bool Validator::IsValidLocalPath(const std::string& path) {
   return std::regex_match(path, pattern);
 }
 
-bool Validator::IsValidMountPath(const std::string& path) {
-  // Matches: /mnt/path
-  std::regex pattern(R"(^/mnt/[^/]+$)");
-  return std::regex_match(path, pattern);
-}
-
 bool Validator::IsValidSftpPath(const std::string& path) {
   // Matches: user@hostname:/absolute/path
   std::regex pattern(R"(^(""|(".*?")|([\w.\-]+))@([\w.\-]+):\/[^\s]+$)");
+  return std::regex_match(path, pattern);
+}
+
+bool Validator::IsValidNfsPath(const std::string& path) {
+  // Matches: ip:/absolute/path
+  // Accepts IPv4 addresses and absolute paths
+  std::regex pattern(R"(^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]):\/[^\s]+$)");
   return std::regex_match(path, pattern);
 }
 

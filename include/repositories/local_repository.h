@@ -20,16 +20,16 @@ class LocalRepository : public Repository {
   static LocalRepository FromConfigJson(const nlohmann::json& config);
 
   bool UploadFile(const std::string& local_file,
-                  const std::string& local_path = "") const;
+                  const std::string& local_path = "") const override;
 
   bool UploadDirectory(const std::string& local_dir,
-                       const std::string& local_path = "") const;
+                       const std::string& local_path = "") const override;
 
   bool DownloadFile(const std::string& local_file,
-                    const std::string& local_path) const;
+                    const std::string& local_path) const override;
 
   bool DownloadDirectory(const std::string& local_dir,
-                         const std::string& local_path) const;
+                         const std::string& local_path) const override;
 
  private:
   bool LocalDirectoryExists() const;
