@@ -297,10 +297,33 @@ void NFSRepository::Delete() {
     ErrorUtil::ThrowError("Mount failed: " + err);
   }
   std::string repo_dir = "/" + name_;
-  // Remove config.json first
   std::string config_path = repo_dir + "/config.json";
   nfs_unlink(nfs, config_path.c_str());
-  // Remove the directory
+  auto recursive_delete = [](struct nfs_context* ctx, const std::string& path, auto&& self_ref) -> void {
+  struct nfsdir *dir;
+  struct nfsdirent *entry;
+
+  if (nfs_opendir(ctx, path.c_str(), &dir) < 0) return;
+
+  while ((entry = nfs_readdir(ctx, dir)) != nullptr) {
+    std::string name = entry->name;
+    if (name == "." || name == "..") continue;
+
+    std::string full_path = path + "/" + name;
+
+    struct nfs_stat_64 st;
+    if (nfs_stat64(ctx, full_path.c_str(), &st) < 0) continue;
+
+    if (S_ISDIR(st.nfs_mode)) {
+      self_ref(ctx, full_path, self_ref);        
+      nfs_rmdir(ctx, full_path.c_str());          
+    } else {
+      nfs_unlink(ctx, full_path.c_str());         
+    }
+  }
+  nfs_closedir(ctx, dir);
+  };
+  recursive_delete(nfs, repo_dir, recursive_delete);
   nfs_rmdir(nfs, repo_dir.c_str());
   nfs_umount(nfs);
   nfs_destroy_context(nfs);
