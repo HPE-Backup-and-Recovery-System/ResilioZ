@@ -30,7 +30,7 @@ void RepodataManager::EnsureDataFileExists() {
       if (!ofs) {
         ErrorUtil::ThrowError("Unable to create repository data file");
       }
-      ofs << "[]";
+      ofs << json::array();
       ofs.close();
     }
   } catch (...) {
@@ -62,6 +62,7 @@ bool RepodataManager::Load() {
 
 bool RepodataManager::Save() {
   try {
+    std::ofstream file(data_file_);
     json j = json::array();
     for (const auto& entry : entries_) {
       j.push_back({
@@ -72,13 +73,11 @@ bool RepodataManager::Save() {
           {"created_at", entry.created_at},
       });
     }
-
-    std::ofstream file(data_file_);
     if (!file.is_open()) {
       ErrorUtil::ThrowError("Unable to write to repository data file");
     }
 
-    file << j.dump(2);
+    file << j.dump(4);
     return true;
   } catch (...) {
     ErrorUtil::ThrowNested("Failed to save repository information");
