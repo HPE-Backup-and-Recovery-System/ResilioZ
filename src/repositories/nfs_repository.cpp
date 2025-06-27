@@ -37,7 +37,7 @@ void NFSRepository::ParseNfsPath(const std::string& nfs_path) {
   }
 }
 
-void NFSRepository::CreateRemoteDirectory() const {
+void NFSRepository::CreateNFSDirectory() const {
   struct nfs_context* nfs = nfs_init_context();
   if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
   try {
@@ -63,7 +63,7 @@ void NFSRepository::CreateRemoteDirectory() const {
   }
 }
 
-void NFSRepository::RemoveRemoteDirectory() const {
+void NFSRepository::RemoveNFSDirectory() const {
   struct nfs_context* nfs = nfs_init_context();
   if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
   try {
