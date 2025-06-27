@@ -20,26 +20,26 @@
 
 namespace fs = std::filesystem;
 
-Backup::Backup(Repository* repo, const fs::path& input_path,
-               BackupType type, const std::string& remarks,
-               size_t average_chunk_size)
+Backup::Backup(Repository* repo, const fs::path& input_path, BackupType type,
+               const std::string& remarks, size_t average_chunk_size)
     : input_path_(input_path),
       repo_(repo),
       chunker_(average_chunk_size),
-      temp_dir_ (fs::temp_directory_path() / ("backup_temp_" + repo->GetName())),
+      temp_dir_(fs::temp_directory_path() / ("backup_temp_" + repo->GetName())),
       backup_type_(type) {
   if (!fs::exists(input_path_)) {
     ErrorUtil::ThrowError("Input path does not exist: " + input_path_.string());
   }
 
   // Create necessary directories
-  
+
   fs::create_directories(temp_dir_);
   fs::create_directories(temp_dir_ / "backup");
   fs::create_directories(temp_dir_ / "chunks");
   const fs::path prev_meta_path = temp_dir_ / "backup";
-  auto fetched_metadata = repo_->DownloadDirectory("backup/", prev_meta_path.string());
-  if(!fetched_metadata) ErrorUtil::ThrowError("Failed to load metadata");
+  auto fetched_metadata =
+      repo_->DownloadDirectory("backup/", prev_meta_path.string());
+  if (!fetched_metadata) ErrorUtil::ThrowError("Failed to load metadata");
 
   // Initialize metadata
   metadata_.type = type;
@@ -66,12 +66,12 @@ Backup::Backup(Repository* repo, const fs::path& input_path,
 
     metadata_.previous_backup = previous_backup;
 
-    BackupMetadata prev_metadata =  LoadPreviousMetadata(previous_backup);
+    BackupMetadata prev_metadata = LoadPreviousMetadata(previous_backup);
     metadata_.files = prev_metadata.files;
   }
 }
 
-Backup::~Backup(){
+Backup::~Backup() {
   if (fs::exists(temp_dir_)) {
     fs::remove_all(temp_dir_);
   }
@@ -83,10 +83,11 @@ void Backup::BackupFile(const fs::path& file_path) {
   }
 
   auto file_metadata = CheckFileMetadata(file_path);
-  
+
   // For symlinks, we don't need to chunk content, just store the metadata
   if (file_metadata.is_symlink) {
-    Logger::TerminalLog("Backing up symlink: " + file_path.string() + " -> " + file_metadata.symlink_target);
+    Logger::TerminalLog("Backing up symlink: " + file_path.string() + " -> " +
+                        file_metadata.symlink_target);
     metadata_.files[file_path.string()] = file_metadata;
     return;
   }
@@ -130,7 +131,7 @@ bool Backup::CheckFileToSkip(const fs::path& file_path) {
 FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
   FileMetadata metadata;
   metadata.original_filename = file_path.filename().string();
-  
+
   // Check if it's a symlink
   if (fs::is_symlink(file_path)) {
     metadata.is_symlink = true;
@@ -143,7 +144,7 @@ FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
     metadata.total_size = fs::file_size(file_path);
     metadata.mtime = fs::last_write_time(file_path);
   }
-  
+
   return metadata;
 }
 
@@ -169,7 +170,7 @@ void Backup::BackupDirectory() {
 
   // First, check for deleted files
 
-  for (auto it = metadata_.files.begin(); it != metadata_.files.end(); ) {
+  for (auto it = metadata_.files.begin(); it != metadata_.files.end();) {
     if (!fs::exists(it->first)) {
       deleted_files++;
       it = metadata_.files.erase(it);  // erase returns the next valid iterator
@@ -246,20 +247,20 @@ void Backup::SaveMetadata() {
   metadata_json["files"] = files_json;
 
   // Save metadata
-  fs::path  local_meta_path = temp_dir_ / "backup" / backup_name;
+  fs::path local_meta_path = temp_dir_ / "backup" / backup_name;
   std::ofstream metadata_file(local_meta_path);
   metadata_file << metadata_json.dump(4);
+  metadata_file.close();
 
-  repo_->UploadFile(local_meta_path.string(),"backup/");
+  repo_->UploadFile(local_meta_path.string(), "backup/");
 }
 
 std::string Backup::GenerateChunkFilename(const std::string& hash) {
   // Use first two hex digits as subdirectory
   std::string subdir = hash.substr(0, 2);
-  fs::create_directories(temp_dir_/ "chunks" / subdir);
+  fs::create_directories(temp_dir_ / "chunks" / subdir);
   return subdir + "/" + hash + ".chunk";
 }
-
 
 Chunk Backup::CompressChunk(const Chunk& original_chunk) {
   // Calculate maximum compressed size
@@ -318,7 +319,7 @@ void Backup::SaveChunk(const Chunk& chunk) {
     chunk_file.write(reinterpret_cast<const char*>(chunk.data.data()),
                      chunk.data.size());
     chunk_file.close();
-    const fs::path repo_target =  "chunks/" + chunk.hash.substr(0,2)+"/";
+    const fs::path repo_target = "chunks/" + chunk.hash.substr(0, 2) + "/";
     repo_->UploadFile(chunk_path.string(), repo_target.string());
   }
 }
@@ -351,7 +352,7 @@ BackupMetadata Backup::LoadPreviousMetadata(const std::string& backup_name) {
     file_metadata.mtime = fs::file_time_type(
         std::chrono::duration_cast<fs::file_time_type::duration>(
             std::chrono::seconds(file_json["mtime"].get<time_t>())));
-    
+
     // Load symlink information (with backward compatibility)
     file_metadata.is_symlink = file_json.value("is_symlink", false);
     if (file_metadata.is_symlink) {
@@ -387,7 +388,7 @@ std::string Backup::GetLatestFullBackup() {
 
 std::vector<std::string> Backup::ListBackups() {
   std::vector<std::string> backups;
-  for (const auto& entry : fs::directory_iterator(temp_dir_/ "backup")) {
+  for (const auto& entry : fs::directory_iterator(temp_dir_ / "backup")) {
     if (entry.is_regular_file()) {
       backups.push_back(entry.path().filename().string());
     }
@@ -402,7 +403,7 @@ std::vector<std::string> Backup::ListBackups() {
 std::vector<BackupDetails> Backup::GetAllBackupDetails() {
   std::vector<BackupDetails> backupDetails;
   const auto backups = ListBackups();
-    for (const auto& backup : backups) {
+  for (const auto& backup : backups) {
     fs::path metadata_path = temp_dir_ / "backup" / backup;
     std::ifstream metadata_file(metadata_path);
     nlohmann::json metadata_json;
@@ -429,7 +430,7 @@ std::vector<BackupDetails> Backup::GetAllBackupDetails() {
     }
 
     std::string remarks = metadata_json.value("remarks", "");
-    BackupDetails details (type_str,timestamp_str.str(),backup,remarks);
+    BackupDetails details(type_str, timestamp_str.str(), backup, remarks);
     backupDetails.push_back(details);
   }
   return backupDetails;
@@ -446,22 +447,20 @@ void Backup::DisplayAllBackupDetails() {
   UserIO::DisplayMinTitle("Backup List");
   std::cout << std::setw(20) << "Name" << " | " << std::setw(10) << "Type"
             << " | " << std::setw(20) << "Time" << " | " << std::setw(30)
-            << "Remarks" << "\n";
-  std::cout << std::string(80, '-') << std::endl;
+            << "Remarks" << " | \n";
+  std::cout << std::string(90, '-') << std::endl;
 
   for (const auto& backup : backupDetails) {
-
-
     std::string remarks = backup.remarks;
     if (remarks.length() > 27) {
       remarks = remarks.substr(0, 24) + "...";
     }
 
-    std::cout << std::setw(20) << backup.name << " | " << std::setw(10) << backup.type
-              << " | " << std::setw(20) << backup.timestamp << " | " << std::setw(30)
-              << remarks << "\n";
+    std::cout << std::setw(20) << backup.name << " | " << std::setw(10)
+              << backup.type << " | " << std::setw(20) << backup.timestamp
+              << " | " << std::setw(30) << remarks << "\n";
   }
-  std::cout << std::string(80, '-') << "\n\n";
+  std::cout << std::string(90, '-') << "\n\n";
 }
 
 void Backup::CompareBackups(const std::string& backup1,
@@ -509,10 +508,11 @@ bool Backup::CheckFileForChanges(const fs::path& file_path,
   if (fs::is_symlink(file_path)) {
     std::string current_target = fs::read_symlink(file_path).string();
     auto mtime = fs::last_write_time(file_path);
-    
+
     // Convert both times to seconds for comparison
     auto current_mtime_seconds =
-        std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch())
+        std::chrono::duration_cast<std::chrono::seconds>(
+            mtime.time_since_epoch())
             .count();
     auto previous_mtime_seconds =
         std::chrono::duration_cast<std::chrono::seconds>(
