@@ -37,62 +37,6 @@ void NFSRepository::ParseNfsPath(const std::string& nfs_path) {
   }
 }
 
-void NFSRepository::CreateNFSDirectory() const {
-  struct nfs_context* nfs = nfs_init_context();
-  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
-  try {
-    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
-      std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
-      ErrorUtil::ThrowError("Mount failed: " + err);
-    }
-    std::string repo_dir = "/" + name_;
-    if (nfs_mkdir(nfs, repo_dir.c_str()) < 0) {
-      std::string err = nfs_get_error(nfs);
-      if (err.find("exists") == std::string::npos) {
-        nfs_umount(nfs);
-        nfs_destroy_context(nfs);
-        ErrorUtil::ThrowError("mkdir failed: " + err);
-      }
-    }
-    nfs_umount(nfs);
-    nfs_destroy_context(nfs);
-  } catch (...) {
-    nfs_destroy_context(nfs);
-    ErrorUtil::ThrowNested("Failed to create remote NFS directory");
-  }
-}
-
-void NFSRepository::RemoveNFSDirectory() const {
-  struct nfs_context* nfs = nfs_init_context();
-  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
-  try {
-    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
-      std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
-      ErrorUtil::ThrowError("Mount failed: " + err);
-    }
-    std::string repo_dir = "/" + name_;
-    std::string config_path = repo_dir + "/config.json";
-    nfs_unlink(nfs, config_path.c_str());
-    nfs_rmdir(nfs, repo_dir.c_str());
-    nfs_umount(nfs);
-    nfs_destroy_context(nfs);
-  } catch (...) {
-    nfs_destroy_context(nfs);
-    ErrorUtil::ThrowNested("Failed to remove remote NFS directory");
-  }
-}
-
-bool NFSRepository::NFSMountExists() const {
-  struct nfs_context* nfs = nfs_init_context();
-  if (!nfs) return false;
-  bool mounted = nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) == 0;
-  if (mounted) nfs_umount(nfs);
-  nfs_destroy_context(nfs);
-  return mounted;
-}
-
 bool NFSRepository::UploadFile(const std::string& local_file, const std::string& remote_path) const {
   std::string repo_dir = "/" + name_;
   std::string remote_file_path = repo_dir + "/" + (!remote_path.empty() ? (remote_path) : "") + fs::path(local_file).filename().string();
