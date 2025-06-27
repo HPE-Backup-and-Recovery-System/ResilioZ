@@ -64,7 +64,7 @@ void RemoteRepository::WriteConfig() const {
                            {"created_at", created_at_},
                            {"password_hash", GetHashedPassword()}};
 
-  std::string temp_file = "/tmp/config.json";
+  fs::path temp_file = fs::temp_directory_path() / "config.json";
   std::ofstream out(temp_file);
   if (!out) {
     ErrorUtil::ThrowError("Failed to create temporary config file");
@@ -143,48 +143,43 @@ void RemoteRepository::CreateRemoteDirectory() const {
     if (!sftp || sftp_init(sftp) != SSH_OK) {
       ErrorUtil::ThrowError("SFTP initialization failed");
     }
-   
+
     if (sftp_mkdir(sftp, remote_dir_.c_str(), S_IRWXU) < 0) {
       ErrorUtil::ThrowError("Remote directory creation failed");
     }
-    std::string backup_dir = remote_dir_+ "/backup";
+    std::string backup_dir = remote_dir_ + "/backup";
     if (sftp_mkdir(sftp, backup_dir.c_str(), S_IRWXU) < 0) {
       ErrorUtil::ThrowError("Remote directory creation failed");
     }
-    std::string chunk_dir = remote_dir_+ "/chunks";
+    std::string chunk_dir = remote_dir_ + "/chunks";
     if (sftp_mkdir(sftp, chunk_dir.c_str(), S_IRWXU) < 0) {
       ErrorUtil::ThrowError("Remote directory creation failed");
     }
     std::vector<std::string> hexArray = {
-    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09",
-    "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13",
-    "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d",
-    "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27",
-    "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31",
-    "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b",
-    "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45",
-    "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f",
-    "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
-    "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63",
-    "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d",
-    "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77",
-    "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81",
-    "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b",
-    "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95",
-    "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f",
-    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9",
-    "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3",
-    "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd",
-    "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7",
-    "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1",
-    "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db",
-    "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5",
-    "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef",
-    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9",
-    "fa", "fb", "fc", "fd", "fe", "ff"
-  };
-    for(auto i : hexArray){
-      if (sftp_mkdir(sftp, (chunk_dir+"/"+i).c_str(), S_IRWXU) < 0) {
+        "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b",
+        "0c", "0d", "0e", "0f", "10", "11", "12", "13", "14", "15", "16", "17",
+        "18", "19", "1a", "1b", "1c", "1d", "1e", "1f", "20", "21", "22", "23",
+        "24", "25", "26", "27", "28", "29", "2a", "2b", "2c", "2d", "2e", "2f",
+        "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b",
+        "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45", "46", "47",
+        "48", "49", "4a", "4b", "4c", "4d", "4e", "4f", "50", "51", "52", "53",
+        "54", "55", "56", "57", "58", "59", "5a", "5b", "5c", "5d", "5e", "5f",
+        "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b",
+        "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77",
+        "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81", "82", "83",
+        "84", "85", "86", "87", "88", "89", "8a", "8b", "8c", "8d", "8e", "8f",
+        "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9a", "9b",
+        "9c", "9d", "9e", "9f", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
+        "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3",
+        "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf",
+        "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "ca", "cb",
+        "cc", "cd", "ce", "cf", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7",
+        "d8", "d9", "da", "db", "dc", "dd", "de", "df", "e0", "e1", "e2", "e3",
+        "e4", "e5", "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef",
+        "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb",
+        "fc", "fd", "fe", "ff"};
+    for (auto i : hexArray) {
+      if (sftp_mkdir(sftp, (chunk_dir + "/" + i).c_str(), S_IRWXU) < 0) {
         ErrorUtil::ThrowError("Remote directory creation failed");
       }
     }
@@ -220,8 +215,32 @@ void RemoteRepository::RemoveRemoteDirectory() const {
       ErrorUtil::ThrowError("SFTP initialization failed");
     }
 
-    sftp_unlink(sftp, (remote_dir_ + "/config.json").c_str());
-    sftp_rmdir(sftp, remote_dir_.c_str());
+    std::function<void(const std::string&)> delete_recursive;
+    delete_recursive = [&](const std::string& path) {
+      sftp_dir dir = sftp_opendir(sftp, path.c_str());
+      if (!dir) {
+        sftp_unlink(sftp, path.c_str());
+        return;
+      }
+
+      while (sftp_attributes attrs = sftp_readdir(sftp, dir)) {
+        std::string name = attrs->name;
+        if (name != "." && name != "..") {
+          std::string full_path = path + "/" + name;
+          if (S_ISDIR(attrs->permissions)) {
+            delete_recursive(full_path);
+          } else {
+            sftp_unlink(sftp, full_path.c_str());
+          }
+        }
+        sftp_attributes_free(attrs);
+      }
+
+      sftp_closedir(dir);
+      sftp_rmdir(sftp, path.c_str());
+    };
+
+    delete_recursive(remote_dir_);
 
     sftp_free(sftp);
     ssh_disconnect(session);
@@ -256,7 +275,7 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
       if (remote_path.back() == '/') {
         remote_full_path = remote_dir_ + "/" + remote_path + filename;
       } else {
-        remote_full_path = remote_dir_  + "/" + remote_path + "/" + filename;
+        remote_full_path = remote_dir_ + "/" + remote_path + "/" + filename;
       }
     }
 
@@ -315,7 +334,7 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
 
 bool RemoteRepository::UploadDirectory(const std::string& local_dir,
                                        const std::string& remote_path) const {
-  std::string remote_path_ = remote_dir_  + "/" + remote_path;
+  std::string remote_path_ = remote_dir_ + "/" + remote_path;
 
   ssh_session session = ssh_new();
   sftp_session sftp = nullptr;
@@ -426,7 +445,7 @@ bool RemoteRepository::UploadDirectory(const std::string& local_dir,
 
 bool RemoteRepository::DownloadFile(const std::string& remote_file,
                                     const std::string& local_path) const {
-  std::string remote_full_path = remote_dir_  + "/" + remote_file;
+  std::string remote_full_path = remote_dir_ + "/" + remote_file;
 
   ssh_session session = ssh_new();
   sftp_session sftp = nullptr;
@@ -506,7 +525,7 @@ bool RemoteRepository::DownloadFile(const std::string& remote_file,
 
 bool RemoteRepository::DownloadDirectory(const std::string& remote_dir,
                                          const std::string& local_path) const {
-  std::string remote_root = remote_dir_  + "/" + remote_dir;
+  std::string remote_root = remote_dir_ + "/" + remote_dir;
 
   ssh_session session = ssh_new();
   sftp_session sftp = nullptr;

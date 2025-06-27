@@ -13,7 +13,7 @@ cmake --build build --parallel $(($(nproc) - 1)) --target all # Parallelize make
 cd build
 
 # CLI
-./main --cli
+sudo -E ./main --cli
 
 # GUI
-./main --gui
+sudo -E ./main --gui
