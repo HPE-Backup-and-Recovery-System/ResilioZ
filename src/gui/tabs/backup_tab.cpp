@@ -71,8 +71,7 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->compareTable->setFocusPolicy(Qt::NoFocus);
 
   // Table Size
-  QTimer::singleShot(
-      0, this, [this]() { setColSize(ui->listTable->width()); });
+  QTimer::singleShot(0, this, [this]() { setColSize(ui->listTable->width()); });
 
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
@@ -98,24 +97,92 @@ void BackupTab::resizeEvent(QResizeEvent* event) {
 
 void BackupTab::setColSize(int tableWidth) {
   int col_name = 300;
-  int col_type = 160;
-  int col_time = 200;
+  int col_type = 200;
+  int col_time = 300;
   int col_rem = tableWidth - col_name - col_type - col_time;
 
   ui->listTable->setColumnWidth(0, col_name);  // Name
   ui->listTable->setColumnWidth(1, col_type);  // Type
-  ui->listTable->setColumnWidth(2, col_type);  // Time
+  ui->listTable->setColumnWidth(2, col_time);  // Time
   ui->listTable->setColumnWidth(3, col_rem);   // Remarks
 
   ui->compareTable->setColumnWidth(0, col_name);  // Name
   ui->compareTable->setColumnWidth(1, col_type);  // Type
-  ui->compareTable->setColumnWidth(2, col_type);  // Time
+  ui->compareTable->setColumnWidth(2, col_time);  // Time
   ui->compareTable->setColumnWidth(3, col_rem);   // Remarks
 }
 
-void BackupTab::fillListTable() { ui->listTable->clearContents(); }
+void BackupTab::fillListTable() {
+  ui->listTable->clearContents();
+  int backup_count = static_cast<int>(backup_list_.size());
 
-void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
+  if (!backup_count) {
+    ui->listTable->setRowCount(1);
+    ui->listTable->setSpan(0, 0, 1, 4);
+    auto* noBackups = new QTableWidgetItem("< No Backups Available >");
+    noBackups->setTextAlignment(Qt::AlignCenter);
+    noBackups->setForeground(Qt::darkGray);
+    ui->listTable->setItem(0, 0, noBackups);
+    return;
+  }
+
+  ui->listTable->setRowCount(backup_count);
+  for (int row = 0; row < backup_count; ++row) {
+    const BackupDetails& dtls = backup_list_[row];
+
+    auto* nameItem = new QTableWidgetItem(QString::fromStdString(dtls.name));
+    nameItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 0, nameItem);
+
+    auto* typeItem = new QTableWidgetItem(QString::fromStdString(dtls.type));
+    typeItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 1, typeItem);
+
+    auto* timeItem =
+        new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
+    timeItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 2, timeItem);
+
+    ui->listTable->setItem(
+        row, 3, new QTableWidgetItem(QString::fromStdString(dtls.remarks)));
+  }
+}
+
+void BackupTab::fillCompareTable() {
+  ui->compareTable->clearContents();
+  int backup_count = static_cast<int>(backup_list_.size());
+
+  if (!backup_count) {
+    ui->compareTable->setRowCount(1);
+    ui->compareTable->setSpan(0, 0, 1, 4);
+    auto* noBackups = new QTableWidgetItem("< No Backups Available >");
+    noBackups->setTextAlignment(Qt::AlignCenter);
+    noBackups->setForeground(Qt::darkGray);
+    ui->compareTable->setItem(0, 0, noBackups);
+    return;
+  }
+
+  ui->compareTable->setRowCount(backup_count);
+  for (int row = 0; row < backup_count; ++row) {
+    const BackupDetails& dtls = backup_list_[row];
+
+    auto* nameItem = new QTableWidgetItem(QString::fromStdString(dtls.name));
+    nameItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 0, nameItem);
+
+    auto* typeItem = new QTableWidgetItem(QString::fromStdString(dtls.type));
+    typeItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 1, typeItem);
+
+    auto* timeItem =
+        new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
+    timeItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 2, timeItem);
+
+    ui->compareTable->setItem(
+        row, 3, new QTableWidgetItem(QString::fromStdString(dtls.remarks)));
+  }
+}
 
 void BackupTab::on_createBackupButton_clicked() {
   repository_ = nullptr;
@@ -250,6 +317,7 @@ void BackupTab::on_backButton_2_clicked() {
   int index = ui->stackedWidget_listBackup->currentIndex();
   if (index > 0) {
     ui->stackedWidget_listBackup->setCurrentIndex(index - 1);
+    ui->nextButton_2->setHidden(false);
   } else {
     ui->stackedWidget->setCurrentIndex(0);
   }
@@ -306,9 +374,6 @@ void BackupTab::on_nextButton_2_clicked() {
   }
 
   if (index == 0) {
-    ui->stackedWidget_listBackup->setCurrentIndex(index + 1);
-  } else {
-    ui->nextButton_2->setEnabled(false);
     listBackups();
   }
   updateProgress();
@@ -474,7 +539,8 @@ void BackupTab::initBackup() {
       backup_ = nullptr;
     }
 
-    backup_ = new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
+    backup_ =
+        new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
 
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
@@ -515,54 +581,59 @@ void BackupTab::listBackups() {
       delete backup_;
       backup_ = nullptr;
     }
+    source_path_ = "/";
+    backup_type_ = BackupType::FULL;
+    remarks_ = "";
 
     backup_ =
         new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
 
+    ProgressBoxDecorator::runProgressBoxIndeterminate(
+        this,
+        [&](std::function<void(const QString&)> setWaitMessage,
+            std::function<void(const QString&)> setSuccessMessage,
+            std::function<void(const QString&)> setFailureMessage) -> bool {
+          try {
+            setWaitMessage("Fetching backups...");
+            backup_list_ = backup_->GetAllBackupDetails();
+            fillListTable();
+
+            Logger::SystemLog("GUI | Backups fetched from repository : " +
+                              repository_->GetRepositoryInfoString());
+
+            setSuccessMessage(
+                "Backups fetched from repository: " +
+                QString::fromStdString(repository_->GetRepositoryInfoString()));
+            return true;
+
+          } catch (const std::exception& e) {
+            Logger::SystemLog(
+                "GUI | Cannot fetch backups: " + std::string(e.what()),
+                LogLevel::ERROR);
+            setFailureMessage("Backup fetching failed: " +
+                              QString::fromStdString(e.what()));
+            return false;
+          }
+        },
+        "Fetching backups...", "Backups fetched successfully.",
+        "Backup fetching failed.",
+        [&](bool success) {
+          if (success) {
+            ui->nextButton_2->setHidden(true);
+            ui->stackedWidget_listBackup->setCurrentIndex(1);
+          } else {
+            ui->nextButton->setHidden(false);
+          }
+        });
+
   } catch (const std::exception& e) {
-    MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
+    MessageBoxDecorator::showMessageBox(this, "Backup Listing Failure",
                                         QString::fromStdString(e.what()),
                                         QMessageBox::Critical);
-    Logger::SystemLog(
-        "GUI | Failed to initialize backup: " + std::string(e.what()),
-        LogLevel::ERROR);
+    Logger::SystemLog("GUI | Failed to list backups: " + std::string(e.what()),
+                      LogLevel::ERROR);
 
-    ui->nextButton->setEnabled(true);
     return;
-  }
-
-  ui->listTable->clearContents();
-  int repo_count = static_cast<int>(repos.size());
-
-  if (!repo_count) {
-    ui->listTable->setRowCount(1);
-    ui->listTable->setSpan(0, 0, 1, 4);
-    auto* noRepo = new QTableWidgetItem("< No Repositories Available >");
-    noRepo->setTextAlignment(Qt::AlignCenter);
-    noRepo->setForeground(Qt::darkGray);
-    ui->listTable->setItem(0, 0, noRepo);
-    return;
-  }
-
-  ui->listTable->setRowCount(repo_count);
-  for (int row = 0; row < repo_count; ++row) {
-    const RepoEntry& repo = repos[row];
-
-    auto* createdItem =
-        new QTableWidgetItem(QString::fromStdString(repo.created_at));
-    createdItem->setTextAlignment(Qt::AlignCenter);
-    ui->listTable->setItem(row, 0, createdItem);
-
-    ui->listTable->setItem(
-        row, 1, new QTableWidgetItem(QString::fromStdString(repo.name)));
-
-    auto* typeItem =
-        new QTableWidgetItem(QString::fromStdString(repo.type).toUpper());
-    typeItem->setTextAlignment(Qt::AlignCenter);
-    ui->listTable->setItem(row, 2, typeItem);
-
-    ui->listTable->setItem(
-        row, 3, new QTableWidgetItem(QString::fromStdString(repo.path)));
   }
 }
 
