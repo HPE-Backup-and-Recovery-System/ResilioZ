@@ -18,18 +18,13 @@ namespace fs = std::filesystem;
 
 class Restore {
  public:
-  Restore(const fs::path& input_path, const fs::path& output_path,
-          const std::string& backup_name);
-
-  // Static method to load Original Path without creating a Restore object
-  static std::string LoadOriginalPath(const fs::path& input_path, 
-                                         const std::string& backup_name);
-
+  Restore(Repository* repo);
+  ~Restore();
   // Restore a single file
-  void RestoreFile(const std::string& filename);
+  void RestoreFile(const fs::path & file_path,const fs::path output_path_, const std::string backup_name_);
 
   // Restore all files from backup
-  void RestoreAll();
+  void RestoreAll(const fs::path output_path_, const std::string backup_name_);
 
   // List available backups
   std::vector<std::string> ListBackups();
@@ -37,15 +32,9 @@ class Restore {
   // Compare two backups
   void CompareBackups(const std::string& backup1, const std::string& backup2);
 
-  void RestoreBackup(const fs::path& backup_path, const fs::path& restore_path,
-               const std::string& backup_id);
-
-  // Get backup metadata
-  const BackupMetadata& GetMetadata() const { return metadata_; }
-
  private:
   // Load metadata from backup
-  void LoadMetadata();
+  void LoadMetadata(const std::string backup_name_);
 
   // Load a chunk from disk
   Chunk LoadChunk(const std::string& hash);
@@ -57,13 +46,13 @@ class Restore {
   std::optional<std::pair<std::string, FileMetadata>> FindFileMetadata(
       const std::string& filename);
   fs::path PrepareOutputPath(const std::string& filename,
-                             const std::string& original_path);
+                             const fs::path & original_path,
+                             const fs::path output_path_);
   Chunk GetNextChunk(const FileMetadata& file_metadata, ProgressBar& progress);
 
-  fs::path input_path_;
-  fs::path output_path_;
-  std::string backup_name_;
-  BackupMetadata metadata_;
+  Repository* repo_;
+  fs::path temp_dir_;
+  std::optional<BackupMetadata*> metadata_ = nullptr;
   Chunker chunker_;
 };
 

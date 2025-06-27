@@ -1,425 +1,508 @@
 #include "repositories/nfs_repository.h"
 
-#include <errno.h>
-#include <string.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include <thread>
+#include <nfsc/libnfs.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "utils/error_util.h"
-#include "utils/logger.h"
-#include "utils/prompter.h"
 
 namespace fs = std::filesystem;
 
 NFSRepository::NFSRepository() {}
 
-NFSRepository::NFSRepository(const std::string& nfs_mount_path,
+NFSRepository::NFSRepository(const std::string& nfs_path,
                              const std::string& name,
                              const std::string& password,
                              const std::string& created_at) {
-  path_ = nfs_mount_path;
   name_ = name;
+  path_ = nfs_path;
   password_ = password;
   created_at_ = created_at;
   type_ = RepositoryType::NFS;
+  ParseNfsPath(nfs_path);
 }
 
-NFSRepository::NFSRepository(const std::string& server_ip,
-                            const std::string& server_backup_path,
-                            const std::string& name,
-                            const std::string& password,
-                            const std::string& created_at) {
-    server_ip_ = server_ip;
-    server_backup_path_ = server_backup_path;
-    name_ = name;
-    password_ = password;
-    created_at_ = created_at;
-    type_ = RepositoryType::NFS;
-    // Mount point will be set via SetMountPoint
-}
-
-void NFSRepository::SetMountPoint(const std::string& mount_point) {
-    mount_point_ = mount_point;
-    path_ = mount_point_;
-}
-
-bool NFSRepository::UploadFile(const std::string& local_file,
-                               const std::string& remote_path) const {
-  if (!fs::exists(local_file)) {
-    ErrorUtil::ThrowError("Source file not found: " + local_file);
+void NFSRepository::ParseNfsPath(const std::string& nfs_path) {
+  auto colon_pos = nfs_path.find(":");
+  if (colon_pos == std::string::npos || colon_pos == 0 || colon_pos == nfs_path.size() - 1) {
+    ErrorUtil::ThrowError("Invalid NFS path format. Expected: ip:/path");
   }
+  server_ip_ = nfs_path.substr(0, colon_pos);
+  server_backup_path_ = nfs_path.substr(colon_pos + 1);
+  if (server_backup_path_.empty() || server_backup_path_[0] != '/') {
+    ErrorUtil::ThrowError("NFS path must be absolute (start with /)");
+  }
+}
 
-  // Ensure the remote path exists
-  std::string mkdir_cmd = "sudo mkdir -p " + remote_path;
-    int result = system(mkdir_cmd.c_str());
-    if (result != 0) {
-      ErrorUtil::ThrowError("Failed to create directory: " + remote_path);
+void NFSRepository::CreateRemoteDirectory() const {
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
     }
-
-  // Set proper permissions
-  std::string chmod_cmd = "sudo chmod -R 777 " + remote_path; // -R 777 is unsafe, please check 
-  result = system(chmod_cmd.c_str());
-  if (result != 0) {
-    Logger::Log("Warning: Failed to set permissions on directory: " + remote_path);
+    std::string repo_dir = "/" + name_;
+    if (nfs_mkdir(nfs, repo_dir.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      if (err.find("exists") == std::string::npos) {
+        nfs_umount(nfs);
+        nfs_destroy_context(nfs);
+        ErrorUtil::ThrowError("mkdir failed: " + err);
+      }
+    }
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Failed to create remote NFS directory");
   }
+}
 
-  // Copy the file directly to the remote path
-  fs::path src_path(local_file);
-  fs::path dest_path = fs::path(remote_path) / src_path.filename();
-  
-  std::string cp_cmd = "sudo cp " + local_file + " " + dest_path.string();
-  result = system(cp_cmd.c_str());
-  if (result != 0) {
-    ErrorUtil::ThrowError("Failed to copy file to NFS share: " + dest_path.string());
+void NFSRepository::RemoveRemoteDirectory() const {
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+    std::string repo_dir = "/" + name_;
+    std::string config_path = repo_dir + "/config.json";
+    nfs_unlink(nfs, config_path.c_str());
+    nfs_rmdir(nfs, repo_dir.c_str());
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Failed to remove remote NFS directory");
   }
+}
 
-  // Set proper permissions on the copied file
-  std::string file_chmod_cmd = "sudo chmod 666 " + dest_path.string();
-  result = system(file_chmod_cmd.c_str());
-  if (result != 0) {
-    Logger::Log("Warning: Failed to set permissions on file: " + dest_path.string());
+bool NFSRepository::NFSMountExists() const {
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) return false;
+  bool mounted = nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) == 0;
+  if (mounted) nfs_umount(nfs);
+  nfs_destroy_context(nfs);
+  return mounted;
+}
+
+bool NFSRepository::UploadFile(const std::string& local_file, const std::string& remote_path) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_file_path = repo_dir + "/" + (!remote_path.empty() ? (remote_path) : "") + fs::path(local_file).filename().string();
+
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+    std::ifstream file(local_file, std::ios::binary);
+    if (!file) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Cannot open local file: " + local_file);
+    }
+    struct nfsfh* fh;
+    if (nfs_creat(nfs, remote_file_path.c_str(), 0644, &fh) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Remote file create failed: " + remote_file_path + " - " + err);
+    }
+    std::vector<char> buffer(1048576);
+    ssize_t offset = 0;
+    while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0) {
+      ssize_t len = file.gcount();
+      if (nfs_pwrite(nfs, fh, offset, len, buffer.data()) < 0) {
+        std::string err = nfs_get_error(nfs);
+        nfs_close(nfs, fh);
+        nfs_umount(nfs);
+        nfs_destroy_context(nfs);
+        ErrorUtil::ThrowError("Write failed: " + err);
+      }
+      offset += len;
+    }
+    nfs_close(nfs, fh);
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+    return true;
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot upload file to remote NFS path: " + remote_file_path);
   }
+}
 
+bool NFSRepository::UploadDirectory(const std::string& local_dir, const std::string& remote_path) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_base = remote_path.empty() ? repo_dir : remote_path;
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+    std::function<void(const fs::path&, const std::string&)> upload_recursive;
+    upload_recursive = [&](const fs::path& path, const std::string& remote_dir) {
+      if (fs::is_directory(path)) {
+        std::string dir_name = path.filename().string();
+        std::string remote_subdir = remote_dir + "/" + dir_name;
+        nfs_mkdir(nfs, remote_subdir.c_str());
+        for (const auto& entry : fs::directory_iterator(path)) {
+          upload_recursive(entry.path(), remote_subdir);
+        }
+      } else if (fs::is_regular_file(path)) {
+        std::string file_name = path.filename().string();
+        std::string remote_file = remote_dir + "/" + file_name;
+        std::ifstream infile(path, std::ios::binary);
+        if (!infile) return;
+        struct nfsfh* fh;
+        if (nfs_creat(nfs, remote_file.c_str(), 0644, &fh) < 0) {
+          return;
+        }
+        std::vector<char> buffer(1048576);
+        ssize_t offset = 0;
+        while (infile.read(buffer.data(), buffer.size()) || infile.gcount() > 0) {
+          ssize_t len = infile.gcount();
+          if (nfs_pwrite(nfs, fh, offset, len, buffer.data()) < 0) {
+            break;
+          }
+          offset += len;
+        }
+        nfs_close(nfs, fh);
+      }
+    };
+    for (const auto& entry : fs::directory_iterator(local_dir)) {
+      upload_recursive(entry.path(), remote_base);
+    }
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
   return true;
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot upload directory to remote NFS path: " + remote_base);
+  }
 }
 
 bool NFSRepository::Exists() const {
-  if (!NFSMountExists()) {
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) return false;
+  if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+    nfs_destroy_context(nfs);
     return false;
   }
-
-    std::string config_path = path_ + "/" + name_ + "/config.json";
-    if (!fs::exists(config_path)) {
-        Logger::Log("Config file not found at: " + config_path);
-        return false;
-    }
-
-  try {
-    std::ifstream file(config_path);
-    if (!file.is_open()) {
-      Logger::Log("Failed to open config file: " + config_path);
-      return false;
-    }
-    nlohmann::json config;
-    file >> config;
-    return true;
-  } catch (const std::exception& e) {
-    Logger::Log("Error reading config file: " + std::string(e.what()));
-    return false;
-  }
+  std::string repo_dir = "/" + name_;
+  struct nfs_stat_64 st;
+  bool exists = nfs_stat64(nfs, repo_dir.c_str(), &st) == 0;
+  nfs_umount(nfs);
+  nfs_destroy_context(nfs);
+  return exists;
 }
 
 void NFSRepository::Initialize() {
-  EnsureNFSMounted();
-  CreateRemoteDirectory();
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowError("Mount failed: " + err);
+  }
+  // Create directory for this repo (relative to export root)
+  std::string repo_dir = "/" + name_;
+  if (nfs_mkdir(nfs, repo_dir.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    if (err.find("exists") == std::string::npos) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("mkdir failed: " + err);
+    }
+  }
+  std::string backup_dir = "/" + name_ + "/backup";
+  if (nfs_mkdir(nfs, backup_dir.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    if (err.find("exists") == std::string::npos) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("mkdir failed: " + err);
+    }
+  }
+  std::string chunk_dir = "/" + name_ + "/chunks";
+  if (nfs_mkdir(nfs, chunk_dir.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    if (err.find("exists") == std::string::npos) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("mkdir failed: " + err);
+    }
+  }
+    std::vector<std::string> hexArray = {
+    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09",
+    "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13",
+    "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d",
+    "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27",
+    "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31",
+    "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b",
+    "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45",
+    "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f",
+    "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
+    "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63",
+    "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d",
+    "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77",
+    "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81",
+    "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b",
+    "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95",
+    "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f",
+    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9",
+    "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3",
+    "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd",
+    "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7",
+    "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1",
+    "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db",
+    "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5",
+    "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef",
+    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9",
+    "fa", "fb", "fc", "fd", "fe", "ff"
+  };
+  for(auto i : hexArray){
+    if (nfs_mkdir(nfs, (chunk_dir+"/"+i).c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    if (err.find("exists") == std::string::npos) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("mkdir failed: " + err);
+    }
+  }
+  }
+  nfs_umount(nfs);
+  nfs_destroy_context(nfs);
   WriteConfig();
 }
 
 void NFSRepository::Delete() {
-    try {
-        std::string repo_path_str = path_ + "/" + name_;
-        fs::path repo_path(repo_path_str);
-        
-        if (NFSMountExists()) {
-            if (fs::exists(repo_path)) {
-                try {
-                    fs::remove_all(repo_path);
-                } catch (const fs::filesystem_error& e) {
-                    ErrorUtil::ThrowError("Failed to remove repository '" + name_ + "': " + e.what() + 
-                                          ".\nThis is likely a file permission issue. Files on the NFS share seem to be created with 'sudo', which may prevent this program from deleting them."
-                                          " Consider running this program with 'sudo' or fixing file permissions on the share.");
-                }
-            }
-
-            if (fs::exists(repo_path)) {
-                Logger::Log("Warning: Repository directory could not be fully deleted: " + repo_path_str, LogLevel::WARNING);
-            } else {
-                Logger::Log("Successfully removed NFS repository: " + repo_path_str);
-            }
-        } else {
-            Logger::Log("NFS mount not found, skipping repository deletion");
-        }
-    } catch (const std::exception& e) {
-        ErrorUtil::ThrowNested("Failed to remove NFS repository: " + name_);
-    }
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowError("Mount failed: " + err);
+  }
+  std::string repo_dir = "/" + name_;
+  // Remove config.json first
+  std::string config_path = repo_dir + "/config.json";
+  nfs_unlink(nfs, config_path.c_str());
+  // Remove the directory
+  nfs_rmdir(nfs, repo_dir.c_str());
+  nfs_umount(nfs);
+  nfs_destroy_context(nfs);
 }
 
 void NFSRepository::WriteConfig() const {
-    // First ensure the repository directory exists on the NFS share
-    std::string repo_path = path_ + "/" + name_;
-    std::string mkdir_cmd = "sudo mkdir -p " + repo_path;
-    int result = system(mkdir_cmd.c_str());
-    if (result != 0) {
-        ErrorUtil::ThrowError("Failed to create repository directory on NFS share: " + repo_path);
-    }
-
-    std::string config_path = repo_path + "/config.json";
-    std::string temp_config_path = "/tmp/config.json.tmp";
-
   nlohmann::json config = {{"name", name_},
                            {"type", "nfs"},
                            {"path", path_},
-                           {"server_ip", server_ip_},
-                           {"server_backup_path", server_backup_path_},
                            {"created_at", created_at_},
-                           {"password_hash", GetHashedPassword()}};
-
-    // Write to temporary file first
-    std::ofstream file(temp_config_path);
-    if (!file.is_open()) {
-        ErrorUtil::ThrowError("Failed to write config to temporary file: " + temp_config_path);
-    }
-
-  file << config.dump(4);
-  file.close();
-
-    // Move the temporary file to the final location with sudo
-    std::string mv_cmd = "sudo mv " + temp_config_path + " " + config_path;
-    result = system(mv_cmd.c_str());
-    if (result != 0) {
-        ErrorUtil::ThrowError("Failed to move config file to final location: " + config_path);
-    }
-
-    // Set proper ownership and permissions
-    std::string chown_cmd = "sudo chown $USER:$USER " + config_path;
-    result = system(chown_cmd.c_str());
-    if (result != 0) {
-        Logger::Log("Warning: Failed to set ownership on config file: " + config_path);
-    }
-
-  std::string chmod_cmd = "sudo chmod 644 " + config_path;
-  result = system(chmod_cmd.c_str());
-  if (result != 0) {
-    Logger::Log("Warning: Failed to set permissions on config file: " +
-                config_path);
+                           {"password_hash", GetHashedPassword()},
+                           {"server_ip", server_ip_},
+                           {"server_backup_path", server_backup_path_}};
+  std::string temp_file = "/tmp/config.json";
+  std::ofstream out(temp_file);
+  if (!out) {
+    ErrorUtil::ThrowError("Failed to create temporary config file");
   }
-
-  if (!fs::exists(config_path)) {
-    ErrorUtil::ThrowError("Config file was not created successfully: " +
-                          config_path);
+  out << config.dump(4);
+  out.close(); 
+  if (!UploadFile(temp_file)) {
+    ErrorUtil::ThrowError("Failed to upload config to NFS");
   }
+  fs::remove(temp_file);
 }
 
 NFSRepository NFSRepository::FromConfigJson(const nlohmann::json& config) {
+  return NFSRepository(config.at("path"), config.at("name"),
+                       config.value("password_hash", ""),
+                       config.at("created_at"));
+}
+
+std::vector<std::string> NFSRepository::ListFiles(const std::string& remote_dir) const {
+  std::vector<std::string> files;
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+    std::string err = nfs_get_error(nfs);
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowError("Mount failed: " + err);
+  }
+  struct nfsdir* dir;
+  std::string dir_path = remote_dir.empty() ? ("/" + name_) : remote_dir;
+  if (nfs_opendir(nfs, dir_path.c_str(), &dir) < 0) {
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+    return files;
+  }
+  struct nfsdirent* entry;
+  while ((entry = nfs_readdir(nfs, dir)) != nullptr) {
+    std::string fname = entry->name;
+    if (fname != "." && fname != "..") {
+      files.push_back(fname);
+    }
+  }
+  nfs_closedir(nfs, dir);
+  nfs_umount(nfs);
+  nfs_destroy_context(nfs);
+  return files;
+}
+
+bool NFSRepository::DownloadFile(const std::string& remote_file, const std::string& local_file) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_full_path = remote_file.empty() ? repo_dir : (repo_dir + "/" + remote_file);
+
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
   try {
-    return NFSRepository(config.at("server_ip"),
-                         config.at("server_backup_path"), config.at("name"),
-                         config.value("password_hash", ""),
-                         config.at("created_at"));
-  } catch (const std::exception& e) {
-    ErrorUtil::ThrowError("Invalid NFS config format: " +
-                          std::string(e.what()));
+    fs::path remote_fs_path(remote_file);
+    std::string filename = remote_fs_path.filename().string();
+
+    std::string local_full_path;
+    if (local_file.empty()) {
+      local_full_path = filename;
+    } else {
+      fs::path local_fs_path(local_file);
+      if (fs::is_directory(local_fs_path) || local_file.back() == '/') {
+        local_full_path = (local_fs_path / filename).string();
+      } else {
+        local_full_path = local_file;
+      }
+    }
+
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
+    }
+
+    struct nfsfh* fh;
+    if (nfs_open(nfs, remote_full_path.c_str(), O_RDONLY, &fh) < 0) {
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Unable to open remote file for reading: " + remote_full_path);
+    }
+
+    std::ofstream output(local_full_path, std::ios::binary);
+    if (!output) {
+      nfs_close(nfs, fh);
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Failed to open local file for writing: " + local_full_path);
+    }
+
+    char buffer[1048576];
+    ssize_t n;
+    while ((n = nfs_read(nfs, fh, sizeof(buffer), buffer)) > 0) {
+      output.write(buffer, n);
+    }
+
+    if (n < 0) {
+      nfs_close(nfs, fh);
+      nfs_umount(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Error reading from remote file: " + remote_full_path);
+    }
+
+    nfs_close(nfs, fh);
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+    return true;
+
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot download file from remote NFS path: " + remote_full_path);
   }
 }
 
-bool NFSRepository::NFSMountExists() const { 
-    struct stat st;
-    if (stat(mount_point_.c_str(), &st) != 0) {
-        return false;
-    }
-    
-    struct stat parent_st;
-    std::string parent_dir = fs::path(mount_point_).parent_path().string();
-    if (stat(parent_dir.c_str(), &parent_st) != 0) {
-        return false;
-    }
-    
-    return st.st_dev != parent_st.st_dev;
-}
+bool NFSRepository::DownloadDirectory(const std::string& remote_dir, const std::string& local_path) const {
+  std::string repo_dir = "/" + name_;
+  std::string remote_root = remote_dir.empty() ? repo_dir : (repo_dir + "/" + remote_dir);
 
-bool NFSRepository::MountNFSShare() const {
-    // Create mount point if it doesn't exist
-    if (!fs::exists(mount_point_)) {
-        std::string mkdir_cmd = "sudo mkdir -p " + mount_point_;
-        int result = system(mkdir_cmd.c_str());
-        if (result != 0) {
-            Logger::Log("Failed to create NFS mount point: " + mount_point_, LogLevel::ERROR);
-            return false;
-        }
-        Logger::Log("Created mount point: " + mount_point_);
+  struct nfs_context* nfs = nfs_init_context();
+  if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
+  try {
+    if (!fs::exists(local_path)) {
+      fs::create_directories(local_path);
     }
 
-    // Check if already mounted
-    bool currently_mounted = false;
-    try {
-        struct stat st;
-        struct stat parent_st;
-        std::string parent_dir = fs::path(mount_point_).parent_path().string();
-        
-        if (stat(mount_point_.c_str(), &st) == 0 && 
-            stat(parent_dir.c_str(), &parent_st) == 0) {
-            currently_mounted = (st.st_dev != parent_st.st_dev);
-        }
-    } catch (const std::exception& e) {
-        Logger::Log("Warning: Error checking mount status: " + std::string(e.what()), LogLevel::WARNING);
+    if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
+      std::string err = nfs_get_error(nfs);
+      nfs_destroy_context(nfs);
+      ErrorUtil::ThrowError("Mount failed: " + err);
     }
 
-    // If mounted, unmount first
-    if (currently_mounted) {
-        Logger::Log("Unmounting existing NFS mount...");
-        std::string umount_cmd = "sudo umount -f " + mount_point_ + " 2>/dev/null";
-        int umount_result = system(umount_cmd.c_str());
-        if (umount_result != 0) {
-            Logger::Log("Warning: Failed to unmount existing mount point", LogLevel::WARNING);
-        }
-    }
+    std::function<void(const std::string&, const fs::path&)> download_recursive;
+    download_recursive = [&](const std::string& remote_subpath, const fs::path& local_subdir) {
+      struct nfsdir* dir;
+      if (nfs_opendir(nfs, remote_subpath.c_str(), &dir) < 0) {
+        ErrorUtil::ThrowError("Cannot open remote directory: " + remote_subpath);
+      }
 
-    int max_retries = 3;
-    int retry_count = 0;
-    bool mount_success = false;
-    std::string mount_output;
+      fs::create_directories(local_subdir);
 
-    while (retry_count < max_retries && !mount_success) {
-        if (retry_count > 0) {
-            Logger::Log("Re-establishing connection to NFS server...");
-            int wait_time = 5 * (1 << retry_count); // Start with 5 seconds, then 10, then 20
-            std::this_thread::sleep_for(std::chrono::seconds(wait_time));
+      struct nfsdirent* entry;
+      while ((entry = nfs_readdir(nfs, dir)) != nullptr) {
+        std::string name = entry->name;
+        if (name == "." || name == "..") {
+          continue;
         }
 
-        Logger::Log("Attempting to mount NFS share from " + server_ip_ + ":" + server_backup_path_);
+        std::string full_remote = remote_subpath + "/" + name;
+        fs::path full_local = local_subdir / name;
 
-        // Try simple mount first
-        std::string mount_cmd = "sudo mount -t nfs " + server_ip_ + ":" + server_backup_path_ + " " + mount_point_ + " 2>&1";
-        FILE* pipe = popen(mount_cmd.c_str(), "r");
-        if (pipe) {
-            char buffer[128];
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                mount_output += buffer;
+        struct nfs_stat_64 st;
+        if (nfs_stat64(nfs, full_remote.c_str(), &st) == 0) {
+          if (S_ISDIR(st.nfs_mode)) {
+            download_recursive(full_remote, full_local);
+          } else if (S_ISREG(st.nfs_mode)) {
+            struct nfsfh* fh;
+            if (nfs_open(nfs, full_remote.c_str(), O_RDONLY, &fh) < 0) {
+              continue;
             }
-            int result = pclose(pipe);
-            if (result == 0) {
-                mount_success = true;
-                Logger::Log("Successfully mounted NFS share");
-                break;
+
+            std::ofstream output(full_local, std::ios::binary);
+            if (!output) {
+              nfs_close(nfs, fh);
+              continue;
             }
-            Logger::Log("Mount attempt failed: " + mount_output, LogLevel::WARNING);
-        }
 
-        // If simple mount fails, try with explicit options
-        if (!mount_success) {
-            mount_cmd = "sudo mount -t nfs -o rw,soft,intr " + server_ip_ + ":" + server_backup_path_ + " " + mount_point_ + " 2>&1";
-            pipe = popen(mount_cmd.c_str(), "r");
-            if (pipe) {
-                char buffer[128];
-                mount_output.clear();
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    mount_output += buffer;
-                }
-                int result = pclose(pipe);
-                if (result == 0) {
-                    mount_success = true;
-                    Logger::Log("Successfully mounted NFS share with explicit options");
-                    break;
-                }
-                Logger::Log("Mount attempt with options failed: " + mount_output, LogLevel::WARNING);
+            char buffer[1048576];
+            ssize_t n;
+            while ((n = nfs_read(nfs, fh, sizeof(buffer), buffer)) > 0) {
+              output.write(buffer, n);
             }
+
+            nfs_close(nfs, fh);
+          }
         }
+      }
 
-        retry_count++;
-    }
+      nfs_closedir(nfs, dir);
+    };
 
-    if (mount_success) {
-        // Set proper permissions on the mount point
-        std::string chown_cmd = "sudo chown $USER:$USER " + mount_point_;
-        int chown_result = system(chown_cmd.c_str());
-        if (chown_result != 0) {
-            Logger::Log("Warning: Failed to set ownership on mount point", LogLevel::WARNING);
-        }
+    download_recursive(remote_root, fs::path(local_path));
 
-        std::string chmod_cmd = "sudo chmod 777 " + mount_point_;
-        int chmod_result = system(chmod_cmd.c_str());
-        if (chmod_result != 0) {
-            Logger::Log("Warning: Failed to set permissions on mount point", LogLevel::WARNING);
-        }
+    nfs_umount(nfs);
+    nfs_destroy_context(nfs);
+    return true;
 
-        // Create the repository directory if it doesn't exist
-        std::string repo_path = path_ + "/" + name_;
-        std::string mkdir_cmd = "sudo mkdir -p " + repo_path;
-        int mkdir_result = system(mkdir_cmd.c_str());
-        if (mkdir_result != 0) {
-            Logger::Log("Warning: Failed to create repository directory", LogLevel::WARNING);
-        }
-                
-        // Set proper permissions on the repository directory
-        chmod_cmd = "sudo chmod 777 " + repo_path;
-        chmod_result = system(chmod_cmd.c_str());
-        if (chmod_result != 0) {
-            Logger::Log("Warning: Failed to set permissions on repository directory", LogLevel::WARNING);
-        }
-
-        chown_cmd = "sudo chown $USER:$USER " + repo_path;
-        chown_result = system(chown_cmd.c_str());
-        if (chown_result != 0) {
-            Logger::Log("Warning: Failed to set ownership on repository directory", LogLevel::WARNING);
-        }
-    }
-
-    return mount_success;
-}
-
-void NFSRepository::EnsureNFSMounted() const {
-    // First check if server responds to ping
-    Logger::Log("Checking if server " + server_ip_ + " is reachable...");
-    std::string ping_cmd = "ping -c 1 -W 5 " + server_ip_ + " > /dev/null 2>&1";
-    int result = system(ping_cmd.c_str());
-    bool server_reachable = (result == 0);
-    
-    if (!server_reachable) {
-        std::string error_msg = "Server " + server_ip_ + " is not reachable. Please check:\n";
-        error_msg += "1. The server IP address is correct\n";
-        error_msg += "2. The server is running\n";
-        error_msg += "3. There are no firewall rules blocking access\n";
-        error_msg += "4. The server is actually an NFS server (not just any pingable machine)\n";
-        ErrorUtil::ThrowError(error_msg);
-    }
-
-    Logger::Log("Server " + server_ip_ + " is reachable, attempting to mount...");
-
-    if (!MountNFSShare()) {
-        std::string error_msg = "Failed to mount NFS share from " + server_ip_ + ":" + server_backup_path_ + 
-                              " to " + mount_point_ + "\n";
-        error_msg += "Server is reachable but mount failed. Please check:\n";
-        error_msg += "1. The NFS service is running on the server\n";
-        error_msg += "2. The export path '" + server_backup_path_ + "' exists and is exported\n";
-        error_msg += "3. The NFS export permissions allow this client to mount\n";
-        error_msg += "4. The server is actually running an NFS service\n";
-        ErrorUtil::ThrowError(error_msg);
-    }
-}
-
-void NFSRepository::CreateRemoteDirectory() const {
-    // No need to create the path directory since it's already created in EnsureNFSMounted
-    
-    // Test write access with sudo
-    std::string test_file = path_ + "/.test_write";
-    std::string touch_cmd = "sudo touch " + test_file;
-    int result = system(touch_cmd.c_str());
-    if (result != 0) {
-        ErrorUtil::ThrowError("Failed to write to NFS share. Please check your permissions on the NFS server.");
-    }
-
-    // Set permissions on the test file
-    std::string chmod_cmd = "sudo chmod 666 " + test_file;
-    result = system(chmod_cmd.c_str());
-    if (result != 0) {
-        Logger::Log("Warning: Failed to set permissions on test file");
-    }
-
-    // Try to remove the test file without sudo (to verify user permissions)
-    std::string rm_cmd = "rm -f " + test_file;
-    result = system(rm_cmd.c_str());
-    if (result != 0) {
-        // If regular remove fails, use sudo
-        rm_cmd = "sudo rm -f " + test_file;
-        result = system(rm_cmd.c_str());
-        if (result != 0) {
-            Logger::Log("Warning: Failed to remove test file: " + test_file);
-        }
-    }
+  } catch (...) {
+    nfs_destroy_context(nfs);
+    ErrorUtil::ThrowNested("Cannot download directory from remote NFS path: " + remote_root);
+  }
 }

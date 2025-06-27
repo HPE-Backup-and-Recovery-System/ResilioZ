@@ -440,8 +440,7 @@ bool BackupTab::handleBackupDetails() {
                                         QMessageBox::Warning);
     return false;
   }
-
-  destination_path_ = repository_->GetFullPath();
+  
   remarks_ = ui->remarksInput->text().toStdString();
 
   if (ui->incButton->isChecked()) {
@@ -473,10 +472,10 @@ void BackupTab::initBackup() {
       backup_ = nullptr;
     }
     if (repository_->GetType() == RepositoryType::REMOTE) {
-      backup_ = new Backup(source_path_, ".temp", backup_type_, remarks_);
+      backup_ = new Backup(repository_, source_path_, backup_type_, remarks_);
     } else {
       backup_ =
-          new Backup(source_path_, destination_path_, backup_type_, remarks_);
+          new Backup(repository_, source_path_,backup_type_, remarks_);
     }
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
@@ -497,18 +496,7 @@ void BackupTab::initBackup() {
         try {
           setWaitMessage("Creating backup...");
           backup_->BackupDirectory();
-
-          if (repository_->GetType() == RepositoryType::REMOTE) {
-            setWaitMessage("Uploading backup to remote repository...");
-
-            auto* remote_repository =
-                dynamic_cast<RemoteRepository*>(repository_);
-            remote_repository->UploadDirectory(".temp");
-
-            setWaitMessage("Cleaning up temporary backup files...");
-            fs::remove_all(".temp");
-          }
-
+          
           Logger::SystemLog("GUI | Backup created successfully.");
           setSuccessMessage("Backup created successfully");
           return true;

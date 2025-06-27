@@ -46,7 +46,7 @@ private:
   Repository* repository_;
   Backup* backup_;
   BackupType backup_type_ = BackupType::FULL;
-  std::string source_path_, destination_path_ = ".temp", remarks_ = "";
+  std::string source_path_, remarks_ = "";
 
   SchedulerRequestManager *request_mgr;
 
