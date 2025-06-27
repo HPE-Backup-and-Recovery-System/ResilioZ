@@ -29,7 +29,8 @@ CreateRepositoryDialog::CreateRepositoryDialog(QWidget* parent)
 CreateRepositoryDialog::~CreateRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
-  if (repository_) delete repository_;
+
+  repository_ = nullptr;
 }
 
 void CreateRepositoryDialog::setRepository(Repository* repository) {

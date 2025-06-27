@@ -433,7 +433,7 @@ bool BackupTab::handleBackupDetails() {
                                         QMessageBox::Warning);
     return false;
   }
-  
+
   remarks_ = ui->remarksInput->text().toStdString();
 
   if (ui->incButton->isChecked()) {
@@ -464,19 +464,18 @@ void BackupTab::initBackup() {
       delete backup_;
       backup_ = nullptr;
     }
-    if (repository_->GetType() == RepositoryType::REMOTE) {
-      backup_ = new Backup(repository_, source_path_, backup_type_, remarks_);
-    } else {
-      backup_ =
-          new Backup(repository_, source_path_,backup_type_, remarks_);
-    }
+
+    backup_ = new Backup(repository_, source_path_, backup_type_, remarks_);
+
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
                                         QString::fromStdString(e.what()),
-                                        QMessageBox::Warning);
+                                        QMessageBox::Critical);
     Logger::SystemLog(
         "GUI | Failed to initialize backup: " + std::string(e.what()),
         LogLevel::ERROR);
+
+    ui->nextButton->setEnabled(true);
     return;
   }
 
@@ -489,7 +488,7 @@ void BackupTab::initBackup() {
         try {
           setWaitMessage("Creating backup...");
           backup_->BackupDirectory();
-          
+
           Logger::SystemLog("GUI | Backup created successfully.");
           setSuccessMessage("Backup created successfully");
           return true;
@@ -498,6 +497,7 @@ void BackupTab::initBackup() {
           Logger::SystemLog(
               "GUI | Cannot create backup: " + std::string(e.what()),
               LogLevel::ERROR);
+
           setFailureMessage("Backup creation failed: " +
                             QString::fromStdString(e.what()));
           return false;
