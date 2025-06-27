@@ -54,7 +54,7 @@ std::string Repository::GetHashedPassword(const std::string& password) {
 }
 
 std::string Repository::GetResolvedPath(const std::string& path) {
-  return Validator::IsValidSftpPath(path)
+  return (Validator::IsValidSftpPath(path) || Validator::IsValidNfsPath(path))
              ? path
              : fs::weakly_canonical(fs::absolute(path)).string();
 }
