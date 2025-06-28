@@ -32,9 +32,9 @@ class NFSRepository : public Repository {
 
  private:
   void ParseNfsPath(const std::string& nfs_path);
-  bool NFSMountExists() const;
-  void CreateRemoteDirectory() const;
-  void RemoveRemoteDirectory() const;
+  void CreateNFSDirectory() const;
+  void RemoveNFSDirectory() const;
+  bool NFSDirectoryExists() const;
 
   std::string server_ip_;
   std::string server_backup_path_;
