@@ -7,6 +7,165 @@
 #include "gui/decorators/progress_box.h"
 #include "utils/utils.h"
 
+
+RestoreGUI::RestoreGUI(QWidget* parent, Repository* repo)
+    : Restore(repo), parent_(parent) {}
+
+RestoreGUI::~RestoreGUI() {}
+
+void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
+const fs::path output_path_,const std::string backup_name_){
+  ProgressBoxDecorator::runProgressBoxDeterminate(
+      parent_,
+      [this, output_path_, backup_name_](std::function<void(int)> setProgress,
+             std::function<void(const QString&)> setWaitMessage,
+             std::function<void(const QString&)> setSuccessMessage,
+             std::function<void(const QString&)> setFailureMessage) -> bool {
+        
+        try {
+          
+          setWaitMessage("Checking if repository exists...");
+          try{
+            if (!repo_->Exists()) {
+              setFailureMessage("Repository does not exist at location: " +
+                QString::fromStdString(repo_->GetPath()));
+                Logger::SystemLog("GUI | Restore | Failed to find repository",LogLevel::ERROR);                  
+                return false;
+              }
+            }
+            catch (const std::exception& e){
+              Logger::SystemLog("GUI | Restore | Failed to initialize restore: " + std::string(e.what()),LogLevel::ERROR);
+              setFailureMessage("Repository existence unconfirmed");
+              return false;
+            }
+          
+            
+            
+          setWaitMessage("Checking if destination folder exists...");
+          try{
+            QFileInfo destInfo(QString::fromStdString(output_path_));
+            if (!destInfo.exists() || !destInfo.isDir()) {
+              setFailureMessage("Destination folder does not exist at location: " +
+                                QString::fromStdString(output_path_));
+            
+              Logger::SystemLog("GUI | Restore | Failed to find destination",LogLevel::ERROR);                  
+              return false;
+            }
+          }
+          catch (const std::exception& e){
+            Logger::SystemLog(
+              "GUI | Failed to verify restore destination: " + std::string(e.what()),
+              LogLevel::ERROR);
+
+            setFailureMessage("Destination existence unconfirmed");
+            return false;
+          }
+
+          
+          
+          QString message = QString::fromStdString("Attempting restore from " + repo_->GetRepositoryInfoString() + " File: " + backup_name_);
+          setWaitMessage(message);
+
+          setWaitMessage("Preparing Destination...");
+          if(!fs::exists(output_path_)){
+            try {
+              fs::create_directories(output_path_);
+              setWaitMessage(QString::fromStdString(output_path_.string() + " created"));
+            } catch (const std::filesystem::filesystem_error& e) {
+              setFailureMessage(QString::fromStdString("Failed to create directory: " + std::string(e.what())));
+              return false;
+            }
+          } 
+          else{
+            setWaitMessage(QString::fromStdString(output_path_.string() + " exists"));
+          }
+
+          
+          
+          try{
+            LoadMetadata(backup_name_);
+          }
+          catch (const std::exception& e){
+            setFailureMessage(QString::fromStdString("Backup metadata not found: " + std::string(e.what())));
+            return false;
+          }
+
+          int processed_files = 0;
+          int restored_files = 0;
+
+          if (!metadata_ || !(*metadata_)) {
+              setFailureMessage("Metadata unavailable for backup.");
+              Logger::SystemLog("GUI | Restore | Metadata pointer is null", LogLevel::ERROR);
+              return false;
+          }
+
+          int total_files = (*metadata_)->files.size();
+
+          if (total_files == 0) {
+              setFailureMessage("No files to restore in the selected backup.");
+              Logger::SystemLog("GUI | Restore | No files in backup metadata", LogLevel::WARNING);
+              return false;
+          }
+
+          std::vector <std::string> failed_files;
+          for (const auto& [file_path, metadata] : (*metadata_)->files) {
+            try{
+              setWaitMessage(QString::fromStdString("Restoring " + file_path));
+              RestoreFile(file_path, output_path_, backup_name_);
+              restored_files++;
+              setWaitMessage(QString::fromStdString("Restore success for " + file_path));
+            }
+            catch (const std::exception& e){
+              setWaitMessage(QString::fromStdString("Restore failed for " + file_path));
+              Logger::SystemLog("GUI | Restore | Failed to restore: " + file_path, LogLevel::ERROR);
+              failed_files.push_back(file_path);
+            }
+
+            processed_files++;
+            setProgress(static_cast<int>((processed_files * 100) / total_files));
+          }
+
+          std::ostringstream out;
+          out << "Restore Summary:\n"
+          << " - Total files: " << total_files << "\n"
+          << " - Processed files: " << processed_files << "\n"
+          << " - Restored files: " << restored_files << "\n";
+
+          if (total_files != restored_files){
+            out << " - Status: Restore incomplete\n";
+
+            out << " - Missing files \n";
+            for (std::string file_name_: failed_files){
+              out << " --  " << file_name_ << " \n";
+            }
+            setFailureMessage(QString::fromStdString(out.str()));
+            return false;
+          }
+          
+          out << " - Status: Restore OK\n";
+          setSuccessMessage(QString::fromStdString(out.str()));
+
+          return true;
+
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "GUI | Restore | Cannot restore: " + std::string(e.what()),
+              LogLevel::ERROR);
+
+          setFailureMessage("Restore operation failed: " +
+                            QString::fromStdString(e.what()));
+          return false;
+        }
+      },
+      "Attempting restore...", "Restore operation successful.",
+      "Restore operation failed.",
+      [this, onFinishCallback](bool success) {
+        if (onFinishCallback) {
+          onFinishCallback(success);
+        }
+      });
+}
+
 BackupGUI::BackupGUI(QWidget* parent, Repository* repo,
                      const fs::path& input_path, BackupType type,
                      const std::string& remarks)

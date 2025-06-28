@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "backup_restore/all.h"
+#include "repositories/all.h"
 #include "services/all.h"
 #include "utils/utils.h"
 
@@ -131,7 +132,7 @@ void BackupSystem::CreateBackup() {
         UserIO::DisplayMinTitle("Automate Backup?", false), menu);
 
     if (choice == 0) {
-      ScheduleBackup();
+      ScheduleBackup(source, destination, type, remarks);
     }
 
     Logger::Log("Backup creation success");
@@ -194,8 +195,17 @@ void BackupSystem::CompareBackups() {
   }
 }
 
-void BackupSystem::ScheduleBackup() {
-  // TODO: Schedule Backup
+void BackupSystem::ScheduleBackup(std::string source, std::string destination, BackupType type, std::string remarks) {
+  std::string destination_name = repository_->GetName();
+  std::string destination_path = repository_->GetPath();
+  std::string destination_password = repository_->GetPassword();
+  RepositoryType destination_type = repository_->GetType();
+  std::string destination_created_at = "";
+
+  scheduler_service_->AttachSchedule(source, 
+            destination_name, destination_path,
+            destination_password, destination_created_at,
+            destination_type, type, remarks);
 }
 
 void BackupSystem::Log() {

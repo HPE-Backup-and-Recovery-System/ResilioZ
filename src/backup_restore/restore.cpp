@@ -39,7 +39,6 @@ Restore::~Restore() {
 
 void Restore::LoadMetadata(const std::string backup_name_) {
   Logger::Log("Loading Metadata");
-  if(metadata_!=nullptr) return;
   Logger::Log("Loading Backup Name: "+backup_name_);
   fs::path metadata_path = temp_dir_ / "backup" / backup_name_;
 

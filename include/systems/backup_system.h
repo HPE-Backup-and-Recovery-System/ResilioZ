@@ -17,7 +17,7 @@ class BackupSystem : public System {
   void CreateBackup();
   void ListBackups();
   void CompareBackups();
-  void ScheduleBackup();
+  void ScheduleBackup(std::string source, std::string destination, BackupType type, std::string remarks);
 
   Repository* repository_;
   RepositoryService* repo_service_;

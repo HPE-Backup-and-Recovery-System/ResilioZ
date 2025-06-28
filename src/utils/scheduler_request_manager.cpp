@@ -9,6 +9,7 @@
 #include "backup_restore/backup.hpp"
 #include "utils/scheduler_request_manager.h"
 #include "schedulers/schedule.h"
+#include "repositories/repository.h"
 #include "utils/error_util.h"
 #include "utils/logger.h"
 
@@ -71,14 +72,35 @@ std::vector<Schedule> SchedulerRequestManager::SendViewRequest(){
     return out;
 }
 
-std::string SchedulerRequestManager::SendAddRequest( std::string schedule,std::string source,
-    std::string destination, std::string remarks, BackupType type){
+std::string SchedulerRequestManager::SendAddRequest(
+            std::string schedule,std::string source,
+            std::string destination_name,std::string destination_path,
+            std::string destination_password,std::string destination_created_at,
+            RepositoryType destination_type,std::string remarks,BackupType type){
 
     nlohmann::json reqBody;
     reqBody["action"] = "add";
     reqBody["payload"] = schedule;
     reqBody["source"] = source;
-    reqBody["destination"] = destination;
+
+    reqBody["destination_name"] = destination_name;
+    reqBody["destination_path"] = destination_path;
+    reqBody["destination_password"] = destination_password;
+    reqBody["destination_created_at"] = destination_created_at;
+
+    if (destination_type == RepositoryType::LOCAL){
+        reqBody["destination_type"] = "local";
+    }
+
+    else if (destination_type == RepositoryType::NFS){
+        reqBody["destination_type"] = "nfs";
+    }
+
+
+    else if (destination_type == RepositoryType::REMOTE){
+        reqBody["destination_type"] = "remote";
+    }
+
     reqBody["type"] = type;
     reqBody["remarks"] = remarks;
     

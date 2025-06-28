@@ -17,6 +17,8 @@ std::string Repository::GetPath() const { return path_; }
 
 std::string Repository::GetFullPath() const { return path_ + "/" + name_; }
 
+std::string Repository::GetPassword() const { return password_; }
+
 RepositoryType Repository::GetType() const { return type_; }
 
 std::string Repository::GetRepositoryInfoString() const {

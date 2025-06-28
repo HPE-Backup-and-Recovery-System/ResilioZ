@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "schedulers/schedule.h"
 #include "backup_restore/backup.hpp"
+#include "repositories/repository.h"
 
 class SchedulerRequestManager{
     public:
@@ -14,7 +15,11 @@ class SchedulerRequestManager{
         std::string SendAddRequest(
             std::string schedule,
             std::string source,
-            std::string destination,
+            std::string destination_name,
+            std::string destination_path,
+            std::string destination_password,
+            std::string destination_created_at,
+            RepositoryType destination_type,
             std::string remarks,
             BackupType type);
         bool SendDeleteRequest(std::string schedule_id);

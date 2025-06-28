@@ -20,6 +20,7 @@ class Repository {
   std::string GetPath() const;
   std::string GetFullPath() const;
   RepositoryType GetType() const;
+  std::string GetPassword() const;
 
   std::string GetHashedPassword() const;
   std::string GetRepositoryInfoString() const;

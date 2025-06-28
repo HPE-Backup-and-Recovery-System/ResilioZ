@@ -2,10 +2,12 @@
 #define SCHEDULER_SERVICE_H_
 
 #include <string>
-#include <arpa/inet.h>
 
 #include <nlohmann/json.hpp>
+#include "backup_restore/backup.hpp"
 #include "utils/scheduler_request_manager.h"
+#include "repositories/all.h"
+#include "services/repository_service.h"
 #include "service.h"
 
 class SchedulerService : public Service {
@@ -15,7 +17,13 @@ class SchedulerService : public Service {
 
         void Run() override;
         void Log() override;
-
+        void AttachSchedule(std::string source, 
+            std::string destination_name,
+            std::string destination_path,
+            std::string destination_password,
+            std::string destination_created_at,
+            RepositoryType destination_type,
+            BackupType type, std::string remarks);
     
     private:
         void ShowMainMenu();
@@ -23,8 +31,8 @@ class SchedulerService : public Service {
         void RemoveSchedule();
         void ViewSchedules();
         
-        sockaddr_in serv_addr;
         SchedulerRequestManager *request_mgr;
+        RepositoryService *repo_service;
 };
 
 #endif
