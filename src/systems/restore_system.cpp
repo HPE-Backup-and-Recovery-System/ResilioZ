@@ -19,9 +19,7 @@ RestoreSystem::RestoreSystem() {
 
 RestoreSystem::~RestoreSystem() {
   delete repo_service_;
-  if (repository_ != nullptr) {
-    delete repository_;
-  }
+  repository_ = nullptr;
 }
 
 void RestoreSystem::Run() {
@@ -32,11 +30,6 @@ void RestoreSystem::Run() {
 
   while (true) {
     try {
-      if (repository_ != nullptr) {
-        delete repository_;
-        repository_ = nullptr;
-      }
-
       int choice = UserIO::HandleMenuWithSelect(title, main_menu);
 
       switch (choice) {
@@ -62,15 +55,11 @@ void RestoreSystem::Run() {
 }
 
 void RestoreSystem::RestoreFromBackup() {
-  bool loop = true;
   try {
-    do {
-      repository_ = repo_service_->SelectExistingRepository();
-      if (repository_ != nullptr) {
-        loop = false;
-      }
-      break;
-    } while (loop);
+    repository_ = repo_service_->SelectExistingRepository();
+    if (repository_ == nullptr) {
+      return;
+    }
 
     Restore restore(repository_);
     // List available backups
@@ -122,15 +111,12 @@ void RestoreSystem::RestoreFromBackup() {
 
 void RestoreSystem::ListBackups() {
   UserIO::DisplayMaxTitle("Fetch Backups of Repository");
-  bool loop = true;
   try {
-    do {
-      repository_ = repo_service_->SelectExistingRepository();
-      if (repository_ != nullptr) {
-        loop = false;
-      }
-      break;
-    } while (loop);
+    repository_ = repo_service_->SelectExistingRepository();
+    if (repository_ == nullptr) {
+      return;
+    }
+    
     Restore restore(repository_);
     // List available backups
     std::vector<std::string> backups = restore.ListBackups();
@@ -149,15 +135,12 @@ void RestoreSystem::ListBackups() {
 
 void RestoreSystem::CompareBackups() {
   UserIO::DisplayMaxTitle("Compare Backups of Repository");
-  bool loop = true;
   try {
-    do {
-      repository_ = repo_service_->SelectExistingRepository();
-      if (repository_ != nullptr) {
-        loop = false;
-      }
-      break;
-    } while (loop);
+    repository_ = repo_service_->SelectExistingRepository();
+    if (repository_ == nullptr) {
+      return;
+    }
+
     Restore restore(repository_);
     // List available backups
     std::vector<std::string> backups = restore.ListBackups();

@@ -160,6 +160,8 @@ void BackupTab::fillListTable() {
     noBackups->setForeground(Qt::darkGray);
     ui->listTable->setItem(0, 0, noBackups);
     return;
+  } else {
+    ui->listTable->setSpan(0, 0, 1, 1);
   }
 
   ui->listTable->setRowCount(backup_count);

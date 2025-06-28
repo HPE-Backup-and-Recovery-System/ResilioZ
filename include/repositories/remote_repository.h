@@ -10,7 +10,7 @@ class RemoteRepository : public Repository {
   RemoteRepository();
   RemoteRepository(const std::string& path, const std::string& name,
                    const std::string& password, const std::string& created_at);
-  ~RemoteRepository() {}
+  ~RemoteRepository() override {}
 
   bool Exists() const override;
   void Initialize() override;

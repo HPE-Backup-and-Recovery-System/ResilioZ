@@ -8,7 +8,7 @@ enum class RepositoryType { LOCAL, NFS, REMOTE };
 class Repository {
  public:
   Repository() = default;
-  virtual ~Repository() {}
+  virtual ~Repository() = default;
 
   virtual bool Exists() const = 0;
   virtual void Initialize() = 0;
