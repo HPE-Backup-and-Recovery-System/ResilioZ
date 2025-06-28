@@ -9,13 +9,14 @@
 
 int RunCLI(int argc, char** argv) {
   // UserIO::ClearTerminal();
-  Logger::TerminalLog(" ResilioZ (HPE) - Backup and Recovery System in Linux...");
+  Logger::TerminalLog(
+      " ResilioZ (HPE) - Backup and Recovery System in Linux...");
   System* system = nullptr;
 
   std::vector<std::string> main_menu = {
       "EXIT...", "Backup System", "Restore System", "Others (Services System)"};
   while (true) {
-    if (system) {
+    if (system != nullptr) {
       delete system;
       system = nullptr;
     }
@@ -26,6 +27,8 @@ int RunCLI(int argc, char** argv) {
     switch (choice) {
       case 0: {
         std::cout << " - Exiting...\n\n";
+        delete system;
+        system = nullptr;
         return EXIT_SUCCESS;
       }
       case 1: {

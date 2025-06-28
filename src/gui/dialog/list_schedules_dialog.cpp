@@ -70,7 +70,10 @@ void ListSchedulesDialog::fillTable() {
     noRepo->setForeground(Qt::darkGray);
     ui->schedule_table->setItem(0, 0, noRepo);
     return;
+  } else {
+    ui->schedule_table->setSpan(0, 0, 1, 1);
   }
+
   ui->schedule_table->setRowCount(schedule_count);
 
   for (int row = 0; row < schedule_count; row++) {

@@ -10,7 +10,7 @@ class LocalRepository : public Repository {
   LocalRepository();
   LocalRepository(const std::string& path, const std::string& name,
                   const std::string& password, const std::string& created_at);
-  ~LocalRepository() {}
+  ~LocalRepository() override {}
 
   bool Exists() const override;
   void Initialize() override;

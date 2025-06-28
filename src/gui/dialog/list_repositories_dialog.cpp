@@ -67,6 +67,8 @@ void ListRepositoriesDialog::fillTable() {
     noRepo->setForeground(Qt::darkGray);
     ui->repoTable->setItem(0, 0, noRepo);
     return;
+  } else {
+    ui->repoTable->setSpan(0, 0, 1, 1);
   }
 
   ui->repoTable->setRowCount(repo_count);
