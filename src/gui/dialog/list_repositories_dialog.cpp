@@ -23,6 +23,7 @@ ListRepositoriesDialog::ListRepositoriesDialog(QWidget* parent)
   ui->repoTable->verticalHeader()->setVisible(false);
 
   // Polished Features for Table
+  ui->repoTable->setSelectionMode(QAbstractItemView::NoSelection);
   ui->repoTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
   ui->repoTable->setShowGrid(true);
   ui->repoTable->setFocusPolicy(Qt::NoFocus);

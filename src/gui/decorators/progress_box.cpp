@@ -13,10 +13,10 @@
 QString ProgressBoxDecorator::getStyleSheet() {
   return QString(R"(
     QProgressBar {
-      border: 1px solid #CCC;
-      border-radius: 5px;
-      height: 18px;
+      border: 1px solid rgb(29, 31, 39);
+      height: 20px;
       text-align: center;
+      font-weight: bold;
     }
     
     QProgressBar::chunk {
@@ -41,19 +41,20 @@ QDialog* ProgressBoxDecorator::createProgressDialog(QWidget* parent,
   QDialog* dialog = new BlockingDialog(parent);
   dialog->setWindowTitle("Please Wait");
   dialog->setModal(true);
-  dialog->setMinimumSize(360, 120);
+  dialog->setMinimumSize(360, 160);
   dialog->setWindowFlags(dialog->windowFlags() & ~Qt::WindowCloseButtonHint);
   dialog->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 
   label = new QLabel(message, dialog);
-  label->setAlignment(Qt::AlignCenter);
+  label->setWordWrap(true);
+  label->setAlignment(Qt::AlignLeft);
   label->setStyleSheet(
       "font-size: 12pt; font-weight: 500; color: rgb(29, 31, 39)");
 
   QProgressBar* progressBar = new QProgressBar(dialog);
   progressBar->setObjectName("progressBar");
   progressBar->setStyleSheet(getStyleSheet());
-  progressBar->setTextVisible(true);
+  progressBar->setTextVisible(false);
   if (!determinate) {
     progressBar->setRange(0, 0);
   } else {
@@ -62,8 +63,9 @@ QDialog* ProgressBoxDecorator::createProgressDialog(QWidget* parent,
   }
 
   QVBoxLayout* layout = new QVBoxLayout(dialog);
-  layout->addWidget(label);
-  layout->addWidget(progressBar);
+  layout->addWidget(label, 1);
+  layout->addStretch();
+  layout->addWidget(progressBar, 0);
   dialog->setLayout(layout);
   dialog->show();
 
