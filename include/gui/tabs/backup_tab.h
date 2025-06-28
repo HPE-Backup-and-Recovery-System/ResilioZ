@@ -3,10 +3,12 @@
 
 #include <QWidget>
 
-#include "backup_restore/backup.hpp"
+#include "gui/decorators/core.h"
 #include "repositories/repository.h"
 #include "services/all.h"
 #include "systems/system.h"
+
+#include "utils/scheduler_request_manager.h"
 
 namespace Ui {
 class BackupTab;
@@ -37,12 +39,17 @@ class BackupTab : public QWidget {
   void on_compareBackupButton_clicked();
   void on_chooseRepoButton_compare_clicked();
 
- private:
+  void on_yesSchButton_clicked();
+
+private:
   Ui::BackupTab* ui;
   Repository* repository_;
-  Backup* backup_;
+  BackupGUI* backup_;
   BackupType backup_type_ = BackupType::FULL;
+  std::vector<BackupDetails> backup_list_;
   std::string source_path_, remarks_ = "";
+
+  SchedulerRequestManager *request_mgr;
 
   void resizeEvent(QResizeEvent* event) override;
   void checkRepoSelection();

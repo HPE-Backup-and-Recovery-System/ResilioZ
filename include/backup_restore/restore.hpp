@@ -31,10 +31,14 @@ class Restore {
 
   // Compare two backups
   void CompareBackups(const std::string& backup1, const std::string& backup2);
-
- private:
+  
+  protected:
   // Load metadata from backup
   void LoadMetadata(const std::string backup_name_);
+  Repository* repo_;
+  std::optional<BackupMetadata*> metadata_ = nullptr;
+
+ private:
 
   // Load a chunk from disk
   Chunk LoadChunk(const std::string& hash);
@@ -50,9 +54,7 @@ class Restore {
                              const fs::path output_path_);
   Chunk GetNextChunk(const FileMetadata& file_metadata, ProgressBar& progress);
 
-  Repository* repo_;
   fs::path temp_dir_;
-  std::optional<BackupMetadata*> metadata_ = nullptr;
   Chunker chunker_;
 };
 

@@ -1,5 +1,35 @@
 #ifndef CORE_DECORATOR_H
 #define CORE_DECORATOR_H
 
+#include <QWidget>
+#include <QFileInfo>
+
+#include "backup_restore/all.h"
+#include "repositories/all.h"
+
+class RestoreGUI: public Restore{
+  public:
+    RestoreGUI(QWidget* parent, Repository* repo);
+
+    ~RestoreGUI();
+
+    void RestoreAll(std::function<void(bool)> onFinishCallback = nullptr, const fs::path output_path_ = "",const std::string backup_name_ = "");
+
+  private:
+    QWidget* parent_;
+};
+
+class BackupGUI : public Backup {
+ public:
+  BackupGUI(QWidget* parent, Repository* repo, const fs::path& input_path,
+            BackupType type = BackupType::FULL,
+            const std::string& remarks = "");
+  ~BackupGUI();
+
+  void BackupDirectory(std::function<void(bool)> onFinishCallback = nullptr);
+
+ private:
+  QWidget* parent_;
+};
 
 #endif  // CORE_DECORATOR_H

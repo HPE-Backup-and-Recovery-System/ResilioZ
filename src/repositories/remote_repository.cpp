@@ -321,6 +321,8 @@ bool RemoteRepository::UploadFile(const std::string& local_file,
     return true;
 
   } catch (...) {
+    // std::cout << ("Failed to upload file to remote path: " + remote_full_path +
+    //               " - " + std::string(e.what()));
     if (sftp) sftp_free(sftp);
     if (session) {
       ssh_disconnect(session);

@@ -19,6 +19,7 @@ ListSchedulesDialog::ListSchedulesDialog(QWidget *parent)
     ui->schedule_table->verticalHeader()->setVisible(false);
 
     // Polished Features for Table
+    ui->schedule_table->setSelectionMode(QAbstractItemView::NoSelection);
     ui->schedule_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->schedule_table->setShowGrid(true);
     ui->schedule_table->setFocusPolicy(Qt::NoFocus);

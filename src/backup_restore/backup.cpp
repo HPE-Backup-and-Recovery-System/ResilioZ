@@ -458,7 +458,7 @@ void Backup::DisplayAllBackupDetails() {
 
     std::cout << std::setw(20) << backup.name << " | " << std::setw(10)
               << backup.type << " | " << std::setw(20) << backup.timestamp
-              << " | " << std::setw(30) << remarks << "\n";
+              << " | " << std::setw(30) << remarks << " | \n";
   }
   std::cout << std::string(90, '-') << "\n\n";
 }

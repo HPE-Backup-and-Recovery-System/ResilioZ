@@ -63,7 +63,7 @@ class Backup {
                              const std::string& backup2);
   std::vector<BackupDetails> GetAllBackupDetails();
 
- private:
+ protected:
   void BackupFile(const fs::path& file_path);
   bool CheckFileToSkip(const fs::path& file_path);
   FileMetadata CheckFileMetadata(const fs::path& file_path);

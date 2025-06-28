@@ -23,6 +23,7 @@ file(GLOB_RECURSE MAIN_SOURCE
 file(GLOB_RECURSE SCHEDULER_SOURCE
     "${PROJECT_SOURCE_DIR}/src/schedulers/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/backup_restore/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/repositories/*.cpp"
 )
 
 # All .ui Files Under src/gui/
@@ -124,9 +125,11 @@ target_include_directories(main PRIVATE
 # Include Directories for Libraries in Scheduler
 target_include_directories(scheduler PRIVATE 
     ${libcron_SOURCE_DIR}
+    ${LIBSSH_INCLUDE_DIRS}
+    ${ZLIB_INCLUDE_DIRS}
     ${ZSTD_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
-    ${ZSTD_INCLUDE_DIRS}
+    ${LIBNFS_INCLUDE_DIRS}
 )
 
 # Link Libraries for Main (CLI + GUI)
@@ -146,12 +149,15 @@ target_link_libraries(main PRIVATE
 
 # Link Libraries for Scheduler
 target_link_libraries(scheduler PRIVATE 
-    utils 
+    utils
     libcron
-    ${OPENSSL_LIBRARIES}
+    ${LIBSSH_LIBRARIES}
+    ${LIBNFS_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${ZSTD_LIBRARIES}
     OpenSSL::SSL 
     OpenSSL::Crypto
-    ${ZSTD_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
 )
 
 # Additional Dependencies for GUI

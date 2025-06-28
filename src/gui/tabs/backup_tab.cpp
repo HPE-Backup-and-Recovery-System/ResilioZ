@@ -4,13 +4,17 @@
 #include <QThread>
 #include <QTimer>
 
-#include "backup_restore/backup.hpp"
+#include "gui/decorators/core.h"
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
 #include "gui/dialog/create_repository_dialog.h"
 #include "gui/dialog/use_repository_dialog.h"
+#include "gui/dialog/attach_schedule_dialog.h"
 #include "gui/tabs/ui_backup_tab.h"
 #include "utils/utils.h"
+
+
+#include <iostream>
 
 BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
@@ -41,10 +45,21 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   repository_ = nullptr;
   backup_ = nullptr;
 
+  request_mgr = new SchedulerRequestManager();
+
   auto *header_list = ui->listTable->horizontalHeader(),
        *header_compare = ui->compareTable->horizontalHeader();
-  header_list->setSectionResizeMode(QHeaderView::Fixed);
-  header_compare->setSectionResizeMode(QHeaderView::Fixed);
+
+  header_list->setSectionResizeMode(0, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(1, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(2, QHeaderView::Fixed);
+  header_list->setSectionResizeMode(3, QHeaderView::Stretch);
+
+  header_compare->setSectionResizeMode(0, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(1, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(2, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(3, QHeaderView::Stretch);
+
   ui->listTable->verticalHeader()->setVisible(false);
   ui->compareTable->verticalHeader()->setVisible(false);
 
@@ -62,8 +77,7 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->compareTable->setFocusPolicy(Qt::NoFocus);
 
   // Table Size
-  QTimer::singleShot(
-      0, this, [this]() { setColSize(ui->listTable->viewport()->width()); });
+  QTimer::singleShot(0, this, [this]() { setColSize(ui->listTable->width()); });
 
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
@@ -80,33 +94,102 @@ BackupTab::~BackupTab() {
   delete ui;
   if (backup_) delete backup_;
   if (repository_) delete repository_;
+  if (request_mgr) delete request_mgr;
 }
 
 void BackupTab::resizeEvent(QResizeEvent* event) {
   QWidget::resizeEvent(event);
-  setColSize(ui->listTable->viewport()->width());
+  setColSize(ui->listTable->width());
 }
 
 void BackupTab::setColSize(int tableWidth) {
   int col_name = 300;
-  int col_type = 160;
-  int col_time = 200;
+  int col_type = 200;
+  int col_time = 300;
   int col_rem = tableWidth - col_name - col_type - col_time;
 
   ui->listTable->setColumnWidth(0, col_name);  // Name
   ui->listTable->setColumnWidth(1, col_type);  // Type
-  ui->listTable->setColumnWidth(2, col_type);  // Time
+  ui->listTable->setColumnWidth(2, col_time);  // Time
   ui->listTable->setColumnWidth(3, col_rem);   // Remarks
 
   ui->compareTable->setColumnWidth(0, col_name);  // Name
   ui->compareTable->setColumnWidth(1, col_type);  // Type
-  ui->compareTable->setColumnWidth(2, col_type);  // Time
+  ui->compareTable->setColumnWidth(2, col_time);  // Time
   ui->compareTable->setColumnWidth(3, col_rem);   // Remarks
 }
 
-void BackupTab::fillListTable() { ui->listTable->clearContents(); }
+void BackupTab::fillListTable() {
+  ui->listTable->clearContents();
+  int backup_count = static_cast<int>(backup_list_.size());
 
-void BackupTab::fillCompareTable() { ui->compareTable->clearContents(); }
+  if (!backup_count) {
+    ui->listTable->setRowCount(1);
+    ui->listTable->setSpan(0, 0, 1, 4);
+    auto* noBackups = new QTableWidgetItem("< No Backups Available >");
+    noBackups->setTextAlignment(Qt::AlignCenter);
+    noBackups->setForeground(Qt::darkGray);
+    ui->listTable->setItem(0, 0, noBackups);
+    return;
+  }
+
+  ui->listTable->setRowCount(backup_count);
+  for (int row = 0; row < backup_count; ++row) {
+    const BackupDetails& dtls = backup_list_[row];
+
+    auto* nameItem = new QTableWidgetItem(QString::fromStdString(dtls.name));
+    nameItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 0, nameItem);
+
+    auto* typeItem = new QTableWidgetItem(QString::fromStdString(dtls.type));
+    typeItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 1, typeItem);
+
+    auto* timeItem =
+        new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
+    timeItem->setTextAlignment(Qt::AlignCenter);
+    ui->listTable->setItem(row, 2, timeItem);
+
+    ui->listTable->setItem(
+        row, 3, new QTableWidgetItem(QString::fromStdString(dtls.remarks)));
+  }
+}
+
+void BackupTab::fillCompareTable() {
+  ui->compareTable->clearContents();
+  int backup_count = static_cast<int>(backup_list_.size());
+
+  if (!backup_count) {
+    ui->compareTable->setRowCount(1);
+    ui->compareTable->setSpan(0, 0, 1, 4);
+    auto* noBackups = new QTableWidgetItem("< No Backups Available >");
+    noBackups->setTextAlignment(Qt::AlignCenter);
+    noBackups->setForeground(Qt::darkGray);
+    ui->compareTable->setItem(0, 0, noBackups);
+    return;
+  }
+
+  ui->compareTable->setRowCount(backup_count);
+  for (int row = 0; row < backup_count; ++row) {
+    const BackupDetails& dtls = backup_list_[row];
+
+    auto* nameItem = new QTableWidgetItem(QString::fromStdString(dtls.name));
+    nameItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 0, nameItem);
+
+    auto* typeItem = new QTableWidgetItem(QString::fromStdString(dtls.type));
+    typeItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 1, typeItem);
+
+    auto* timeItem =
+        new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
+    timeItem->setTextAlignment(Qt::AlignCenter);
+    ui->compareTable->setItem(row, 2, timeItem);
+
+    ui->compareTable->setItem(
+        row, 3, new QTableWidgetItem(QString::fromStdString(dtls.remarks)));
+  }
+}
 
 void BackupTab::on_createBackupButton_clicked() {
   repository_ = nullptr;
@@ -241,6 +324,7 @@ void BackupTab::on_backButton_2_clicked() {
   int index = ui->stackedWidget_listBackup->currentIndex();
   if (index > 0) {
     ui->stackedWidget_listBackup->setCurrentIndex(index - 1);
+    ui->nextButton_2->setHidden(false);
   } else {
     ui->stackedWidget->setCurrentIndex(0);
   }
@@ -296,10 +380,7 @@ void BackupTab::on_nextButton_2_clicked() {
     return;
   }
 
-  if (index < total - 1) {
-    ui->stackedWidget_listBackup->setCurrentIndex(index + 1);
-  } else {
-    ui->nextButton_2->setEnabled(false);
+  if (index == 0) {
     listBackups();
   }
   updateProgress();
@@ -433,7 +514,7 @@ bool BackupTab::handleBackupDetails() {
                                         QMessageBox::Warning);
     return false;
   }
-  
+
   remarks_ = ui->remarksInput->text().toStdString();
 
   if (ui->incButton->isChecked()) {
@@ -464,57 +545,127 @@ void BackupTab::initBackup() {
       delete backup_;
       backup_ = nullptr;
     }
-    if (repository_->GetType() == RepositoryType::REMOTE) {
-      backup_ = new Backup(repository_, source_path_, backup_type_, remarks_);
-    } else {
-      backup_ =
-          new Backup(repository_, source_path_,backup_type_, remarks_);
-    }
+
+    backup_ =
+        new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
+
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Initialization Failure",
                                         QString::fromStdString(e.what()),
-                                        QMessageBox::Warning);
+                                        QMessageBox::Critical);
     Logger::SystemLog(
         "GUI | Failed to initialize backup: " + std::string(e.what()),
         LogLevel::ERROR);
+
+    ui->nextButton->setEnabled(true);
     return;
   }
 
-  // TODO: Check and Refine
-  ProgressBoxDecorator::runProgressBoxIndeterminate(
-      this,
-      [this](std::function<void(const QString&)> setWaitMessage,
-             std::function<void(const QString&)> setSuccessMessage,
-             std::function<void(const QString&)> setFailureMessage) -> bool {
-        try {
-          setWaitMessage("Creating backup...");
-          backup_->BackupDirectory();
-          
-          Logger::SystemLog("GUI | Backup created successfully.");
-          setSuccessMessage("Backup created successfully");
-          return true;
+  try {
+    backup_->BackupDirectory([this](bool success) {
+      if (success) {
+        ui->stackedWidget->setCurrentIndex(0);
+        checkRepoSelection();
+      } else {
+        ui->nextButton->setEnabled(true);
+      }
+    });
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Finalization Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Critical);
+    Logger::SystemLog(
+        "GUI | Failed to finalize backup: " + std::string(e.what()),
+        LogLevel::ERROR);
 
-        } catch (const std::exception& e) {
-          Logger::SystemLog(
-              "GUI | Cannot create backup: " + std::string(e.what()),
-              LogLevel::ERROR);
-          setFailureMessage("Backup creation failed: " +
-                            QString::fromStdString(e.what()));
-          return false;
-        }
-      },
-      "Creating backup...", "Backup created successfully.",
-      "Backup creation failed.",
-      [this](bool success) {
-        if (success) {
-          ui->stackedWidget->setCurrentIndex(0);
-          checkRepoSelection();
-        } else {
-          ui->nextButton->setEnabled(true);
-        }
-      });
+    ui->nextButton->setEnabled(true);
+  }
 }
 
-void BackupTab::listBackups() {}
+void BackupTab::listBackups() {
+  try {
+    if (backup_) {
+      delete backup_;
+      backup_ = nullptr;
+    }
+    source_path_ = "/";
+    backup_type_ = BackupType::FULL;
+    remarks_ = "";
+
+    backup_ =
+        new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
+
+    ProgressBoxDecorator::runProgressBoxIndeterminate(
+        this,
+        [&](std::function<void(const QString&)> setWaitMessage,
+            std::function<void(const QString&)> setSuccessMessage,
+            std::function<void(const QString&)> setFailureMessage) -> bool {
+          try {
+            setWaitMessage("Fetching backups...");
+            backup_list_ = backup_->GetAllBackupDetails();
+            fillListTable();
+
+            Logger::SystemLog("GUI | Backups fetched from repository : " +
+                              repository_->GetRepositoryInfoString());
+
+            setSuccessMessage(
+                "Backups fetched from repository: " +
+                QString::fromStdString(repository_->GetRepositoryInfoString()));
+            return true;
+
+          } catch (const std::exception& e) {
+            Logger::SystemLog(
+                "GUI | Cannot fetch backups: " + std::string(e.what()),
+                LogLevel::ERROR);
+            setFailureMessage("Backup fetching failed: " +
+                              QString::fromStdString(e.what()));
+            return false;
+          }
+        },
+        "Fetching backups...", "Backups fetched successfully.",
+        "Backup fetching failed.",
+        [&](bool success) {
+          if (success) {
+            ui->nextButton_2->setHidden(true);
+            ui->stackedWidget_listBackup->setCurrentIndex(1);
+          } else {
+            ui->nextButton->setHidden(false);
+          }
+        });
+
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Listing Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Critical);
+    Logger::SystemLog("GUI | Failed to list backups: " + std::string(e.what()),
+                      LogLevel::ERROR);
+
+    return;
+  }
+}
 
 void BackupTab::compareBackups() {}
+
+void BackupTab::on_yesSchButton_clicked()
+{
+    std::string destination_path_ = repository_->GetFullPath();
+    AttachScheduleDialog dialog(this, source_path_,destination_path_,remarks_,backup_type_);
+    dialog.setWindowFlags(Qt::Window);
+    if (dialog.exec() == QDialog::Accepted) {
+      std::string schedule = dialog.getSchedule();
+      
+      std::string schedule_id = request_mgr->SendAddRequest(schedule, source_path_,
+            repository_->GetName(),repository_->GetPath(),
+            repository_->GetPassword(), "",
+            repository_->GetType(), remarks_, backup_type_);
+    
+      QString success_message = QString::fromStdString("Schedule " + schedule_id + " successfully created.");
+      MessageBoxDecorator::showMessageBox(this, "Success", success_message,
+                                            QMessageBox::Information);
+
+    } else {
+      
+    }
+
+}
+

@@ -7,6 +7,7 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include <string>
+#include "repositories/all.h"
 
 class Scheduler {
  public:
@@ -16,6 +17,7 @@ class Scheduler {
  private:
   libcron::Cron<> cron;
   std::map<std::string, std::string> schedules;
+  std::map<std::string, Repository*> repo_data;
   sockaddr_in address;
   int conn_id = 1;
 
