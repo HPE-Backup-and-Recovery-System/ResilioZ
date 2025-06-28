@@ -58,7 +58,7 @@ include_directories(
 # ------------------------------------------------------------------------------
 # Dependencies...
 
-# Find Packages which Contain FindLib.cmake - Install: libssh-dev, libzstd-dev, zlib1g-dev, pkg-config
+# Find Packages which Contain FindLib.cmake - Install: libssh-dev, libzstd-dev, zlib1g-dev, pkg-config, libnfs-dev
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
 
