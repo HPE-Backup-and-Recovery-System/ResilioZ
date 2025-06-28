@@ -98,7 +98,7 @@ QLabel {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="menuPage">
          <property name="autoFillBackground">
@@ -1599,7 +1599,7 @@ QTableView {
                <property name="styleSheet">
                 <string notr="true">QLabel {
 	font-size: 18pt;
-	font-weight: 500;
+	font-weight: 700;
 }
 
 QRadioButton {
@@ -1717,7 +1717,7 @@ QPushButton#nextButton_3:disabled {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>0</number>
+                   <number>1</number>
                   </property>
                   <widget class="QWidget" name="selectRepoPage_compare">
                    <property name="sizePolicy">
@@ -1810,6 +1810,9 @@ QLabel {
                       <property name="text">
                        <string>First Backup</string>
                       </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
                      </widget>
                     </item>
                     <item>
@@ -1887,6 +1890,19 @@ QTableView {
                      </widget>
                     </item>
                     <item>
+                     <spacer name="verticalSpacer">
+                      <property name="orientation">
+                       <enum>Qt::Vertical</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>20</width>
+                        <height>40</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
                      <widget class="Line" name="line">
                       <property name="orientation">
                        <enum>Qt::Horizontal</enum>
@@ -1897,6 +1913,9 @@ QTableView {
                      <widget class="QLabel" name="label_19">
                       <property name="text">
                        <string>Second Backup</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
                       </property>
                      </widget>
                     </item>

@@ -21,6 +21,8 @@ CreateScheduleDialog::CreateScheduleDialog(QWidget* parent)
   repository_ = nullptr;
   remarks = "";
   type = BackupType::FULL;
+
+  checkRepoSelection();
 }
 
 CreateScheduleDialog::~CreateScheduleDialog() {
@@ -49,6 +51,10 @@ void CreateScheduleDialog::updateButtons() {
   } else {
     ui->nextButton->setText("Next");
   }
+}
+
+void CreateScheduleDialog::checkRepoSelection() {
+  ui->nextButton->setEnabled(repository_ != nullptr);
 }
 
 void CreateScheduleDialog::on_nextButton_clicked() {
@@ -94,8 +100,6 @@ void CreateScheduleDialog::on_backButton_clicked() {
 
 bool CreateScheduleDialog::handleEndpointDetails() {
   std::string source_path_ = ui->sourceInput->text().toStdString();
-  std::string destination_path_ = repository_->GetFullPath();
-
   if (source_path_ == "") {
     source_path_ = ".";
   }
@@ -107,6 +111,14 @@ bool CreateScheduleDialog::handleEndpointDetails() {
     return false;
   }
 
+  if (repository_ == nullptr) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Repository Missing", "Please select a repository to continue.",
+        QMessageBox::Warning);
+    return false;
+  }
+
+  std::string destination_path_ = repository_->GetFullPath();
   if (destination_path_ == "" || !Validator::IsValidPath(destination_path_)) {
     MessageBoxDecorator::showMessageBox(this, "Invalid Destination",
                                         "Destination is invalid.",
@@ -206,12 +218,14 @@ void CreateScheduleDialog::addSchedule() {
 }
 void CreateScheduleDialog::on_repoSelect_clicked() {
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     ui->repoInput->setText(QString::fromStdString(repository_->GetFullPath()));
+    ui->repoInput->setToolTip(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
     ui->repoInput->setText("<NONE>");
   }
+  checkRepoSelection();
 }

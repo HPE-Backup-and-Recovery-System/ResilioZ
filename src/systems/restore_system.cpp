@@ -152,7 +152,6 @@ void RestoreSystem::CompareBackups() {
   bool loop = true;
   try {
     do {
-      repo_service_->ListRepositories();
       repository_ = repo_service_->SelectExistingRepository();
       if (repository_ != nullptr) {
         loop = false;

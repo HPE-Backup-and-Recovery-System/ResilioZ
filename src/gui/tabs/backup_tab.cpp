@@ -43,6 +43,10 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   repository_ = nullptr;
   backup_ = nullptr;
 
+  backup_list_.clear();
+  fillListTable();
+  fillCompareTable();
+  
   request_mgr = new SchedulerRequestManager();
 
   auto* header_list = ui->listTable->horizontalHeader();
@@ -192,12 +196,17 @@ void BackupTab::fillCompareTable() {
   ui->firstCmpTable->setSpan(0, 0, 1, 4);
   ui->secondCmpTable->setSpan(0, 0, 1, 4);
 
-  auto* noSelection = new QTableWidgetItem("< No Selection >");
-  noSelection->setTextAlignment(Qt::AlignCenter);
-  noSelection->setForeground(Qt::darkGray);
+  auto *noSelection_1 = new QTableWidgetItem("< No Selection >"),
+       *noSelection_2 = new QTableWidgetItem("< No Selection >");
 
-  ui->firstCmpTable->setItem(0, 0, noSelection);
-  ui->secondCmpTable->setItem(0, 0, noSelection);
+  noSelection_1->setTextAlignment(Qt::AlignCenter);
+  noSelection_1->setForeground(Qt::darkGray);
+
+  noSelection_2->setTextAlignment(Qt::AlignCenter);
+  noSelection_2->setForeground(Qt::darkGray);
+
+  ui->firstCmpTable->setItem(0, 0, noSelection_1);
+  ui->secondCmpTable->setItem(0, 0, noSelection_2);
 
   for (int i = 0; i < backup_count; ++i) {
     const BackupDetails& dtls = backup_list_[i];
@@ -237,6 +246,9 @@ void BackupTab::fillCompareTable() {
     ui->firstCmpTable->setItem(row, 3, remarksItem_1);
     ui->secondCmpTable->setItem(row, 3, remarksItem_2);
   }
+
+  ui->firstCmpTable->selectRow(0);
+  ui->secondCmpTable->selectRow(0);
 }
 
 void BackupTab::on_createBackupButton_clicked() {
@@ -479,7 +491,6 @@ void BackupTab::on_createRepoButton_clicked() {
     repository_ = nullptr;
   }
   CreateRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     ui->repoInfoLabel->setText(
@@ -497,7 +508,6 @@ void BackupTab::on_useRepoButton_clicked() {
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     ui->repoInfoLabel->setText(
@@ -515,7 +525,6 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Listing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
@@ -534,7 +543,6 @@ void BackupTab::on_chooseRepoButton_compare_clicked() {
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Comparing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
@@ -799,7 +807,7 @@ void BackupTab::on_yesSchButton_clicked() {
   std::string destination_path_ = repository_->GetFullPath();
   AttachScheduleDialog dialog(this, source_path_, destination_path_, remarks_,
                               backup_type_);
-  dialog.setWindowFlags(Qt::Window);
+
   if (dialog.exec() == QDialog::Accepted) {
     std::string schedule = dialog.getSchedule();
 

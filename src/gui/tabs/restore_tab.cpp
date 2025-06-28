@@ -124,7 +124,7 @@ void RestoreTab::on_backButton_clicked() {
 
 void RestoreTab::on_chooseRepoButton_clicked() {
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
+  
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     QString repoMessage =
@@ -288,7 +288,6 @@ void RestoreTab::onFileSelected() {
   ui->nextButton->setEnabled(validSelection);
 }
 
-// Handle repo selection
 bool RestoreTab::handleSelectRepo() {
   if (repository_ == nullptr) {
     MessageBoxDecorator::showMessageBox(

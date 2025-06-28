@@ -19,10 +19,7 @@ RepositoryService::RepositoryService() : repository_(nullptr) {
 }
 
 RepositoryService::~RepositoryService() {
-  if (repository_ != nullptr) {
-    delete repository_;
-    repository_ = nullptr;
-  }
+  repository_ = nullptr;
   if (repodata_mgr != nullptr) {
     delete repodata_mgr;
     repodata_mgr = nullptr;

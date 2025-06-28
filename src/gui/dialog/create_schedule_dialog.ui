@@ -351,7 +351,7 @@ QLineEdit:disabled {
                    </widget>
                   </item>
                   <item row="1" column="1">
-                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0">
+                   <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
                     <item>
                      <widget class="QLineEdit" name="repoInput">
                       <property name="sizePolicy">
@@ -361,7 +361,7 @@ QLineEdit:disabled {
                        </sizepolicy>
                       </property>
                       <property name="text">
-                       <string>&lt;None&gt;</string>
+                       <string>&lt;NONE&gt;</string>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignCenter</set>
@@ -374,20 +374,32 @@ QLineEdit:disabled {
                     <item>
                      <widget class="QPushButton" name="repoSelect">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
                       <property name="styleSheet">
                        <string notr="true">QPushButton {
-	padding:8px;
-	font-size:12pt;
+	padding: 4px;
 	text-align: center;
+	width: 27px;
+	height: 27px;
+	qproperty-iconSize: 24px 24px;
 }</string>
                       </property>
                       <property name="text">
-                       <string>Select Repository</string>
+                       <string/>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../resources/assets.qrc">
+                        <normaloff>:/assets/icons/icons/box-open.svg</normaloff>:/assets/icons/icons/box-open.svg</iconset>
+                      </property>
+                      <property name="iconSize">
+                       <size>
+                        <width>24</width>
+                        <height>24</height>
+                       </size>
                       </property>
                      </widget>
                     </item>
@@ -456,7 +468,7 @@ QRadioButton:checked {
                </property>
                <layout class="QGridLayout" name="gridLayout_5">
                 <item row="0" column="0">
-                 <layout class="QGridLayout" name="gridLayout_4">
+                 <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,0">
                   <property name="leftMargin">
                    <number>30</number>
                   </property>
@@ -485,7 +497,7 @@ QRadioButton:checked {
                   <item row="0" column="0">
                    <widget class="QLabel" name="label_9">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -507,10 +519,13 @@ QRadioButton:checked {
                   </item>
                   <item row="0" column="1">
                    <layout class="QVBoxLayout" name="verticalLayout_5">
+                    <property name="spacing">
+                     <number>6</number>
+                    </property>
                     <item>
                      <widget class="QRadioButton" name="fullButton">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
@@ -526,7 +541,7 @@ QRadioButton:checked {
                     <item>
                      <widget class="QRadioButton" name="incButton">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
@@ -539,7 +554,7 @@ QRadioButton:checked {
                     <item>
                      <widget class="QRadioButton" name="diffButton">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
@@ -723,6 +738,8 @@ QPushButton#nextButton:disabled {
   <tabstop>backButton</tabstop>
   <tabstop>nextButton</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="../resources/assets.qrc"/>
+ </resources>
  <connections/>
 </ui>

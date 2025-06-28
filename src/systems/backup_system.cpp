@@ -160,21 +160,21 @@ void BackupSystem::CompareBackups() {
       }
       break;
     } while (loop);
-    if (repository_ != nullptr) {
-      Backup backup(repository_, source, BackupType::FULL, "");
-      std::vector<std::string> backups = backup.ListBackups();
-      std::vector<std::string> menu = {"Go BACK..."};
-      menu.insert(menu.end(), backups.begin(), backups.end());
 
-      int choice1 = UserIO::HandleMenuWithSelect(
-          UserIO::DisplayMinTitle("Select First Backup", false), menu);
-      if (choice1 == 0) return;
+    Backup backup(repository_, source, BackupType::FULL, "");
+    std::vector<std::string> backups = backup.ListBackups();
+    std::vector<std::string> menu = {"Go BACK..."};
+    menu.insert(menu.end(), backups.begin(), backups.end());
 
-      int choice2 = UserIO::HandleMenuWithSelect(
-          UserIO::DisplayMinTitle("Select Second Backup", false), menu);
-      if (choice2 == 0) return;
-      backup.CompareBackups(backups[choice1 - 1], backups[choice2 - 1]);
-    }
+    int choice1 = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select First Backup", false), menu);
+    if (choice1 == 0) return;
+
+    int choice2 = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select Second Backup", false), menu);
+    if (choice2 == 0) return;
+    backup.CompareBackups(backups[choice1 - 1], backups[choice2 - 1]);
+
   } catch (...) {
     ErrorUtil::ThrowNested("Backup comparison failure");
   }
