@@ -3,16 +3,10 @@
 
 #include <string>
 
-enum class RepositoryType
-{
-  LOCAL,
-  NFS,
-  REMOTE
-};
+enum class RepositoryType { LOCAL, NFS, REMOTE };
 
-class Repository
-{
-public:
+class Repository {
+ public:
   Repository() = default;
   virtual ~Repository() {}
 
@@ -46,12 +40,16 @@ public:
   static std::string GetFormattedTypeString(const RepositoryType &type,
                                             bool upper = true);
 
-  virtual bool UploadFile(const std::string &local_file, const std::string &local_path) const;
-  virtual bool UploadDirectory(const std::string &local_dir, const std::string &local_path) const;
-  virtual bool DownloadFile(const std::string &local_file, const std::string &local_path) const;
-  virtual bool DownloadDirectory(const std::string &local_dir, const std::string &local_path) const;
+  virtual bool UploadFile(const std::string &source_file,
+                          const std::string &destination_path) const = 0;
+  virtual bool UploadDirectory(const std::string &source_dir,
+                               const std::string &destination_path) const = 0;
+  virtual bool DownloadFile(const std::string &source_file,
+                            const std::string &destination_path) const = 0;
+  virtual bool DownloadDirectory(const std::string &source_dir,
+                                 const std::string &destination_path) const = 0;
 
-protected:
+ protected:
   std::string name_;
   std::string path_;
   std::string password_;
@@ -59,4 +57,4 @@ protected:
   RepositoryType type_;
 };
 
-#endif // REPOSITORY_H_
+#endif  // REPOSITORY_H_

@@ -76,19 +76,3 @@ std::string Repository::GetFormattedTypeString(const RepositoryType& type,
   if (type == RepositoryType::REMOTE) return (upper ? "REMOTE" : "Remote");
   return (upper ? "UNKNOWN" : "Unknown");
 }
-
-bool Repository::UploadFile(const std::string &local_file, const std::string &local_path) const {
-    return false;
-}
-
-bool Repository::UploadDirectory(const std::string &local_dir, const std::string &local_path) const {
-    return false;
-}
-
-bool Repository::DownloadFile(const std::string &local_file, const std::string &local_path) const {
-    return false;
-}
-
-bool Repository::DownloadDirectory(const std::string &local_dir, const std::string &local_path) const {
-    return false;
-}

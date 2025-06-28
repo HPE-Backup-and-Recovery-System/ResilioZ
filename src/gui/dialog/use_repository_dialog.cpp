@@ -48,8 +48,8 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 UseRepositoryDialog::~UseRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
-  // To do: Fix the pointer deletion issue, currently just commented out
-  // if (repository_) delete repository_;
+  
+  repository_ = nullptr;
 }
 
 void UseRepositoryDialog::setRepository(Repository* repository) {
@@ -176,16 +176,12 @@ void UseRepositoryDialog::useRepository(int row) {
           setWaitMessage("Checking if repository exists...");
 
           if (!repository_->Exists()) {
-            repodata_mgr_->DeleteEntry(repository_->GetName(),
-                                       repository_->GetPath());
-
-            Logger::SystemLog("GUI | Deleted entry for repository: " +
+            Logger::SystemLog("GUI | Selection Failed for Repository: " +
                               repository_->GetRepositoryInfoString() +
                               " as it does not exist");
 
             setFailureMessage("Repository not found at location: " +
-                              QString::fromStdString(repository_->GetPath()) +
-                              "\nRepository entry has been removed.");
+                              QString::fromStdString(repository_->GetPath()));
 
             return false;
           }

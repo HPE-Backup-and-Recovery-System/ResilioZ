@@ -19,8 +19,14 @@ RepositoryService::RepositoryService() : repository_(nullptr) {
 }
 
 RepositoryService::~RepositoryService() {
-  if (repository_) delete repository_;
-  delete repodata_mgr;
+  if (repository_) {
+    delete repository_;
+    repository_ = nullptr;
+  }
+  if (repodata_mgr) {
+    delete repodata_mgr;
+    repodata_mgr = nullptr;
+  }
 }
 
 void RepositoryService::Run() { ShowMainMenu(); }
@@ -35,6 +41,11 @@ void RepositoryService::ShowMainMenu() {
       "Fetch Existing Repository", "Delete a Repository"};
 
   while (true) {
+    if (repository_) {
+      delete repository_;
+      repository_ = nullptr;
+    }
+
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMaxTitle("Repository Service", false), main_menu);
 
@@ -112,11 +123,12 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
   LocalRepository* repo = nullptr;
-  try { 
+  try {
     repo = new LocalRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " +
-                            repo->GetPath());
+      delete repo;
+      repo = nullptr;
+      ErrorUtil::ThrowError("Repository already exists at location: " + path);
     } else {
       repo->Initialize();
       Logger::Log("Repository: " + name +
@@ -128,13 +140,12 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
     repodata_mgr->AddEntry(
         {name, repo->GetPath(), "local", repo->GetHashedPassword(), timestamp});
 
-    delete repository_;
-    repository_ = repo;
+    SetRepository(repo);
   } catch (...) {
     ErrorUtil::ThrowNested("Local repository not initialized");
-
-    if (repo != repository_) {
+    if (repo && repo != repository_) {
       delete repo;
+      repo = nullptr;
     }
   }
 }
@@ -152,10 +163,14 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   try {
     repo = new NFSRepository(nfs_path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " + repo->GetPath());
+      delete repo;
+      repo = nullptr;
+      ErrorUtil::ThrowError("Repository already exists at location: " +
+                            nfs_path);
     } else {
       repo->Initialize();
-      Logger::Log("Repository: " + name + " created at location: " + repo->GetPath());
+      Logger::Log("Repository: " + name +
+                  " created at location: " + repo->GetPath());
       Logger::TerminalLog(
           "=> Note: Please remember your password. \n"
           "Losing it means that your data is irrecoverably lost.");
@@ -166,8 +181,9 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
     SetRepository(repo);
   } catch (...) {
     ErrorUtil::ThrowNested("NFS repository not initialized");
-    if (repo != repository_) {
+    if (repo && repo != repository_) {
       delete repo;
+      repo = nullptr;
     }
   }
 }
@@ -185,8 +201,9 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
   try {
     repo = new RemoteRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      ErrorUtil::ThrowError("Repository already exists at location: " +
-                            repo->GetPath());
+      delete repo;
+      repo = nullptr;
+      ErrorUtil::ThrowError("Repository already exists at location: " + path);
     } else {
       repo->Initialize();
       Logger::Log("Repository: " + name +
@@ -201,9 +218,9 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
     SetRepository(repo);
   } catch (const std::exception& e) {
     ErrorUtil::ThrowNested("Remote repository not initialized");
-
-    if (repo != repository_) {
+    if (repo && repo != repository_) {
       delete repo;
+      repo = nullptr;
     }
   }
 }
@@ -266,7 +283,8 @@ Repository* RepositoryService::SelectExistingRepository() {
       repo = new LocalRepository(selected_repo.path, selected_repo.name,
                                  password, selected_repo.created_at);
     } else if (selected_repo.type == "nfs") {
-      repo = new NFSRepository(selected_repo.path, selected_repo.name, password, selected_repo.created_at);
+      repo = new NFSRepository(selected_repo.path, selected_repo.name, password,
+                               selected_repo.created_at);
     } else if (selected_repo.type == "remote") {
       repo = new RemoteRepository(selected_repo.path, selected_repo.name,
                                   password, selected_repo.created_at);
@@ -276,8 +294,10 @@ Repository* RepositoryService::SelectExistingRepository() {
     }
 
     if (!repo->Exists()) {
-      ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      std::string missing_path = repo->GetPath();
       delete repo;
+      repo = nullptr;
+      ErrorUtil::ThrowError("Repository not found in path: " + missing_path);
     }
 
     Logger::Log("Repository: " + selected_repo.name + " [" +
@@ -288,15 +308,18 @@ Repository* RepositoryService::SelectExistingRepository() {
 
   } catch (const std::exception& e) {
     ErrorUtil::ThrowNested("Unable to fetch repository");
-    delete repo;
+    if (repo) {
+      delete repo;
+      repo = nullptr;
+    }
     return nullptr;
   }
 }
 
 void RepositoryService::DeleteRepository() {
   try {
-    const auto repo = SelectExistingRepository();
-    if (repo == nullptr) {
+    Repository* repo = SelectExistingRepository();
+    if (!repo) {
       return;
     }
 
@@ -304,9 +327,12 @@ void RepositoryService::DeleteRepository() {
       repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
       Logger::Log("Deleted entry for repository: " +
                   repo->GetRepositoryInfoString() + " as it does not exist");
-      ErrorUtil::ThrowError("Repository not found in path: " + repo->GetPath());
+      std::string missing_path = repo->GetPath();
       delete repo;
+      repo = nullptr;
+      ErrorUtil::ThrowError("Repository not found in path: " + missing_path);
     }
+
     repodata_mgr->DeleteEntry(repo->GetName(), repo->GetPath());
     repo->Delete();
 
@@ -323,9 +349,8 @@ void RepositoryService::DeleteRepository() {
 Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
-  if (repository_) {
+  if (repository_ && repository_ != new_repo) {
     delete repository_;
-    repository_ = nullptr;
   }
   repository_ = new_repo;
 }

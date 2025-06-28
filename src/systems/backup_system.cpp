@@ -22,10 +22,15 @@ BackupSystem::~BackupSystem() {
 void BackupSystem::Run() {
   std::string title = UserIO::DisplayMaxTitle("BACKUP SYSTEM", false);
   std::vector<std::string> main_menu = {"Go BACK...", "Create Backup",
-                                        "List Backups of Path",
-                                        "Compare Backups of Path"};
+                                        "List Backups",
+                                        "Compare Backups"};
   while (true) {
     try {
+      if (repository_ != nullptr) {
+        delete repository_;
+        repository_ = nullptr;
+      }
+
       int choice = UserIO::HandleMenuWithSelect(title, main_menu);
 
       switch (choice) {
@@ -59,6 +64,11 @@ void BackupSystem::CreateBackup() {
   bool loop = true;
   try {
     do {
+      if (repository_ != nullptr) {
+        delete repository_;
+        repository_ = nullptr;
+      }
+
       menu = {"Go BACK... ", "Create New Repository",
               "Use Existing Repository"};
       choice = UserIO::HandleMenuWithSelect(
@@ -95,7 +105,8 @@ void BackupSystem::CreateBackup() {
     type = new_repo ? BackupType::FULL : static_cast<BackupType>(choice);
     remarks = Prompter::PromptInput("Remarks for Backup (Optional)");
 
-    if (repository_->GetType() != RepositoryType::REMOTE && repository_->GetType() != RepositoryType::NFS) {
+    if (repository_->GetType() != RepositoryType::REMOTE &&
+        repository_->GetType() != RepositoryType::NFS) {
       destination = repository_->GetFullPath();
     }
 
@@ -132,19 +143,19 @@ void BackupSystem::CreateBackup() {
 }
 
 void BackupSystem::ListBackups() {
-  UserIO::DisplayMaxTitle("Fetch Backups of Path");
+  UserIO::DisplayMaxTitle("Fetch Backups of Repository");
   std::string source = "/";
   bool loop = true;
   try {
     do {
-          repository_ = repo_service_->SelectExistingRepository();
-          if (repository_ != nullptr) {
-            loop = false;
-          }
-          break;
+      repository_ = repo_service_->SelectExistingRepository();
+      if (repository_ != nullptr) {
+        loop = false;
+      }
+      break;
     } while (loop);
-    if(repository_!=nullptr){
-      Backup backup(repository_,source,BackupType::FULL, "");
+    if (repository_ != nullptr) {
+      Backup backup(repository_, source, BackupType::FULL, "");
       backup.DisplayAllBackupDetails();
     }
   } catch (...) {
@@ -153,21 +164,20 @@ void BackupSystem::ListBackups() {
 }
 
 void BackupSystem::CompareBackups() {
-  UserIO::DisplayMaxTitle("Compare Backups of Path");
+  UserIO::DisplayMaxTitle("Compare Backups of Repository");
   std::string source = "/";
   bool loop = true;
   try {
     do {
-          repository_ = repo_service_->SelectExistingRepository();
-          if (repository_ != nullptr) {
-            loop = false;
-          }
-          break;
+      repository_ = repo_service_->SelectExistingRepository();
+      if (repository_ != nullptr) {
+        loop = false;
+      }
+      break;
     } while (loop);
-    if(repository_!=nullptr){
-
-      Backup backup(repository_,source,BackupType::FULL, "");
-      std::vector<std::string>  backups = backup.ListBackups();
+    if (repository_ != nullptr) {
+      Backup backup(repository_, source, BackupType::FULL, "");
+      std::vector<std::string> backups = backup.ListBackups();
       std::vector<std::string> menu = {"Go BACK..."};
       menu.insert(menu.end(), backups.begin(), backups.end());
 
@@ -178,7 +188,7 @@ void BackupSystem::CompareBackups() {
       int choice2 = UserIO::HandleMenuWithSelect(
           UserIO::DisplayMinTitle("Select Second Backup", false), menu);
       if (choice2 == 0) return;
-        backup.CompareBackups(backups[choice1-1], backups[choice2-1]);
+      backup.CompareBackups(backups[choice1 - 1], backups[choice2 - 1]);
     }
   } catch (...) {
     ErrorUtil::ThrowNested("Backup comparison failure");

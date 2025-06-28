@@ -20,7 +20,7 @@ QPushButton {
     background-color:rgb(6, 134, 103);
     color: white;
     font-size: 12pt;
-    padding: 0px 16px;
+    padding: 4px 16px;
     text-align: center;
 }
     )");

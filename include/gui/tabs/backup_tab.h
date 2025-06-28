@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-#include "backup_restore/backup.hpp"
+#include "gui/decorators/core.h"
 #include "repositories/repository.h"
 #include "services/all.h"
 #include "systems/system.h"
@@ -44,8 +44,9 @@ class BackupTab : public QWidget {
 private:
   Ui::BackupTab* ui;
   Repository* repository_;
-  Backup* backup_;
+  BackupGUI* backup_;
   BackupType backup_type_ = BackupType::FULL;
+  std::vector<BackupDetails> backup_list_;
   std::string source_path_, remarks_ = "";
 
   SchedulerRequestManager *request_mgr;
