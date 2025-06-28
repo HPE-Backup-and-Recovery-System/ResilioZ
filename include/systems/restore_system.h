@@ -1,19 +1,19 @@
 #ifndef RESTORE_SYSTEM_H
 #define RESTORE_SYSTEM_H
 
-#include "systems/system.h"
 #include "services/all.h"
+#include "systems/system.h"
 
 class RestoreSystem : public System {
  public:
   RestoreSystem();
-  ~RestoreSystem() override;
+  ~RestoreSystem();
 
   void Run() override;
   void Log() override;
 
  private:
-  void RestoreFromBackup(); 
+  void RestoreFromBackup();
   void ListBackups();
   void CompareBackups();
   // void ResumeFailedRestore();

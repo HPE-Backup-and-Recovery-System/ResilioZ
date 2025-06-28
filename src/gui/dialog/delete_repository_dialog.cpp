@@ -48,7 +48,7 @@ DeleteRepositoryDialog::DeleteRepositoryDialog(QWidget* parent)
 DeleteRepositoryDialog::~DeleteRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
-  if (repository_) delete repository_;
+  if (repository_ != nullptr) delete repository_;
 }
 
 void DeleteRepositoryDialog::resizeEvent(QResizeEvent* event) {

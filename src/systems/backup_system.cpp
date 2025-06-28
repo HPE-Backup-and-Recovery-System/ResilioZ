@@ -17,7 +17,7 @@ BackupSystem::BackupSystem() {
 BackupSystem::~BackupSystem() {
   delete repo_service_;
   delete scheduler_service_;
-  if (repository_) delete repository_;
+  if (repository_ != nullptr) delete repository_;
 }
 
 void BackupSystem::Run() {

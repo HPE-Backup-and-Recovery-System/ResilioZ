@@ -12,20 +12,27 @@
 
 namespace fs = std::filesystem;
 
-RestoreSystem::RestoreSystem() { repo_service_ = new RepositoryService(); }
+RestoreSystem::RestoreSystem() {
+  repo_service_ = new RepositoryService();
+  repository_ = nullptr;
+}
 
 RestoreSystem::~RestoreSystem() {
   delete repo_service_;
-  if (repository_) delete repository_;
+  if (repository_ != nullptr) {
+    delete repository_;
+  }
 }
 
 void RestoreSystem::Run() {
   std::string title = UserIO::DisplayMaxTitle("RESTORE SYSTEM", false);
+
   std::vector<std::string> main_menu = {"Go BACK...", "Restore from Backup",
                                         "List Backups", "Compare Backups"};
+
   while (true) {
     try {
-      if (repository_) {
+      if (repository_ != nullptr) {
         delete repository_;
         repository_ = nullptr;
       }

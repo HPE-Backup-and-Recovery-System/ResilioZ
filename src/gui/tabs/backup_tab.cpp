@@ -108,9 +108,9 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
 
 BackupTab::~BackupTab() {
   delete ui;
-  if (backup_) delete backup_;
-  if (repository_) delete repository_;
-  if (request_mgr) delete request_mgr;
+  if (backup_ != nullptr) delete backup_;
+  if (repository_ != nullptr) delete repository_;
+  if (request_mgr != nullptr) delete request_mgr;
 }
 
 void BackupTab::resizeEvent(QResizeEvent* event) {
@@ -474,7 +474,7 @@ void BackupTab::on_nextButton_3_clicked() {
 }
 
 void BackupTab::on_createRepoButton_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
@@ -492,7 +492,7 @@ void BackupTab::on_createRepoButton_clicked() {
 }
 
 void BackupTab::on_useRepoButton_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
@@ -510,7 +510,7 @@ void BackupTab::on_useRepoButton_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_list_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
@@ -529,7 +529,7 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_compare_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
@@ -630,7 +630,7 @@ bool BackupTab::handleSchedule() {
 
 void BackupTab::initBackup() {
   try {
-    if (backup_) {
+    if (backup_ != nullptr) {
       delete backup_;
       backup_ = nullptr;
     }
@@ -673,7 +673,7 @@ void BackupTab::initBackup() {
 
 void BackupTab::listBackups() {
   try {
-    if (backup_) {
+    if (backup_ != nullptr) {
       delete backup_;
       backup_ = nullptr;
     }
@@ -758,7 +758,7 @@ void BackupTab::listBackups() {
 
 void BackupTab::compareBackups() {
   try {
-    if (backup_) {
+    if (backup_ != nullptr) {
       delete backup_;
       backup_ = nullptr;
     }

@@ -19,11 +19,11 @@ RepositoryService::RepositoryService() : repository_(nullptr) {
 }
 
 RepositoryService::~RepositoryService() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
-  if (repodata_mgr) {
+  if (repodata_mgr != nullptr) {
     delete repodata_mgr;
     repodata_mgr = nullptr;
   }
@@ -41,7 +41,7 @@ void RepositoryService::ShowMainMenu() {
       "Fetch Existing Repository", "Delete a Repository"};
 
   while (true) {
-    if (repository_) {
+    if (repository_ != nullptr) {
       delete repository_;
       repository_ = nullptr;
     }
@@ -349,7 +349,7 @@ void RepositoryService::DeleteRepository() {
 Repository* RepositoryService::GetRepository() { return repository_; }
 
 void RepositoryService::SetRepository(Repository* new_repo) {
-  if (repository_ && repository_ != new_repo) {
+  if (repository_ != nullptr && repository_ != new_repo) {
     delete repository_;
   }
   repository_ = new_repo;

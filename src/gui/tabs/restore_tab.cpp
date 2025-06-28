@@ -20,6 +20,8 @@ RestoreTab::RestoreTab(QWidget* parent)
   ui->setupUi(this);
 
   ui->stackedWidget->setCurrentIndex(0);
+  ui->stackedWidget_attemptRestore->setCurrentIndex(0);
+
   ui->backButton->setAutoDefault(true);
   ui->backButton->setDefault(false);
   ui->nextButton->setAutoDefault(true);
@@ -38,7 +40,7 @@ RestoreTab::RestoreTab(QWidget* parent)
 
 RestoreTab::~RestoreTab() {
   delete ui;
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
   }
 }
@@ -56,7 +58,7 @@ void RestoreTab::updateButtons() {
   if (index == 0) {
     ui->backButton->setStyleSheet("QPushButton { opacity: 0; }");
 
-    if (repository_) {
+    if (repository_ != nullptr) {
       ui->nextButton->setEnabled(true);
     } else {
       ui->nextButton->setEnabled(false);
