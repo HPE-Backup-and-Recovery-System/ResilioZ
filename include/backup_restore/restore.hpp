@@ -56,6 +56,13 @@ class Restore {
 
   fs::path temp_dir_;
   Chunker chunker_;
+
+  void SetFilePermissions(const fs::path& file_path, const std::string& permissions);
+  std::string CalculateFileSHA256(const fs::path& file_path);
+  bool CheckFileIntegrity(const fs::path& file_path, const std::string& expected_checksum);
+  void ReportIntegrityFailures(const fs::path output_path_);
+  
+  std::vector<std::string> integrity_failures_; // Track files that failed integrity check
 };
 
 #endif  // RESTORE_HPP_

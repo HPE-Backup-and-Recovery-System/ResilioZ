@@ -132,6 +132,9 @@ FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
   FileMetadata metadata;
   metadata.original_filename = file_path.filename().string();
 
+  // Get file permissions
+  metadata.permissions = GetFilePermissions(file_path);
+
   // Check if it's a symlink
   if (fs::is_symlink(file_path)) {
     metadata.is_symlink = true;
@@ -139,10 +142,13 @@ FileMetadata Backup::CheckFileMetadata(const fs::path& file_path) {
     // For symlinks, we don't need to chunk the content, just store the target
     metadata.total_size = 0;
     metadata.mtime = fs::last_write_time(file_path);
+    metadata.sha256_checksum = ""; // Symlinks don't have content checksum
   } else {
     metadata.is_symlink = false;
     metadata.total_size = fs::file_size(file_path);
     metadata.mtime = fs::last_write_time(file_path);
+    // Calculate SHA256 checksum for regular files
+    metadata.sha256_checksum = CalculateFileSHA256(file_path);
   }
 
   return metadata;
@@ -232,6 +238,8 @@ void Backup::SaveMetadata() {
     file_json["chunk_hashes"] = file_metadata.chunk_hashes;
     file_json["total_size"] = file_metadata.total_size;
     file_json["is_symlink"] = file_metadata.is_symlink;
+    file_json["permissions"] = file_metadata.permissions;
+    file_json["sha256_checksum"] = file_metadata.sha256_checksum;
     if (file_metadata.is_symlink) {
       file_json["symlink_target"] = file_metadata.symlink_target;
     }
@@ -358,6 +366,10 @@ BackupMetadata Backup::LoadPreviousMetadata(const std::string& backup_name) {
     if (file_metadata.is_symlink) {
       file_metadata.symlink_target = file_json["symlink_target"];
     }
+
+    // Load new fields with backward compatibility
+    file_metadata.permissions = file_json.value("permissions", "");
+    file_metadata.sha256_checksum = file_json.value("sha256_checksum", "");
 
     metadata.files[file_path] = file_metadata;
   }
@@ -508,6 +520,7 @@ bool Backup::CheckFileForChanges(const fs::path& file_path,
   if (fs::is_symlink(file_path)) {
     std::string current_target = fs::read_symlink(file_path).string();
     auto mtime = fs::last_write_time(file_path);
+    std::string current_permissions = GetFilePermissions(file_path);
 
     // Convert both times to seconds for comparison
     auto current_mtime_seconds =
@@ -540,4 +553,68 @@ bool Backup::CheckFileForChanges(const fs::path& file_path,
 
   return size != previous_metadata.total_size ||
          current_mtime_seconds != previous_mtime_seconds;
+}
+
+std::string Backup::CalculateFileSHA256(const fs::path& file_path) {
+  std::ifstream file(file_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not open file for SHA256 calculation: " + file_path.string());
+  }
+
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+
+  char buffer[4096];
+  while (file.read(buffer, sizeof(buffer))) {
+    SHA256_Update(&sha256, buffer, file.gcount());
+  }
+  SHA256_Update(&sha256, buffer, file.gcount()); // Read remaining bytes
+
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_Final(hash, &sha256);
+
+  // Convert hash to hex string
+  std::stringstream ss;
+  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+    ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+  }
+
+  return ss.str();
+}
+
+std::string Backup::GetFilePermissions(const fs::path& file_path) {
+  std::error_code ec;
+  auto perms = fs::status(file_path, ec).permissions();
+  
+  if (ec) {
+    ErrorUtil::ThrowError("Could not get file permissions: " + file_path.string());
+  }
+
+  // Convert permissions to octal format
+  std::string perms_str;
+  perms_str += (perms & fs::perms::owner_read) != fs::perms::none ? "r" : "-";
+  perms_str += (perms & fs::perms::owner_write) != fs::perms::none ? "w" : "-";
+  perms_str += (perms & fs::perms::owner_exec) != fs::perms::none ? "x" : "-";
+  perms_str += (perms & fs::perms::group_read) != fs::perms::none ? "r" : "-";
+  perms_str += (perms & fs::perms::group_write) != fs::perms::none ? "w" : "-";
+  perms_str += (perms & fs::perms::group_exec) != fs::perms::none ? "x" : "-";
+  perms_str += (perms & fs::perms::others_read) != fs::perms::none ? "r" : "-";
+  perms_str += (perms & fs::perms::others_write) != fs::perms::none ? "w" : "-";
+  perms_str += (perms & fs::perms::others_exec) != fs::perms::none ? "x" : "-";
+
+  // Convert to octal
+  int octal = 0;
+  if (perms_str[0] == 'r') octal |= 0400;
+  if (perms_str[1] == 'w') octal |= 0200;
+  if (perms_str[2] == 'x') octal |= 0100;
+  if (perms_str[3] == 'r') octal |= 0040;
+  if (perms_str[4] == 'w') octal |= 0020;
+  if (perms_str[5] == 'x') octal |= 0010;
+  if (perms_str[6] == 'r') octal |= 0004;
+  if (perms_str[7] == 'w') octal |= 0002;
+  if (perms_str[8] == 'x') octal |= 0001;
+
+  std::stringstream ss;
+  ss << std::oct << std::setw(4) << std::setfill('0') << octal;
+  return ss.str();
 }

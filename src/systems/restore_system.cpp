@@ -98,12 +98,6 @@ void RestoreSystem::RestoreFromBackup() {
     fs::create_directories(restore_dir);
     restore.RestoreAll(restore_dir.string(), backup_name);
 
-    if (location_choice == 0) {
-      Logger::Log("Restore completed successfully to original location");
-    } else {
-      Logger::Log("Restore completed successfully to: " + restore_dir.string());
-    }
-
   } catch (...) {
     ErrorUtil::ThrowNested("Restore operation failed");
   }

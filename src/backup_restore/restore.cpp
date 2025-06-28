@@ -1,5 +1,6 @@
 #include "backup_restore/restore.hpp"
 
+#include <openssl/sha.h>
 #include <zstd.h>
 
 #include <filesystem>
@@ -74,6 +75,10 @@ void Restore::LoadMetadata(const std::string backup_name_) {
       file_metadata.symlink_target = file_json["symlink_target"];
     }
     
+    // Load new fields with backward compatibility
+    file_metadata.permissions = file_json.value("permissions", "");
+    file_metadata.sha256_checksum = file_json.value("sha256_checksum", "");
+    
    files[file_path] = file_metadata;
   }
   Logger::Log("Assigning values to metadata_");
@@ -88,6 +93,9 @@ void Restore::RestoreFile(const std::filesystem::path & file_path, const fs::pat
     ErrorUtil::ThrowError("File not found in backup: " + file_path.string());
   }
 
+  // Clear previous integrity failures for single file restore
+  integrity_failures_.clear();
+
   std::string filename = file_metadata->second.original_filename;
   fs::path output_file = PrepareOutputPath(filename, file_path, output_path_);
 
@@ -100,6 +108,13 @@ void Restore::RestoreFile(const std::filesystem::path & file_path, const fs::pat
     
     // Restore file metadata (timestamps)
     fs::last_write_time(output_file, file_metadata->second.mtime);
+    
+    // Restore file permissions if available
+    if (!file_metadata->second.permissions.empty()) {
+      SetFilePermissions(output_file, file_metadata->second.permissions);
+    }
+    
+    // For symlinks, we don't need to check integrity since they don't have content checksums
     return;
   }
 
@@ -116,6 +131,17 @@ void Restore::RestoreFile(const std::filesystem::path & file_path, const fs::pat
 
   // Restore file metadata
   fs::last_write_time(output_file, file_metadata->second.mtime);
+  
+  // Restore file permissions if available
+  if (!file_metadata->second.permissions.empty()) {
+    SetFilePermissions(output_file, file_metadata->second.permissions);
+  }
+  
+  // Check file integrity
+  if (!CheckFileIntegrity(output_file, file_metadata->second.sha256_checksum)) {
+    Logger::Log("File integrity check failed for " + output_file.string(),LogLevel::WARNING);
+    integrity_failures_.push_back(output_file.string());
+  }
 }
 
 std::optional<std::pair<std::string, FileMetadata>> Restore::FindFileMetadata(
@@ -180,11 +206,18 @@ void Restore::RestoreAll(const fs::path output_path_,const std::string backup_na
   Logger::Log("Restoring all files");
   if(!fs::exists(output_path_)) fs::create_directories(output_path_);
   Logger::Log(output_path_.string() + " exists/created");
+  
+  // Clear previous integrity failures
+  integrity_failures_.clear();
+  
   LoadMetadata(backup_name_);
   Logger::Log("Metadata Loaded");
   for (const auto& [file_path, metadata] : (*metadata_)->files) {
     RestoreFile(file_path, output_path_, backup_name_);
   }
+  
+  // Report any integrity failures
+  ReportIntegrityFailures(output_path_);
 }
 
 Chunk Restore::LoadChunk(const std::string& hash) {
@@ -301,4 +334,78 @@ void Restore::CompareBackups(const std::string& backup1,
              << "\n - Added files: " << added_files
              << "\n - Deleted files: " << deleted_files << std::endl;
   Logger::TerminalLog(comparison.str());
+}
+
+void Restore::SetFilePermissions(const fs::path& file_path, const std::string& permissions) {
+  if (permissions.empty()) {
+    return; // Skip if no permissions stored
+  }
+
+  try {
+    // Convert octal string to integer
+    int perms = std::stoi(permissions, nullptr, 8);
+    
+    // Convert to filesystem permissions
+    fs::perms fs_perms = fs::perms::none;
+    if (perms & 0400) fs_perms |= fs::perms::owner_read;
+    if (perms & 0200) fs_perms |= fs::perms::owner_write;
+    if (perms & 0100) fs_perms |= fs::perms::owner_exec;
+    if (perms & 0040) fs_perms |= fs::perms::group_read;
+    if (perms & 0020) fs_perms |= fs::perms::group_write;
+    if (perms & 0010) fs_perms |= fs::perms::group_exec;
+    if (perms & 0004) fs_perms |= fs::perms::others_read;
+    if (perms & 0002) fs_perms |= fs::perms::others_write;
+    if (perms & 0001) fs_perms |= fs::perms::others_exec;
+    
+    fs::permissions(file_path, fs_perms);
+  } catch (const std::exception& e) {
+    Logger::Log("Warning: Could not set file permissions for " + file_path.string() + ": " + e.what());
+  }
+}
+
+std::string Restore::CalculateFileSHA256(const fs::path& file_path) {
+  std::ifstream file(file_path, std::ios::binary);
+  if (!file) {
+    ErrorUtil::ThrowError("Could not open file for SHA256 calculation: " + file_path.string());
+  }
+
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+
+  char buffer[4096];
+  while (file.read(buffer, sizeof(buffer))) {
+    SHA256_Update(&sha256, buffer, file.gcount());
+  }
+  SHA256_Update(&sha256, buffer, file.gcount()); // Read remaining bytes
+
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_Final(hash, &sha256);
+
+  // Convert hash to hex string
+  std::stringstream ss;
+  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+    ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+  }
+
+  return ss.str();
+}
+
+bool Restore::CheckFileIntegrity(const fs::path& file_path, const std::string& expected_checksum) {
+  if (expected_checksum.empty()) {
+    return true; // Skip check if no checksum stored (e.g., symlinks)
+  }
+  std::string actual_checksum = CalculateFileSHA256(file_path);
+  return actual_checksum == expected_checksum;
+}
+
+void Restore::ReportIntegrityFailures(const fs::path output_path_) {
+  if (!integrity_failures_.empty()) {
+    Logger::Log(std::to_string(integrity_failures_.size()) + " file(s) failed integrity check during restore:\n", LogLevel::WARNING);
+    
+    for (const auto& failed_file : integrity_failures_) {
+      Logger::Log(" - " + failed_file, LogLevel::WARNING);
+    }
+    Logger::Log("Restore finished successfully to: " + output_path_.string() + " with integrity failures.", LogLevel::WARNING);
+  }
+  else Logger::Log("Restore finished successfully to: " + output_path_.string() , LogLevel::INFO);
 }
