@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Backup Verification Results</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QDialog#BackupVerificationDialog {
