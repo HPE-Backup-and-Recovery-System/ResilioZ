@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>980</width>
-    <height>598</height>
+    <width>1000</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -134,7 +134,7 @@ QLabel {
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Delete Schedule</string>
+               <string>Available Schedules</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -210,7 +210,7 @@ QTableView {
            </property>
            <column>
             <property name="text">
-             <string>Id</string>
+             <string>ID</string>
             </property>
            </column>
            <column>
@@ -276,6 +276,15 @@ QPushButton#nextButton:disabled {
             <enum>QFrame::Raised</enum>
            </property>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <property name="spacing">
+             <number>30</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
             <item>
              <widget class="QPushButton" name="backButton">
               <property name="enabled">

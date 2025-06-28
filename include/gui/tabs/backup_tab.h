@@ -7,7 +7,6 @@
 #include "repositories/repository.h"
 #include "services/all.h"
 #include "systems/system.h"
-
 #include "utils/scheduler_request_manager.h"
 
 namespace Ui {
@@ -41,15 +40,15 @@ class BackupTab : public QWidget {
 
   void on_yesSchButton_clicked();
 
-private:
+ private:
   Ui::BackupTab* ui;
   Repository* repository_;
   BackupGUI* backup_;
   BackupType backup_type_ = BackupType::FULL;
   std::vector<BackupDetails> backup_list_;
   std::string source_path_, remarks_ = "";
-
-  SchedulerRequestManager *request_mgr;
+  std::string cmp_first_backup_ = "", cmp_second_backup_ = "";
+  SchedulerRequestManager* request_mgr;
 
   void resizeEvent(QResizeEvent* event) override;
   void checkRepoSelection();

@@ -7,19 +7,21 @@
 #include <QFileInfoList>
 #include <QTimer>
 
+#include "backup_restore/backup.hpp"
+#include "backup_restore/restore.hpp"
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
 #include "gui/dialog/use_repository_dialog.h"
 #include "gui/tabs/ui_restore_tab.h"
 #include "utils/utils.h"
-#include "backup_restore/backup.hpp"
-#include "backup_restore/restore.hpp"
 
 RestoreTab::RestoreTab(QWidget* parent)
     : QWidget(parent), ui(new Ui::RestoreTab) {
   ui->setupUi(this);
 
   ui->stackedWidget->setCurrentIndex(0);
+  ui->stackedWidget_attemptRestore->setCurrentIndex(0);
+
   ui->backButton->setAutoDefault(true);
   ui->backButton->setDefault(false);
   ui->nextButton->setAutoDefault(true);
@@ -28,8 +30,7 @@ RestoreTab::RestoreTab(QWidget* parent)
   repository_ = nullptr;
   backup_file = "";
   backup_destination = "";
-    
-  
+
   connect(ui->stackedWidget_attemptRestore, &QStackedWidget::currentChanged,
           this, &RestoreTab::onAttemptRestorePageChanged);
 
@@ -37,9 +38,9 @@ RestoreTab::RestoreTab(QWidget* parent)
   updateProgress();
 }
 
-RestoreTab::~RestoreTab() { 
-  delete ui; 
-  if (repository_){
+RestoreTab::~RestoreTab() {
+  delete ui;
+  if (repository_ != nullptr) {
     delete repository_;
   }
 }
@@ -55,19 +56,19 @@ void RestoreTab::updateButtons() {
   int index = ui->stackedWidget_attemptRestore->currentIndex();
   int total = ui->stackedWidget_attemptRestore->count();
   if (index == 0) {
-    ui->backButton->setEnabled(false);
+    ui->backButton->setStyleSheet("QPushButton { opacity: 0; }");
 
-    if (repository_){
+    if (repository_ != nullptr) {
       ui->nextButton->setEnabled(true);
-    }
-    else{
+    } else {
       ui->nextButton->setEnabled(false);
     }
 
   } else if (index == 1) {
-    ui->backButton->setEnabled(true);
+    ui->backButton->setStyleSheet("QPushButton { opacity: 1; }");
     ui->nextButton->setEnabled(false);
   } else {
+    ui->backButton->setStyleSheet("QPushButton { opacity: 1; }");
     ui->backButton->setEnabled(true);
   }
 
@@ -123,10 +124,11 @@ void RestoreTab::on_backButton_clicked() {
 
 void RestoreTab::on_chooseRepoButton_clicked() {
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
+  
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
-    QString repoMessage = QString::fromStdString(repository_->GetRepositoryInfoString());
+    QString repoMessage =
+        QString::fromStdString(repository_->GetRepositoryInfoString());
     ui->repoInfoLabel->setText(repoMessage);
     ui->nextButton->setEnabled(true);
   } else {
@@ -149,7 +151,7 @@ void RestoreTab::resizeEvent(QResizeEvent* event) {
   setColSize(ui->fileTable->viewport()->width());
 }
 
-void RestoreTab::setColSize(int tableWidth){
+void RestoreTab::setColSize(int tableWidth) {
   int col_name = 300;
   int col_type = 200;
   int col_time = 300;
@@ -162,13 +164,12 @@ void RestoreTab::setColSize(int tableWidth){
 }
 
 void RestoreTab::loadFileTable() {
-  if (!repository_){
-    MessageBoxDecorator::showMessageBox(this, "Repository missing",
-                                        "Repository not selected for backup file fetch",
-                                        QMessageBox::Critical);
-    Logger::SystemLog(
-        "GUI | Restore | Repository not selected: ",
-        LogLevel::ERROR);
+  if (!repository_) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Repository missing",
+        "Repository not selected for backup file fetch", QMessageBox::Critical);
+    Logger::SystemLog("GUI | Restore | Repository not selected: ",
+                      LogLevel::ERROR);
     return;
   }
 
@@ -188,27 +189,28 @@ void RestoreTab::loadFileTable() {
   ui->fileTable->verticalHeader()->setVisible(false);
 
   std::vector<BackupDetails> backupList;
-  try{
+  try {
     Backup backup(repository_, ".");
     backupList = backup.GetAllBackupDetails();
   }
 
-  catch (const std::exception& e){
+  catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup files fetch error",
                                         QString::fromStdString(e.what()),
                                         QMessageBox::Critical);
-    Logger::SystemLog(
-        "GUI | Restore | Failed to fetch backup files: " + std::string(e.what()),
-        LogLevel::ERROR);
+    Logger::SystemLog("GUI | Restore | Failed to fetch backup files: " +
+                          std::string(e.what()),
+                      LogLevel::ERROR);
 
     ui->fileTable->setRowCount(1);
-    QTableWidgetItem *loading_failed = new QTableWidgetItem("< Failed to Load >");
+    QTableWidgetItem* loading_failed =
+        new QTableWidgetItem("< Failed to Load >");
     ui->fileTable->setItem(0, 0, loading_failed);
     loading_failed->setTextAlignment(Qt::AlignCenter);
     loading_failed->setForeground(Qt::darkGray);
     ui->fileTable->setSpan(0, 0, 1, 4);
     return;
-  }  
+  }
 
   ui->fileTable->setRowCount(backupList.size() + 1);
   ui->fileTable->setColumnCount(4);
@@ -216,17 +218,17 @@ void RestoreTab::loadFileTable() {
   QStringList headers = {"Name", "Type", "Time", "Remarks"};
 
   for (int i = 0; i < headers.size(); ++i) {
-      QTableWidgetItem* headerItem = new QTableWidgetItem(headers[i]);
-      headerItem->setTextAlignment(Qt::AlignCenter);
-      ui->fileTable->setHorizontalHeaderItem(i, headerItem);
+    QTableWidgetItem* headerItem = new QTableWidgetItem(headers[i]);
+    headerItem->setTextAlignment(Qt::AlignCenter);
+    ui->fileTable->setHorizontalHeaderItem(i, headerItem);
   }
 
-  if (backupList.size() == 0){
+  if (backupList.size() == 0) {
     auto* noSelection = new QTableWidgetItem("< No Backups Found >");
     noSelection->setTextAlignment(Qt::AlignCenter);
     noSelection->setForeground(Qt::darkGray);
     ui->fileTable->setItem(0, 0, noSelection);
-    ui->fileTable->setSpan(0,0,1,4);  
+    ui->fileTable->setSpan(0, 0, 1, 4);
     return;
   }
 
@@ -234,8 +236,7 @@ void RestoreTab::loadFileTable() {
   noSelection->setTextAlignment(Qt::AlignCenter);
   noSelection->setForeground(Qt::darkGray);
   ui->fileTable->setItem(0, 0, noSelection);
-  ui->fileTable->setSpan(0,0,1,4);
-
+  ui->fileTable->setSpan(0, 0, 1, 4);
 
   for (size_t i = 0; i < backupList.size(); ++i) {
     BackupDetails backupInfo = backupList.at(i);
@@ -249,12 +250,12 @@ void RestoreTab::loadFileTable() {
     ui->fileTable->setItem(i + 1, 0, nameItem);
     nameItem->setToolTip(name_);
     nameItem->setTextAlignment(Qt::AlignCenter);
-    
+
     QTableWidgetItem* typeItem = new QTableWidgetItem(type_);
     ui->fileTable->setItem(i + 1, 1, typeItem);
     typeItem->setToolTip(type_);
     typeItem->setTextAlignment(Qt::AlignCenter);
-    
+
     QTableWidgetItem* timeItem = new QTableWidgetItem(timestamp_);
     ui->fileTable->setItem(i + 1, 2, timeItem);
     timeItem->setToolTip(timestamp_);
@@ -265,11 +266,11 @@ void RestoreTab::loadFileTable() {
     remarksItem->setToolTip(remarks_);
     // remarksItem->setTextAlignment(Qt::AlignCenter);
   }
-  
+
   ui->fileTable->selectRow(0);
 
   disconnect(ui->fileTable, &QTableWidget::itemSelectionChanged, this,
-          &RestoreTab::onFileSelected);
+             &RestoreTab::onFileSelected);
   connect(ui->fileTable, &QTableWidget::itemSelectionChanged, this,
           &RestoreTab::onFileSelected);
 
@@ -281,46 +282,47 @@ void RestoreTab::onFileSelected() {
   bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
 
   if (validSelection) {
-    backup_file = ui->fileTable->item(selected.first().row(), 0)->text().toStdString();
-  } 
+    backup_file =
+        ui->fileTable->item(selected.first().row(), 0)->text().toStdString();
+  }
   ui->nextButton->setEnabled(validSelection);
 }
 
-
-// Handle repo selection
-bool RestoreTab::handleSelectRepo(){
+bool RestoreTab::handleSelectRepo() {
   if (repository_ == nullptr) {
     MessageBoxDecorator::showMessageBox(
         this, "No Repository Selected",
         "Please select a repository to continue.", QMessageBox::Warning);
-      ui->repoInfoLabel->setText("<NONE>");
-      return false;
+    ui->repoInfoLabel->setText("<NONE>");
+    return false;
   }
   return true;
 }
 
 // Handle backup file selection
-bool RestoreTab::handleSelectFile(){
+bool RestoreTab::handleSelectFile() {
   if (QString::fromStdString(backup_file).trimmed().isEmpty()) {
     MessageBoxDecorator::showMessageBox(
-        this, "No File Selected",
-        "Please select a backup file to continue.", QMessageBox::Warning);
+        this, "No File Selected", "Please select a backup file to continue.",
+        QMessageBox::Warning);
     return false;
   }
   return true;
 }
 
 // Handle destination selection
-bool RestoreTab::handleSelectDestination(){
+bool RestoreTab::handleSelectDestination() {
   backup_destination = "/";
-  if (ui->customDestination->isChecked()){
+  if (ui->customDestination->isChecked()) {
     backup_destination = ui->destInput->text().toStdString();
   }
 
-  if (QString::fromStdString(backup_destination).trimmed().isEmpty() || !Validator::IsValidPath(backup_destination)) {
+  if (QString::fromStdString(backup_destination).trimmed().isEmpty() ||
+      !Validator::IsValidPath(backup_destination)) {
     MessageBoxDecorator::showMessageBox(
         this, "Invalid Destination Selected",
-        "Please enter a valid destination folder path to continue.", QMessageBox::Warning);
+        "Please enter a valid destination folder path to continue.",
+        QMessageBox::Warning);
     return false;
   }
 
@@ -329,23 +331,23 @@ bool RestoreTab::handleSelectDestination(){
   if (!destInfo.exists() || !destInfo.isDir()) {
     MessageBoxDecorator::showMessageBox(
         this, "Invalid Destination Selected",
-        "Please enter an existing destination folder path to continue.", QMessageBox::Warning);
+        "Please enter an existing destination folder path to continue.",
+        QMessageBox::Warning);
     return false;
   }
 
   return true;
 }
 
-void RestoreTab::restoreBackup(){
-  try{
+void RestoreTab::restoreBackup() {
+  try {
     if (restore_) {
       delete restore_;
       restore_ = nullptr;
     }
 
     restore_ = new RestoreGUI(this, repository_);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Restore Initialization Failure",
                                         QString::fromStdString(e.what()),
                                         QMessageBox::Critical);
@@ -358,17 +360,18 @@ void RestoreTab::restoreBackup(){
   }
 
   try {
-    restore_->RestoreAll([this](bool success) {
-      if (success) {
-        ui->stackedWidget_attemptRestore->setCurrentIndex(0);
-        updateProgress();
-        updateButtons();
-      } else {
-        ui->nextButton->setEnabled(true);
-      }
-    }, backup_destination, backup_file);
-  }
-  catch (const std::exception& e) {
+    restore_->RestoreAll(
+        [this](bool success) {
+          if (success) {
+            ui->stackedWidget_attemptRestore->setCurrentIndex(0);
+            updateProgress();
+            updateButtons();
+          } else {
+            ui->nextButton->setEnabled(true);
+          }
+        },
+        backup_destination, backup_file);
+  } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Finalization Failure",
                                         QString::fromStdString(e.what()),
                                         QMessageBox::Critical);
@@ -380,14 +383,11 @@ void RestoreTab::restoreBackup(){
   }
 }
 
-void RestoreTab::on_customDestination_clicked()
-{
+void RestoreTab::on_customDestination_clicked() {
   ui->destInput->setEnabled(true);
 }
 
-void RestoreTab::on_originalDestination_clicked()
-{
+void RestoreTab::on_originalDestination_clicked() {
   ui->destInput->setText("");
   ui->destInput->setEnabled(false);
 }
-

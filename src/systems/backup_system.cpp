@@ -17,13 +17,13 @@ BackupSystem::BackupSystem() {
 BackupSystem::~BackupSystem() {
   delete repo_service_;
   delete scheduler_service_;
+  if (repository_ != nullptr) delete repository_;
 }
 
 void BackupSystem::Run() {
   std::string title = UserIO::DisplayMaxTitle("BACKUP SYSTEM", false);
   std::vector<std::string> main_menu = {"Go BACK...", "Create Backup",
-                                        "List Backups",
-                                        "Compare Backups"};
+                                        "List Backups", "Compare Backups"};
   while (true) {
     try {
       if (repository_ != nullptr) {
@@ -84,7 +84,6 @@ void BackupSystem::CreateBackup() {
           break;
         }
         case 2: {
-          repo_service_->ListRepositories();
           repository_ = repo_service_->SelectExistingRepository();
           if (repository_ != nullptr) {
             loop = false;
@@ -112,20 +111,6 @@ void BackupSystem::CreateBackup() {
 
     Backup backup(repository_, source, type, remarks);
     backup.BackupDirectory();
-
-    // if (repository_->GetType() == RepositoryType::REMOTE) {
-    //   auto* remote_repo = dynamic_cast<RemoteRepository*>(repository_);
-    //   if (remote_repo) {
-    //     remote_repo->UploadDirectory(".temp");
-    //     fs::remove_all(".temp");
-    //   }
-    // } else if (repository_->GetType() == RepositoryType::NFS) {
-    //   auto* nfs_repo = dynamic_cast<NFSRepository*>(repository_);
-    //   if (nfs_repo) {
-    //     nfs_repo->UploadDirectory("temp");
-    //     fs::remove_all("temp");
-    //   }
-    // }
 
     menu = {"Yes", "No"};
     choice = UserIO::HandleMenuWithSelect(
@@ -175,37 +160,37 @@ void BackupSystem::CompareBackups() {
       }
       break;
     } while (loop);
-    if (repository_ != nullptr) {
-      Backup backup(repository_, source, BackupType::FULL, "");
-      std::vector<std::string> backups = backup.ListBackups();
-      std::vector<std::string> menu = {"Go BACK..."};
-      menu.insert(menu.end(), backups.begin(), backups.end());
 
-      int choice1 = UserIO::HandleMenuWithSelect(
-          UserIO::DisplayMinTitle("Select First Backup", false), menu);
-      if (choice1 == 0) return;
+    Backup backup(repository_, source, BackupType::FULL, "");
+    std::vector<std::string> backups = backup.ListBackups();
+    std::vector<std::string> menu = {"Go BACK..."};
+    menu.insert(menu.end(), backups.begin(), backups.end());
 
-      int choice2 = UserIO::HandleMenuWithSelect(
-          UserIO::DisplayMinTitle("Select Second Backup", false), menu);
-      if (choice2 == 0) return;
-      backup.CompareBackups(backups[choice1 - 1], backups[choice2 - 1]);
-    }
+    int choice1 = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select First Backup", false), menu);
+    if (choice1 == 0) return;
+
+    int choice2 = UserIO::HandleMenuWithSelect(
+        UserIO::DisplayMinTitle("Select Second Backup", false), menu);
+    if (choice2 == 0) return;
+    backup.CompareBackups(backups[choice1 - 1], backups[choice2 - 1]);
+
   } catch (...) {
     ErrorUtil::ThrowNested("Backup comparison failure");
   }
 }
 
-void BackupSystem::ScheduleBackup(std::string source, std::string destination, BackupType type, std::string remarks) {
+void BackupSystem::ScheduleBackup(std::string source, std::string destination,
+                                  BackupType type, std::string remarks) {
   std::string destination_name = repository_->GetName();
   std::string destination_path = repository_->GetPath();
   std::string destination_password = repository_->GetPassword();
   RepositoryType destination_type = repository_->GetType();
   std::string destination_created_at = "";
 
-  scheduler_service_->AttachSchedule(source, 
-            destination_name, destination_path,
-            destination_password, destination_created_at,
-            destination_type, type, remarks);
+  scheduler_service_->AttachSchedule(
+      source, destination_name, destination_path, destination_password,
+      destination_created_at, destination_type, type, remarks);
 }
 
 void BackupSystem::Log() {

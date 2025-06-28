@@ -1,33 +1,34 @@
 #include "gui/dialog/create_schedule_dialog.h"
-#include "gui/dialog/ui_create_schedule_dialog.h"
-
-#include "gui/dialog/use_repository_dialog.h"
-#include "gui/decorators/message_box.h"
-#include "gui/decorators/progress_box.h"
-#include "backup_restore/backup.hpp"
-#include "utils/utils.h"
 
 #include <QDir>
 
-CreateScheduleDialog::CreateScheduleDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::CreateScheduleDialog)
-{
-    ui->setupUi(this);
-    request_mgr = new SchedulerRequestManager();
-  
-    cron_string="";
-    source_path="";
-    repository_ = nullptr;
-    remarks = "";
-    type = BackupType::FULL;
+#include "backup_restore/backup.hpp"
+#include "gui/decorators/message_box.h"
+#include "gui/decorators/progress_box.h"
+#include "gui/dialog/ui_create_schedule_dialog.h"
+#include "gui/dialog/use_repository_dialog.h"
+#include "utils/utils.h"
+
+CreateScheduleDialog::CreateScheduleDialog(QWidget* parent)
+    : QDialog(parent), ui(new Ui::CreateScheduleDialog) {
+  ui->setupUi(this);
+
+  ui->stackedWidget_createSchedule->setCurrentIndex(0);
+  request_mgr = new SchedulerRequestManager();
+
+  cron_string = "";
+  source_path = "";
+  repository_ = nullptr;
+  remarks = "";
+  type = BackupType::FULL;
+
+  checkRepoSelection();
 }
 
-CreateScheduleDialog::~CreateScheduleDialog()
-{
-    delete ui;
-    delete request_mgr;
-    delete repository_;
+CreateScheduleDialog::~CreateScheduleDialog() {
+  delete ui;
+  delete request_mgr;
+  delete repository_;
 }
 
 void CreateScheduleDialog::updateProgress() {
@@ -50,6 +51,10 @@ void CreateScheduleDialog::updateButtons() {
   } else {
     ui->nextButton->setText("Next");
   }
+}
+
+void CreateScheduleDialog::checkRepoSelection() {
+  ui->nextButton->setEnabled(repository_ != nullptr);
 }
 
 void CreateScheduleDialog::on_nextButton_clicked() {
@@ -93,118 +98,134 @@ void CreateScheduleDialog::on_backButton_clicked() {
   updateProgress();
 }
 
-bool CreateScheduleDialog::handleEndpointDetails(){
-    std::string source_path_ = ui->sourceInput->text().toStdString();
-    std::string destination_path_ = repository_->GetFullPath();
+bool CreateScheduleDialog::handleEndpointDetails() {
+  std::string source_path_ = ui->sourceInput->text().toStdString();
+  if (source_path_ == "") {
+    source_path_ = ".";
+  }
 
-    if (source_path_ == "" || !Validator::IsValidPath(source_path_)){
-        MessageBoxDecorator::showMessageBox(
-            this, "Invalid Source", "Source path is invalid.", QMessageBox::Warning);
-        return false;
-    }
+  if (!Validator::IsValidPath(source_path_)) {
+    MessageBoxDecorator::showMessageBox(this, "Invalid Source",
+                                        "Source path is invalid.",
+                                        QMessageBox::Warning);
+    return false;
+  }
 
-    if (destination_path_ == "" || !Validator::IsValidPath(destination_path_)){
-        MessageBoxDecorator::showMessageBox(
-            this, "Invalid Destination", "Destination is invalid.", QMessageBox::Warning);
-        return false;
-    }
+  if (repository_ == nullptr) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Repository Missing", "Please select a repository to continue.",
+        QMessageBox::Warning);
+    return false;
+  }
 
-    source_path = source_path_;
-    return true;
+  std::string destination_path_ = repository_->GetFullPath();
+  if (destination_path_ == "" || !Validator::IsValidPath(destination_path_)) {
+    MessageBoxDecorator::showMessageBox(this, "Invalid Destination",
+                                        "Destination is invalid.",
+                                        QMessageBox::Warning);
+    return false;
+  }
+
+  source_path = source_path_;
+  return true;
 }
 
-bool CreateScheduleDialog::handleBackupDetails(){
-    BackupType type_;
-    if (ui->incButton->isChecked()) {
-        type_ = BackupType::INCREMENTAL;
-    } else if (ui->diffButton->isChecked()) {
-        type_ = BackupType::DIFFERENTIAL;
-    } else {
-        type_ = BackupType::FULL;
-    }
+bool CreateScheduleDialog::handleBackupDetails() {
+  BackupType type_;
+  if (ui->incButton->isChecked()) {
+    type_ = BackupType::INCREMENTAL;
+  } else if (ui->diffButton->isChecked()) {
+    type_ = BackupType::DIFFERENTIAL;
+  } else {
+    type_ = BackupType::FULL;
+  }
 
-    std::string remarks_ = ui->remarksInput->text().toStdString();
+  std::string remarks_ = ui->remarksInput->text().toStdString();
 
-    type = type_;
-    remarks = remarks_;
-    return true;
+  type = type_;
+  remarks = remarks_;
+  return true;
 }
 
-bool CreateScheduleDialog::handleScheduleDetails(){
-    std::string cron_string_ = ui->scheduleInput->text().toStdString();
+bool CreateScheduleDialog::handleScheduleDetails() {
+  std::string cron_string_ = ui->scheduleInput->text().toStdString();
 
-    if (cron_string_ == "" || !Validator::IsValidCronString(cron_string_)){
-        MessageBoxDecorator::showMessageBox(
-            this, "Invalid cron string", "Cron string is invalid.", QMessageBox::Warning);
-        return false;
-    }
-    cron_string = cron_string_;
-    return true;
+  if (cron_string_ == "" || !Validator::IsValidCronString(cron_string_)) {
+    MessageBoxDecorator::showMessageBox(this, "Invalid CRON String",
+                                        "CRON String is invalid.",
+                                        QMessageBox::Warning);
+    return false;
+  }
+  cron_string = cron_string_;
+  return true;
 }
 
-void CreateScheduleDialog::addSchedule(){
+void CreateScheduleDialog::addSchedule() {
   ProgressBoxDecorator::runProgressBoxIndeterminate(
-    this,
-    [&](auto setWaitMessage, auto setSuccessMessage, auto setFailureMessage) -> bool {
+      this,
+      [&](auto setWaitMessage, auto setSuccessMessage,
+          auto setFailureMessage) -> bool {
         try {
-            setWaitMessage("Checking if source exists...");
-            if (!QDir(QString::fromStdString(source_path)).exists()){
-              setFailureMessage("Source path could not be found.");
-              return false;
-            }
+          setWaitMessage("Checking if source exists...");
+          if (!QDir(QString::fromStdString(source_path)).exists()) {
+            setFailureMessage("Source path could not be found.");
+            return false;
+          }
 
-            setWaitMessage("Checking if destination exists...");
-            if (!QDir(QString::fromStdString(repository_->GetPath())).exists()){
-              setFailureMessage("Destination path could not be found.");
-              return false;
-            }
+          setWaitMessage("Checking if destination exists...");
+          if (!repository_->Exists()) {
+            setFailureMessage("Destination path could not be found.");
+            return false;
+          }
 
-            setWaitMessage("Creating schedule...");
+          setWaitMessage("Creating schedule...");
 
-            std::string new_schedule_id = request_mgr->SendAddRequest(cron_string, source_path,
-              repository_->GetName(),repository_->GetPath(),
-              repository_->GetPassword(), "",
+          std::string new_schedule_id = request_mgr->SendAddRequest(
+              cron_string, source_path, repository_->GetName(),
+              repository_->GetPath(), repository_->GetPassword(), "",
               repository_->GetType(), remarks, type);
 
-            bool validation = true;
-            if (!validation) {
-                setFailureMessage("Failed to add schedule.");
-                return false;
-            }
-            
-            Logger::SystemLog("Schedule " + new_schedule_id + "created successfully.");
-            setSuccessMessage("Schedule " + QString::fromStdString(new_schedule_id) + " created successfully.");
-            return true;
+          bool validation = true;
+          if (!validation) {
+            setFailureMessage("Failed to add schedule.");
+            return false;
+          }
+
+          Logger::SystemLog("Schedule " + new_schedule_id +
+                            "created successfully.");
+          setSuccessMessage("Schedule " +
+                            QString::fromStdString(new_schedule_id) +
+                            " created successfully.");
+          return true;
 
         } catch (const std::exception& e) {
-            std::string issue = e.what();
-            Logger::SystemLog("Schedule creation failed: " + issue);
-            setFailureMessage("Schedule creation failed: " + QString::fromStdString(issue));
-            return false;
+          std::string issue = e.what();
+          Logger::SystemLog("Schedule creation failed: " + issue);
+          setFailureMessage("Schedule creation failed: " +
+                            QString::fromStdString(issue));
+          return false;
         }
-    },
-    "Creating schedule...",
-    "Schedule created successfully.",
-    "Failed to create schedule.",
-    [&](bool success) {
+      },
+      "Creating schedule...", "Schedule created successfully.",
+      "Failed to create schedule.",
+      [&](bool success) {
         if (success) {
-            accept();  // Close dialog or notify success
+          accept();  // Close dialog or notify success
         } else {
-            ui->nextButton->setEnabled(true);
+          ui->nextButton->setEnabled(true);
         }
-    });
+      });
 }
-void CreateScheduleDialog::on_repoSelect_clicked()
-{
+void CreateScheduleDialog::on_repoSelect_clicked() {
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
-    ui->repoInput->setText(
-        QString::fromStdString(repository_->GetFullPath()));
+    ui->repoInput->setText(QString::fromStdString(repository_->GetFullPath()));
+    ui->repoInput->setToolTip(
+        QString::fromStdString(repository_->GetRepositoryInfoString()));
   } else {
     repository_ = nullptr;
     ui->repoInput->setText("<NONE>");
   }
+  checkRepoSelection();
 }
-

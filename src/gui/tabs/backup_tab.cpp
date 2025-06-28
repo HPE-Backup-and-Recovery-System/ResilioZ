@@ -3,18 +3,16 @@
 #include <QModelIndexList>
 #include <QThread>
 #include <QTimer>
+#include <iostream>
 
 #include "gui/decorators/core.h"
 #include "gui/decorators/message_box.h"
 #include "gui/decorators/progress_box.h"
+#include "gui/dialog/attach_schedule_dialog.h"
 #include "gui/dialog/create_repository_dialog.h"
 #include "gui/dialog/use_repository_dialog.h"
-#include "gui/dialog/attach_schedule_dialog.h"
 #include "gui/tabs/ui_backup_tab.h"
 #include "utils/utils.h"
-
-
-#include <iostream>
 
 BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   ui->setupUi(this);
@@ -45,15 +43,27 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   repository_ = nullptr;
   backup_ = nullptr;
 
+  backup_list_.clear();
+  fillListTable();
+  fillCompareTable();
+  
   request_mgr = new SchedulerRequestManager();
 
-  auto *header_list = ui->listTable->horizontalHeader(),
-       *header_compare = ui->compareTable->horizontalHeader();
+  auto* header_list = ui->listTable->horizontalHeader();
 
   header_list->setSectionResizeMode(0, QHeaderView::Fixed);
   header_list->setSectionResizeMode(1, QHeaderView::Fixed);
   header_list->setSectionResizeMode(2, QHeaderView::Fixed);
   header_list->setSectionResizeMode(3, QHeaderView::Stretch);
+
+  auto* header_compare = ui->firstCmpTable->horizontalHeader();
+
+  header_compare->setSectionResizeMode(0, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(1, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(2, QHeaderView::Fixed);
+  header_compare->setSectionResizeMode(3, QHeaderView::Stretch);
+
+  header_compare = ui->secondCmpTable->horizontalHeader();
 
   header_compare->setSectionResizeMode(0, QHeaderView::Fixed);
   header_compare->setSectionResizeMode(1, QHeaderView::Fixed);
@@ -61,29 +71,39 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
   header_compare->setSectionResizeMode(3, QHeaderView::Stretch);
 
   ui->listTable->verticalHeader()->setVisible(false);
-  ui->compareTable->verticalHeader()->setVisible(false);
+  ui->firstCmpTable->verticalHeader()->setVisible(false);
+  ui->secondCmpTable->verticalHeader()->setVisible(false);
 
   // Polished Features for Tables
   ui->listTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  ui->compareTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
   ui->listTable->setSelectionMode(QAbstractItemView::NoSelection);
-  ui->compareTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-  ui->compareTable->setSelectionMode(QAbstractItemView::MultiSelection);
-
   ui->listTable->setShowGrid(true);
-  ui->compareTable->setShowGrid(true);
   ui->listTable->setFocusPolicy(Qt::NoFocus);
-  ui->compareTable->setFocusPolicy(Qt::NoFocus);
+
+  ui->firstCmpTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  ui->firstCmpTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->firstCmpTable->setSelectionMode(QAbstractItemView::SingleSelection);
+  ui->firstCmpTable->setShowGrid(true);
+  ui->firstCmpTable->setFocusPolicy(Qt::NoFocus);
+
+  ui->secondCmpTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  ui->secondCmpTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->secondCmpTable->setSelectionMode(QAbstractItemView::SingleSelection);
+  ui->secondCmpTable->setShowGrid(true);
+  ui->secondCmpTable->setFocusPolicy(Qt::NoFocus);
 
   // Table Size
   QTimer::singleShot(0, this, [this]() { setColSize(ui->listTable->width()); });
 
   connect(ui->stackedWidget_createBackup, &QStackedWidget::currentChanged, this,
           &BackupTab::updateButtons);
-  // connect(ui->compareTable->selectionModel(),
-  //         &QItemSelectionModel::selectionChanged, this,
-  //         &BackupTab::checkBackupSelection);
+
+  connect(ui->firstCmpTable->selectionModel(),
+          &QItemSelectionModel::selectionChanged, this,
+          &BackupTab::checkBackupSelection);
+  connect(ui->secondCmpTable->selectionModel(),
+          &QItemSelectionModel::selectionChanged, this,
+          &BackupTab::checkBackupSelection);
 
   updateButtons();
   updateProgress();
@@ -92,9 +112,9 @@ BackupTab::BackupTab(QWidget* parent) : QWidget(parent), ui(new Ui::BackupTab) {
 
 BackupTab::~BackupTab() {
   delete ui;
-  if (backup_) delete backup_;
-  if (repository_) delete repository_;
-  if (request_mgr) delete request_mgr;
+  if (backup_ != nullptr) delete backup_;
+  if (repository_ != nullptr) delete repository_;
+  if (request_mgr != nullptr) delete request_mgr;
 }
 
 void BackupTab::resizeEvent(QResizeEvent* event) {
@@ -108,15 +128,24 @@ void BackupTab::setColSize(int tableWidth) {
   int col_time = 300;
   int col_rem = tableWidth - col_name - col_type - col_time;
 
+  // List Backup Table
+
   ui->listTable->setColumnWidth(0, col_name);  // Name
   ui->listTable->setColumnWidth(1, col_type);  // Type
   ui->listTable->setColumnWidth(2, col_time);  // Time
   ui->listTable->setColumnWidth(3, col_rem);   // Remarks
 
-  ui->compareTable->setColumnWidth(0, col_name);  // Name
-  ui->compareTable->setColumnWidth(1, col_type);  // Type
-  ui->compareTable->setColumnWidth(2, col_time);  // Time
-  ui->compareTable->setColumnWidth(3, col_rem);   // Remarks
+  // Compare Backup Tables
+
+  ui->firstCmpTable->setColumnWidth(0, col_name);  // Name
+  ui->firstCmpTable->setColumnWidth(1, col_type);  // Type
+  ui->firstCmpTable->setColumnWidth(2, col_time);  // Time
+  ui->firstCmpTable->setColumnWidth(3, col_rem);   // Remarks
+
+  ui->secondCmpTable->setColumnWidth(0, col_name);  // Name
+  ui->secondCmpTable->setColumnWidth(1, col_type);  // Type
+  ui->secondCmpTable->setColumnWidth(2, col_time);  // Time
+  ui->secondCmpTable->setColumnWidth(3, col_rem);   // Remarks
 }
 
 void BackupTab::fillListTable() {
@@ -156,39 +185,70 @@ void BackupTab::fillListTable() {
 }
 
 void BackupTab::fillCompareTable() {
-  ui->compareTable->clearContents();
   int backup_count = static_cast<int>(backup_list_.size());
 
-  if (!backup_count) {
-    ui->compareTable->setRowCount(1);
-    ui->compareTable->setSpan(0, 0, 1, 4);
-    auto* noBackups = new QTableWidgetItem("< No Backups Available >");
-    noBackups->setTextAlignment(Qt::AlignCenter);
-    noBackups->setForeground(Qt::darkGray);
-    ui->compareTable->setItem(0, 0, noBackups);
-    return;
+  ui->firstCmpTable->clearContents();
+  ui->secondCmpTable->clearContents();
+
+  ui->firstCmpTable->setRowCount(backup_count + 1);
+  ui->secondCmpTable->setRowCount(backup_count + 1);
+
+  ui->firstCmpTable->setSpan(0, 0, 1, 4);
+  ui->secondCmpTable->setSpan(0, 0, 1, 4);
+
+  auto *noSelection_1 = new QTableWidgetItem("< No Selection >"),
+       *noSelection_2 = new QTableWidgetItem("< No Selection >");
+
+  noSelection_1->setTextAlignment(Qt::AlignCenter);
+  noSelection_1->setForeground(Qt::darkGray);
+
+  noSelection_2->setTextAlignment(Qt::AlignCenter);
+  noSelection_2->setForeground(Qt::darkGray);
+
+  ui->firstCmpTable->setItem(0, 0, noSelection_1);
+  ui->secondCmpTable->setItem(0, 0, noSelection_2);
+
+  for (int i = 0; i < backup_count; ++i) {
+    const BackupDetails& dtls = backup_list_[i];
+    int row = i + 1;
+
+    auto *nameItem_1 = new QTableWidgetItem(QString::fromStdString(dtls.name)),
+         *nameItem_2 = new QTableWidgetItem(QString::fromStdString(dtls.name));
+
+    nameItem_1->setTextAlignment(Qt::AlignCenter);
+    nameItem_2->setTextAlignment(Qt::AlignCenter);
+    ui->firstCmpTable->setItem(row, 0, nameItem_1);
+    ui->secondCmpTable->setItem(row, 0, nameItem_2);
+
+    auto *typeItem_1 = new QTableWidgetItem(QString::fromStdString(dtls.type)),
+         *typeItem_2 = new QTableWidgetItem(QString::fromStdString(dtls.type));
+
+    typeItem_1->setTextAlignment(Qt::AlignCenter);
+    typeItem_2->setTextAlignment(Qt::AlignCenter);
+    ui->firstCmpTable->setItem(row, 1, typeItem_1);
+    ui->secondCmpTable->setItem(row, 1, typeItem_2);
+
+    auto *timeItem_1 =
+             new QTableWidgetItem(QString::fromStdString(dtls.timestamp)),
+         *timeItem_2 =
+             new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
+
+    timeItem_1->setTextAlignment(Qt::AlignCenter);
+    timeItem_2->setTextAlignment(Qt::AlignCenter);
+    ui->firstCmpTable->setItem(row, 2, timeItem_1);
+    ui->secondCmpTable->setItem(row, 2, timeItem_2);
+
+    auto *remarksItem_1 =
+             new QTableWidgetItem(QString::fromStdString(dtls.remarks)),
+         *remarksItem_2 =
+             new QTableWidgetItem(QString::fromStdString(dtls.remarks));
+
+    ui->firstCmpTable->setItem(row, 3, remarksItem_1);
+    ui->secondCmpTable->setItem(row, 3, remarksItem_2);
   }
 
-  ui->compareTable->setRowCount(backup_count);
-  for (int row = 0; row < backup_count; ++row) {
-    const BackupDetails& dtls = backup_list_[row];
-
-    auto* nameItem = new QTableWidgetItem(QString::fromStdString(dtls.name));
-    nameItem->setTextAlignment(Qt::AlignCenter);
-    ui->compareTable->setItem(row, 0, nameItem);
-
-    auto* typeItem = new QTableWidgetItem(QString::fromStdString(dtls.type));
-    typeItem->setTextAlignment(Qt::AlignCenter);
-    ui->compareTable->setItem(row, 1, typeItem);
-
-    auto* timeItem =
-        new QTableWidgetItem(QString::fromStdString(dtls.timestamp));
-    timeItem->setTextAlignment(Qt::AlignCenter);
-    ui->compareTable->setItem(row, 2, timeItem);
-
-    ui->compareTable->setItem(
-        row, 3, new QTableWidgetItem(QString::fromStdString(dtls.remarks)));
-  }
+  ui->firstCmpTable->selectRow(0);
+  ui->secondCmpTable->selectRow(0);
 }
 
 void BackupTab::on_createBackupButton_clicked() {
@@ -303,11 +363,15 @@ void BackupTab::checkRepoSelection() {
 }
 
 void BackupTab::checkBackupSelection() {
-  // QModelIndexList selected =
-  // ui->compareTable->selectionModel()->selectedRows();
+  QModelIndexList selected_first =
+                      ui->firstCmpTable->selectionModel()->selectedRows(),
+                  selected_second =
+                      ui->secondCmpTable->selectionModel()->selectedRows();
 
-  // bool validSelection = !selected.isEmpty() && selected.first().row() != 0;
-  // ui->nextButton_3->setEnabled(validSelection);
+  bool validSelection =
+      !selected_first.isEmpty() && selected_first.first().row() != 0 &&
+      !selected_second.isEmpty() && selected_second.first().row() != 0;
+  ui->nextButton_3->setEnabled(validSelection);
 }
 
 void BackupTab::on_backButton_clicked() {
@@ -396,7 +460,7 @@ void BackupTab::on_nextButton_3_clicked() {
       valid = handleSelectRepo();
       break;
     case 1:
-      valid = handleBackupDetails();
+      valid = handleSelectBackups();
       break;
     default:
       break;
@@ -405,22 +469,28 @@ void BackupTab::on_nextButton_3_clicked() {
     return;
   }
 
-  if (index < total - 1) {
-    ui->stackedWidget_compareBackup->setCurrentIndex(index + 1);
-  } else {
-    ui->nextButton_3->setEnabled(false);
-    compareBackups();
+  switch (index) {
+    case 0: {
+      listBackups();
+      break;
+    }
+    case 1: {
+      ui->nextButton_3->setEnabled(false);
+      compareBackups();
+      break;
+    }
+    default:
+      break;
   }
   updateProgress();
 }
 
 void BackupTab::on_createRepoButton_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
   CreateRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     ui->repoInfoLabel->setText(
@@ -433,12 +503,11 @@ void BackupTab::on_createRepoButton_clicked() {
 }
 
 void BackupTab::on_useRepoButton_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
     ui->repoInfoLabel->setText(
@@ -451,12 +520,11 @@ void BackupTab::on_useRepoButton_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_list_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Listing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
@@ -470,12 +538,11 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
 }
 
 void BackupTab::on_chooseRepoButton_compare_clicked() {
-  if (repository_) {
+  if (repository_ != nullptr) {
     delete repository_;
     repository_ = nullptr;
   }
   UseRepositoryDialog dialog(this);
-  dialog.setWindowFlags(Qt::Window);
   dialog.setWindowTitle("Choose Repository for Comparing Backups");
   if (dialog.exec() == QDialog::Accepted) {
     repository_ = dialog.getRepository();
@@ -528,20 +595,50 @@ bool BackupTab::handleBackupDetails() {
 }
 
 bool BackupTab::handleSelectBackups() {
-  return true;  // TODO: Implement backup selection logic
+  QModelIndexList selected_first =
+                      ui->firstCmpTable->selectionModel()->selectedRows(),
+                  selected_second =
+                      ui->secondCmpTable->selectionModel()->selectedRows();
+  if (selected_first.isEmpty() || selected_second.isEmpty()) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Selection Error",
+                                        "Please select two backups to compare.",
+                                        QMessageBox::Warning);
+    return false;
+  }
+
+  if (selected_first.first().row() == 0) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Backup Not Selected", "Please select first backup to compare.",
+        QMessageBox::Warning);
+    return false;
+  }
+  if (selected_second.first().row() == 0) {
+    MessageBoxDecorator::showMessageBox(
+        this, "Backup Not Selected", "Please select second backup to compare.",
+        QMessageBox::Warning);
+    return false;
+  }
+
+  cmp_first_backup_ = backup_list_[selected_first.first().row() - 1].name;
+  cmp_second_backup_ = backup_list_[selected_second.first().row() - 1].name;
+  return true;
 }
 
 bool BackupTab::handleSchedule() {
   bool schedule = ui->yesSchButton->isChecked();
   if (schedule) {
-    // TODO: Schedule
+    ui->noSchButton->setChecked(false);
+    ui->yesSchButton->setChecked(true);
+  } else {
+    ui->noSchButton->setChecked(true);
+    ui->yesSchButton->setChecked(false);
   }
   return true;
 }
 
 void BackupTab::initBackup() {
   try {
-    if (backup_) {
+    if (backup_ != nullptr) {
       delete backup_;
       backup_ = nullptr;
     }
@@ -584,7 +681,7 @@ void BackupTab::initBackup() {
 
 void BackupTab::listBackups() {
   try {
-    if (backup_) {
+    if (backup_ != nullptr) {
       delete backup_;
       backup_ = nullptr;
     }
@@ -604,8 +701,9 @@ void BackupTab::listBackups() {
             setWaitMessage("Fetching backups...");
             backup_list_ = backup_->GetAllBackupDetails();
             fillListTable();
+            fillCompareTable();
 
-            Logger::SystemLog("GUI | Backups fetched from repository : " +
+            Logger::SystemLog("GUI | Backups fetched from repository: " +
                               repository_->GetRepositoryInfoString());
 
             setSuccessMessage(
@@ -625,11 +723,33 @@ void BackupTab::listBackups() {
         "Fetching backups...", "Backups fetched successfully.",
         "Backup fetching failed.",
         [&](bool success) {
-          if (success) {
-            ui->nextButton_2->setHidden(true);
-            ui->stackedWidget_listBackup->setCurrentIndex(1);
-          } else {
-            ui->nextButton->setHidden(false);
+          int index = ui->stackedWidget->currentIndex();
+
+          switch (index) {
+            case 2: {
+              // List Backups Page
+              if (success) {
+                ui->nextButton_2->setHidden(true);
+                ui->stackedWidget_listBackup->setCurrentIndex(1);
+                updateProgress();
+              } else {
+                ui->nextButton_2->setHidden(false);
+              }
+              break;
+            }
+            case 3: {
+              // Compare Backups Page
+              if (success) {
+                ui->nextButton_3->setEnabled(false);
+                ui->stackedWidget_compareBackup->setCurrentIndex(1);
+                updateProgress();
+              } else {
+                ui->nextButton_3->setEnabled(true);
+              }
+              break;
+            }
+            default:
+              break;
           }
         });
 
@@ -644,28 +764,65 @@ void BackupTab::listBackups() {
   }
 }
 
-void BackupTab::compareBackups() {}
-
-void BackupTab::on_yesSchButton_clicked()
-{
-    std::string destination_path_ = repository_->GetFullPath();
-    AttachScheduleDialog dialog(this, source_path_,destination_path_,remarks_,backup_type_);
-    dialog.setWindowFlags(Qt::Window);
-    if (dialog.exec() == QDialog::Accepted) {
-      std::string schedule = dialog.getSchedule();
-      
-      std::string schedule_id = request_mgr->SendAddRequest(schedule, source_path_,
-            repository_->GetName(),repository_->GetPath(),
-            repository_->GetPassword(), "",
-            repository_->GetType(), remarks_, backup_type_);
-    
-      QString success_message = QString::fromStdString("Schedule " + schedule_id + " successfully created.");
-      MessageBoxDecorator::showMessageBox(this, "Success", success_message,
-                                            QMessageBox::Information);
-
-    } else {
-      
+void BackupTab::compareBackups() {
+  try {
+    if (backup_ != nullptr) {
+      delete backup_;
+      backup_ = nullptr;
     }
+    source_path_ = "/";
+    backup_type_ = BackupType::FULL;
+    remarks_ = "";
+    backup_ =
+        new BackupGUI(this, repository_, source_path_, backup_type_, remarks_);
+    ProgressBoxDecorator::runProgressBoxIndeterminate(
+        this,
+        [&](std::function<void(const QString&)> setWaitMessage,
+            std::function<void(const QString&)> setSuccessMessage,
+            std::function<void(const QString&)> setFailureMessage) -> bool {
+          setWaitMessage("Comparing backups...");
+          std::string comparison =
+              backup_->CompareBackups(cmp_first_backup_, cmp_second_backup_);
 
+          setSuccessMessage(QString::fromStdString(comparison));
+          return true;
+        },
+        "Comparing backups...", "Backups compared successfully.",
+        "Backup comparison failed.",
+        [&](bool success) { ui->nextButton_3->setEnabled(true); });
+
+  } catch (const std::exception& e) {
+    MessageBoxDecorator::showMessageBox(this, "Backup Comparison Failure",
+                                        QString::fromStdString(e.what()),
+                                        QMessageBox::Critical);
+    Logger::SystemLog(
+        "GUI | Failed to compare backups: " + std::string(e.what()),
+        LogLevel::ERROR);
+
+    return;
+  }
 }
 
+void BackupTab::on_yesSchButton_clicked() {
+  std::string destination_path_ = repository_->GetFullPath();
+  AttachScheduleDialog dialog(this, source_path_, destination_path_, remarks_,
+                              backup_type_);
+
+  if (dialog.exec() == QDialog::Accepted) {
+    std::string schedule = dialog.getSchedule();
+
+    std::string schedule_id = request_mgr->SendAddRequest(
+        schedule, source_path_, repository_->GetName(), repository_->GetPath(),
+        repository_->GetPassword(), "", repository_->GetType(), remarks_,
+        backup_type_);
+
+    QString success_message = QString::fromStdString(
+        "Schedule: " + schedule_id + " created successfully.");
+    MessageBoxDecorator::showMessageBox(this, "Success", success_message,
+                                        QMessageBox::Information);
+
+  } else {
+    ui->noSchButton->setChecked(true);
+    ui->yesSchButton->setChecked(false);
+  }
+}
