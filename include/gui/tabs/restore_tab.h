@@ -32,12 +32,11 @@ private slots:
     // Event handler on change of selection of backup file
     void onFileSelected();
 
-    // Event handler on choosing restore destination
-    void on_chooseDestination_clicked();
+    void on_customDestination_clicked();
 
-    
-    
-    private:
+    void on_originalDestination_clicked();
+
+private:
     Ui::RestoreTab *ui;
     
     // Store repo details
@@ -61,6 +60,9 @@ private slots:
     
     // Loads files given a partiuclar backup repo
     void loadFileTable();
+
+    void setColSize(int tableWidth);
+    void resizeEvent(QResizeEvent* event);
     
     bool handleSelectRepo();
     bool handleSelectFile();
