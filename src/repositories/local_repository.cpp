@@ -81,7 +81,7 @@ bool LocalRepository::UploadFile(const std::string& local_file,
     std::string filename = local_fs_path.filename().string();
 
     if (local_path.empty()) {
-      local_full_path = path_ + "/" + name_ + "/" + filename;
+      local_full_path = path_ + "/" + name_ + "/";
     } else {
       if (local_path.back() == '/') {
         local_full_path = path_ + "/" + name_ + "/" + local_path;

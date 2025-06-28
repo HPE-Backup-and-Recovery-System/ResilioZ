@@ -226,8 +226,14 @@ QRadioButton:checked {
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Format: Second Minute Hour Day Month Weekday</string>
+             </property>
              <property name="readOnly">
               <bool>false</bool>
+             </property>
+             <property name="placeholderText">
+              <string>Ex. 0 0 12 * * * (Every Day at 12:00:00)</string>
              </property>
             </widget>
            </item>
@@ -321,8 +327,14 @@ QRadioButton:checked {
            </item>
            <item row="4" column="0" alignment="Qt::AlignRight">
             <widget class="QLabel" name="label_5">
+             <property name="styleSheet">
+              <string notr="true">QLabel {
+	font-weight: 700;
+	letter-spacing: 0.5px;
+}</string>
+             </property>
              <property name="text">
-              <string>Cron String</string>
+              <string>CRON String</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

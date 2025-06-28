@@ -98,7 +98,7 @@ QLabel {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="menuPage">
          <property name="autoFillBackground">
@@ -591,7 +591,7 @@ QPushButton#nextButton:disabled {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>1</number>
+                   <number>2</number>
                   </property>
                   <widget class="QWidget" name="backupRepoPage">
                    <property name="sizePolicy">
@@ -1270,7 +1270,7 @@ QPushButton#nextButton_2:disabled {
 }</string>
                   </property>
                   <property name="currentIndex">
-                   <number>1</number>
+                   <number>0</number>
                   </property>
                   <widget class="QWidget" name="selectRepoPage_list">
                    <property name="sizePolicy">
@@ -1286,10 +1286,13 @@ QPushButton#nextButton_2:disabled {
                     <item>
                      <widget class="QPushButton" name="chooseRepoButton_list">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
+                      </property>
+                      <property name="acceptDrops">
+                       <bool>false</bool>
                       </property>
                       <property name="layoutDirection">
                        <enum>Qt::LeftToRight</enum>
@@ -1562,7 +1565,7 @@ QTableView {
                    <item>
                     <widget class="QLabel" name="label_17">
                      <property name="text">
-                      <string>Select Backups</string>
+                      <string>Select Backups for Comparison</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignCenter</set>
@@ -1730,7 +1733,7 @@ QPushButton#nextButton_3:disabled {
                     <item>
                      <widget class="QPushButton" name="chooseRepoButton_compare">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
@@ -1801,9 +1804,104 @@ QLabel {
                    </layout>
                   </widget>
                   <widget class="QWidget" name="tablePage_compare">
-                   <layout class="QGridLayout" name="gridLayout_18">
-                    <item row="0" column="0">
-                     <widget class="QTableWidget" name="compareTable">
+                   <layout class="QVBoxLayout" name="verticalLayout_12">
+                    <item>
+                     <widget class="QLabel" name="label_18">
+                      <property name="text">
+                       <string>First Backup</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QTableWidget" name="firstCmpTable">
+                      <property name="styleSheet">
+                       <string notr="true">* {
+    font-size: 12pt;
+    color: rgb(29, 31, 39);
+}
+
+QHeaderView::section {
+    background-color: rgb(6, 134, 103);
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    border: none;
+}
+
+QTableCornerButton::section {
+    background-color: rgb(6, 134, 103);
+    border: none;
+}
+
+QTableWidget {
+    background-color: white;
+    selection-background-color: rgb(6, 134, 103);
+    selection-color: white;
+    gridline-color: transparent;
+    border: 1px solid rgb(220, 220, 220);
+    show-decoration-selected: 1;
+}
+
+QTableWidget::item {
+    padding: 6px 10px;
+    border: none;
+    font-weight: normal;
+    color: rgb(29, 31, 39);
+}
+
+QTableWidget::item:hover {
+    background-color: rgba(6, 134, 103, 0.1);
+}
+
+QTableWidget::item:selected {
+    background-color: rgba(6, 134, 103, 0.5);
+    color: white;
+    font-weight: 700;
+}
+
+QTableView {
+    show-decoration-selected: 1;
+}
+</string>
+                      </property>
+                      <column>
+                       <property name="text">
+                        <string>Name</string>
+                       </property>
+                      </column>
+                      <column>
+                       <property name="text">
+                        <string>Type</string>
+                       </property>
+                      </column>
+                      <column>
+                       <property name="text">
+                        <string>Time</string>
+                       </property>
+                      </column>
+                      <column>
+                       <property name="text">
+                        <string>Remarks</string>
+                       </property>
+                      </column>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="Line" name="line">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="label_19">
+                      <property name="text">
+                       <string>Second Backup</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QTableWidget" name="secondCmpTable">
                       <property name="styleSheet">
                        <string notr="true">* {
     font-size: 12pt;

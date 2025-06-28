@@ -190,7 +190,7 @@ QLabel {
                <item>
                 <widget class="QLabel" name="label_4">
                  <property name="text">
-                  <string>Endpoint Selection</string>
+                  <string>Enter Endpoint</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignCenter</set>
@@ -200,7 +200,7 @@ QLabel {
                <item>
                 <widget class="QLabel" name="label_2">
                  <property name="text">
-                  <string>Backup Selection</string>
+                  <string>Backup Details</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignCenter</set>
@@ -271,6 +271,9 @@ QLineEdit {
 QLineEdit:disabled {
 	background: rgba(6, 134, 103, 0.5);
 }</string>
+           </property>
+           <property name="currentIndex">
+            <number>2</number>
            </property>
            <widget class="QWidget" name="endpoint_page">
             <layout class="QGridLayout" name="gridLayout_3">
@@ -424,7 +427,7 @@ QRadioButton:checked {
                <item row="1" column="0">
                 <widget class="QLabel" name="label_10">
                  <property name="text">
-                  <string>Remarks (optional)</string>
+                  <string>Remarks (Optional)</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -433,8 +436,15 @@ QRadioButton:checked {
                </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_9">
+                 <property name="styleSheet">
+                  <string notr="true">QLabel {
+	color: rgb(6, 134, 103);
+	font-weight: 700;
+	letter-spacing: 0.5px;
+}</string>
+                 </property>
                  <property name="text">
-                  <string>Backup type</string>
+                  <string>Backup Type</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -448,6 +458,12 @@ QRadioButton:checked {
                 <layout class="QVBoxLayout" name="verticalLayout_5">
                  <item>
                   <widget class="QRadioButton" name="fullButton">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="text">
                     <string>Full Backup</string>
                    </property>
@@ -458,6 +474,12 @@ QRadioButton:checked {
                  </item>
                  <item>
                   <widget class="QRadioButton" name="incButton">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="text">
                     <string>Incremental Backup</string>
                    </property>
@@ -465,6 +487,12 @@ QRadioButton:checked {
                  </item>
                  <item>
                   <widget class="QRadioButton" name="diffButton">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="text">
                     <string>Differential Backup</string>
                    </property>
@@ -496,12 +524,25 @@ QRadioButton:checked {
                 <number>30</number>
                </property>
                <item row="0" column="1">
-                <widget class="QLineEdit" name="scheduleInput"/>
+                <widget class="QLineEdit" name="scheduleInput">
+                 <property name="toolTip">
+                  <string>Format: Second Minute Hour Day Month Weekday</string>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Ex. 0 0 12 * * * (Every Day at 12:00:00)</string>
+                 </property>
+                </widget>
                </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_11">
+                 <property name="styleSheet">
+                  <string notr="true">QLabel {
+	font-weight: 700;
+	letter-spacing: 0.5px;
+}</string>
+                 </property>
                  <property name="text">
-                  <string>Cron String</string>
+                  <string>CRON String</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
