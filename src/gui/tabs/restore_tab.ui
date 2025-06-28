@@ -271,6 +271,9 @@ QLabel {
                   <property name="styleSheet">
                    <string notr="true">text-align:center;</string>
                   </property>
+                  <property name="currentIndex">
+                   <number>1</number>
+                  </property>
                   <widget class="QWidget" name="page_5">
                    <layout class="QGridLayout" name="gridLayout_9">
                     <property name="leftMargin">
@@ -527,24 +530,54 @@ QRadioButton:checked {
                        <enum>QFrame::Raised</enum>
                       </property>
                       <layout class="QVBoxLayout" name="verticalLayout_6">
+                       <property name="leftMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>0</number>
+                       </property>
                        <item>
                         <widget class="QFrame" name="verticalFrame">
                          <property name="styleSheet">
                           <string notr="true"/>
                          </property>
                          <layout class="QVBoxLayout" name="verticalLayout_7">
+                          <property name="spacing">
+                           <number>18</number>
+                          </property>
+                          <property name="leftMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="topMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="rightMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="bottomMargin">
+                           <number>0</number>
+                          </property>
                           <item>
                            <layout class="QVBoxLayout" name="verticalLayout_5">
+                            <property name="spacing">
+                             <number>18</number>
+                            </property>
                             <item>
                              <widget class="QRadioButton" name="originalDestination">
                               <property name="sizePolicy">
-                               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                                </sizepolicy>
                               </property>
                               <property name="text">
-                               <string>Use original location</string>
+                               <string>Use Original Location</string>
                               </property>
                               <property name="checked">
                                <bool>true</bool>
@@ -554,13 +587,13 @@ QRadioButton:checked {
                             <item>
                              <widget class="QRadioButton" name="customDestination">
                               <property name="sizePolicy">
-                               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                                </sizepolicy>
                               </property>
                               <property name="text">
-                               <string>Select custom location</string>
+                               <string>Set Custom Location</string>
                               </property>
                              </widget>
                             </item>
@@ -593,10 +626,28 @@ QLineEdit:disabled {
 }</string>
                             </property>
                             <layout class="QHBoxLayout" name="horizontalLayout_2">
+                             <property name="spacing">
+                              <number>30</number>
+                             </property>
+                             <property name="leftMargin">
+                              <number>36</number>
+                             </property>
+                             <property name="topMargin">
+                              <number>36</number>
+                             </property>
+                             <property name="rightMargin">
+                              <number>36</number>
+                             </property>
+                             <property name="bottomMargin">
+                              <number>36</number>
+                             </property>
                              <item>
                               <widget class="QLabel" name="label">
                                <property name="text">
-                                <string>Destination:</string>
+                                <string>Destination</string>
+                               </property>
+                               <property name="alignment">
+                                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                                </property>
                               </widget>
                              </item>
@@ -604,6 +655,12 @@ QLineEdit:disabled {
                               <widget class="QLineEdit" name="destInput">
                                <property name="enabled">
                                 <bool>false</bool>
+                               </property>
+                               <property name="sizePolicy">
+                                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                                 <horstretch>0</horstretch>
+                                 <verstretch>0</verstretch>
+                                </sizepolicy>
                                </property>
                                <property name="styleSheet">
                                 <string notr="true"/>

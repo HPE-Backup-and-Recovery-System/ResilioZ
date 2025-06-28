@@ -12,6 +12,8 @@
 CreateScheduleDialog::CreateScheduleDialog(QWidget* parent)
     : QDialog(parent), ui(new Ui::CreateScheduleDialog) {
   ui->setupUi(this);
+
+  ui->stackedWidget_createSchedule->setCurrentIndex(0);
   request_mgr = new SchedulerRequestManager();
 
   cron_string = "";

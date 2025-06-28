@@ -9,7 +9,7 @@
 
 int RunCLI(int argc, char** argv) {
   // UserIO::ClearTerminal();
-  Logger::TerminalLog("HPE - Backup and Recovery System in Linux...");
+  Logger::TerminalLog(" ResilioZ (HPE) - Backup and Recovery System in Linux...");
   System* system = nullptr;
 
   std::vector<std::string> main_menu = {
@@ -19,7 +19,7 @@ int RunCLI(int argc, char** argv) {
       delete system;
       system = nullptr;
     }
-    
+
     int choice = UserIO::HandleMenuWithSelect(
         UserIO::DisplayMaxTitle("SYSTEMS", false), main_menu);
 
