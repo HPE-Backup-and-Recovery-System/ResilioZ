@@ -2,6 +2,7 @@
 #define RESTORE_TAB_H
 
 #include <QWidget>
+#include "gui/decorators/core.h"
 #include "repositories/repository.h"
 #include "services/repository_service.h"
 #include "systems/system.h"
@@ -18,30 +19,28 @@ class RestoreTab : public QWidget {
   ~RestoreTab();
 
 private slots:
-    // Restore menu options
-    void on_restoreButton_clicked(); // Normal restore menu
-    void on_retryButton_clicked(); // Retry failed restore menu
-
-    // Navigation inside submenu
+    // Navigation
     void on_nextButton_clicked();
     void on_backButton_clicked();
 
-    // Selection of repository
+    // Selection of repository through dialog
     void on_chooseRepoButton_clicked();
     
     // Event handler on change of selection of backup file
     void onFileSelected();
 
+    // Enables the input
     void on_customDestination_clicked();
 
+    // Clears and disables the input
     void on_originalDestination_clicked();
 
 private:
     Ui::RestoreTab *ui;
+    RestoreGUI* restore_;
     
     // Store repo details
     Repository* repository_;
-    RepositoryService* repo_service_;
     
     // Store backup file details (file) - dependent on repo selection.
     std::string backup_file;
@@ -49,10 +48,10 @@ private:
     // Store backup destination details (folder)
     std::string backup_destination;
     
-    // Handles update of progress bar : Make sure works on all submenus not just plain restore.
+    // Handles update of progress bar
     void updateProgress();
     
-    // Handles update of nav buttons (state and internal text)
+    // Handles update of nav buttons 
     void updateButtons();
     
     // Event handler on change of submenu step
@@ -61,11 +60,17 @@ private:
     // Loads files given a partiuclar backup repo
     void loadFileTable();
 
+    // handle resizes and column sizing
     void setColSize(int tableWidth);
     void resizeEvent(QResizeEvent* event);
     
+    // Sets repository_
     bool handleSelectRepo();
+
+    // Sets backup_file
     bool handleSelectFile();
+
+    // Sets backup_destination
     bool handleSelectDestination();
     
     void restoreBackup();
