@@ -8,18 +8,21 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include "repositories/all.h"
+#include <atomic>
 
 class Scheduler {
  public:
   Scheduler();
   void Run();
-
- private:
+  void RequestShutdown();
+  
+  private:
   libcron::Cron<> cron;
   std::map<std::string, std::string> schedules;
   std::map<std::string, Repository*> repo_data;
   sockaddr_in address;
   int conn_id = 1;
+  std::atomic<bool> running{true};
 
   std::string AddSchedule(nlohmann::json reqBody);
   std::string ViewSchedules();
