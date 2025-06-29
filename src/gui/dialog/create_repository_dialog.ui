@@ -329,7 +329,7 @@ QPushButton#nextButton:disabled {
 }</string>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="selectRepoTypePage">
             <property name="sizePolicy">
@@ -663,7 +663,7 @@ QLineEdit:disabled {
                    <item row="1" column="0">
                     <widget class="QLabel" name="nfsMountPathLabel">
                      <property name="text">
-                      <string>NFS Mount Path</string>
+                      <string>NFS Path</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -695,7 +695,7 @@ QLineEdit:disabled {
                       </sizepolicy>
                      </property>
                      <property name="toolTip">
-                      <string>Enter Path to Mount on NFS Client</string>
+                      <string>Enter Path of NFS Repository (ex. host:/path)</string>
                      </property>
                     </widget>
                    </item>

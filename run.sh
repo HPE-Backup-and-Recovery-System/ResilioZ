@@ -19,13 +19,13 @@ BUILD_PATH="./build/scheduler"
 ## IMPORTANT - Change this is you want logs to go to sys.log, currenly scheduler logs are a seperate file
 LOG_FILE="/var/log/scheduler.log" 
 
-echo "Checking if $SERVICE_NAME is already running..."
+echo "[INFO ] Checking if $SERVICE_NAME is already running..."
 if systemctl is-active --quiet "$SERVICE_NAME"; then
-  echo "$SERVICE_NAME is already running. Skipping binary copy."
+  echo "[INFO ] $SERVICE_NAME is already running. Skipping binary copy."
 else
-  echo "Moving scheduler binary to $EXEC_PATH..."
+  echo "[INFO ] Moving scheduler binary to $EXEC_PATH..."
   if [[ ! -f "$BUILD_PATH" ]]; then
-    echo "Error: Scheduler binary not found at $BUILD_PATH"
+    echo "[ERROR] Scheduler binary not found at $BUILD_PATH"
     exit 1
   fi
 
@@ -36,7 +36,7 @@ fi
 
 # Systemd unit file creation
 if [[ ! -f "$UNIT_FILE" ]]; then
-  echo "Creating systemd unit file at $UNIT_FILE..."
+  echo "[INFO ] Creating systemd unit file at $UNIT_FILE..."
   sudo tee "$UNIT_FILE" > /dev/null <<EOF
 [Unit]
 Description=ResilioZ Backup Scheduler
@@ -59,24 +59,27 @@ WantedBy=multi-user.target
 EOF
   sudo chmod 644 "$UNIT_FILE"
 else
-  echo "Systemd unit already exists. Skipping creation."
+  echo "[INFO ] Systemd unit already exists. Skipping creation."
 fi
 
-echo "Reloading systemd daemon..."
+echo
+
+echo "[INFO ] Reloading systemd daemon..."
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 
-echo "Enabling $SERVICE_NAME to run at boot..."
+echo "[INFO ] Enabling $SERVICE_NAME to run at boot..."
 sudo systemctl enable "$SERVICE_NAME"
 
 if systemctl is-active --quiet "$SERVICE_NAME"; then
-  echo "$SERVICE_NAME is already running."
+  echo "[INFO ] $SERVICE_NAME is already running."
 else
-  echo "Starting $SERVICE_NAME..."
+  echo "[INFO ] Starting $SERVICE_NAME..."
   sudo systemctl start "$SERVICE_NAME"
 fi
 
-echo "Done. Logs will be written to $LOG_FILE"
+echo "[INFO ] Done... Logs will be written to $LOG_FILE"
+echo
 
 # Run the Binary
 cd build

@@ -10,5 +10,9 @@
         <file>icons/box-open.svg</file>
         <file>icons/file-arrow-down.svg</file>
         <file>icons/rotate-right.svg</file>
+        <file>icons/window-restore.svg</file>
+        <file>icons/square-check.svg</file>
+        <file>icons/folder-open.svg</file>
+        <file>icons/hourglass-end.svg</file>
     </qresource>
 </RCC>

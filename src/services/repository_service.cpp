@@ -126,8 +126,6 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
   try {
     repo = new LocalRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      delete repo;
-      repo = nullptr;
       ErrorUtil::ThrowError("Repository already exists at location: " + path);
     } else {
       repo->Initialize();
@@ -142,11 +140,11 @@ void RepositoryService::InitLocalRepositoryFromPrompt() {
 
     SetRepository(repo);
   } catch (...) {
-    ErrorUtil::ThrowNested("Local repository not initialized");
-    if (repo && repo != repository_) {
+    if (repo != nullptr && repo != repository_) {
       delete repo;
       repo = nullptr;
     }
+    ErrorUtil::ThrowNested("Local repository not initialized");
   }
 }
 
@@ -163,8 +161,6 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
   try {
     repo = new NFSRepository(nfs_path, name, password, timestamp);
     if (repo->Exists()) {
-      delete repo;
-      repo = nullptr;
       ErrorUtil::ThrowError("Repository already exists at location: " +
                             nfs_path);
     } else {
@@ -180,11 +176,11 @@ void RepositoryService::InitNFSRepositoryFromPrompt() {
 
     SetRepository(repo);
   } catch (...) {
-    ErrorUtil::ThrowNested("NFS repository not initialized");
-    if (repo && repo != repository_) {
+    if (repo != nullptr && repo != repository_) {
       delete repo;
       repo = nullptr;
     }
+    ErrorUtil::ThrowNested("NFS repository not initialized");
   }
 }
 
@@ -201,8 +197,6 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
   try {
     repo = new RemoteRepository(path, name, password, timestamp);
     if (repo->Exists()) {
-      delete repo;
-      repo = nullptr;
       ErrorUtil::ThrowError("Repository already exists at location: " + path);
     } else {
       repo->Initialize();
@@ -217,11 +211,11 @@ void RepositoryService::InitRemoteRepositoryFromPrompt() {
 
     SetRepository(repo);
   } catch (const std::exception& e) {
-    ErrorUtil::ThrowNested("Remote repository not initialized");
-    if (repo && repo != repository_) {
+    if (repo != nullptr && repo != repository_) {
       delete repo;
       repo = nullptr;
     }
+    ErrorUtil::ThrowNested("Remote repository not initialized");
   }
 }
 
@@ -295,8 +289,6 @@ Repository* RepositoryService::SelectExistingRepository() {
 
     if (!repo->Exists()) {
       std::string missing_path = repo->GetPath();
-      delete repo;
-      repo = nullptr;
       ErrorUtil::ThrowError("Repository not found in path: " + missing_path);
     }
 
@@ -304,21 +296,22 @@ Repository* RepositoryService::SelectExistingRepository() {
                 Repository::GetFormattedTypeString(selected_repo.type) +
                 "] loaded from: " + repo->GetPath());
     SetRepository(repo);
-    return repo;
+    return repository_;
 
   } catch (const std::exception& e) {
-    ErrorUtil::ThrowNested("Unable to fetch repository");
-    if (repo) {
+    if (repo != nullptr && repo != repository_) {
       delete repo;
       repo = nullptr;
     }
+    ErrorUtil::ThrowNested("Unable to fetch repository");
     return nullptr;
   }
 }
 
 void RepositoryService::DeleteRepository() {
+  Repository* repo = nullptr;
   try {
-    Repository* repo = SelectExistingRepository();
+    repo = SelectExistingRepository();
     if (!repo) {
       return;
     }
@@ -328,8 +321,6 @@ void RepositoryService::DeleteRepository() {
       Logger::Log("Deleted entry for repository: " +
                   repo->GetRepositoryInfoString() + " as it does not exist");
       std::string missing_path = repo->GetPath();
-      delete repo;
-      repo = nullptr;
       ErrorUtil::ThrowError("Repository not found in path: " + missing_path);
     }
 
@@ -342,6 +333,10 @@ void RepositoryService::DeleteRepository() {
 
     SetRepository(repo);
   } catch (const std::exception& e) {
+    if (repo != nullptr && repo != repository_) {
+      delete repo;
+      repo = nullptr;
+    }
     ErrorUtil::ThrowNested("Repository deletion failure");
   }
 }
