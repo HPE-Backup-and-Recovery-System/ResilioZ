@@ -19,7 +19,7 @@ RestoreSystem::RestoreSystem() {
 
 RestoreSystem::~RestoreSystem() {
   delete repo_service_;
-  repository_ = nullptr;
+  if (repository_ != nullptr) delete repository_;
 }
 
 void RestoreSystem::Run() {
