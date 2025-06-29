@@ -138,20 +138,21 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
           }
 
           SetRestoreSummary();
+
           LogLevel log_level;
           if (summary_.status_code == 2) {
             log_level = LogLevel::ERROR;
-            return false;
+            setSuccessMessage("Restore Attempt Completed with Errors");
           } else if (summary_.status_code == 1) {
             log_level = LogLevel::WARNING;
-            return false;
+            setSuccessMessage("Restore Attempt Completed with Errors");
           } else {
             log_level = LogLevel::INFO;
+            setSuccessMessage("Restore Attempt Completed");
           }
 
           Logger::SystemLog("GUI | Restore Attempt Status: " + summary_.status,
                             log_level);
-          setSuccessMessage("Restore Attempt Completed");
 
           return true;
 
@@ -273,21 +274,22 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
           }
 
           SetRestoreSummary();
+
           LogLevel log_level;
           if (summary_.status_code == 2) {
             log_level = LogLevel::ERROR;
-            return false;
+            setSuccessMessage("Backup Verification Completed with Errors");
           } else if (summary_.status_code == 1) {
             log_level = LogLevel::WARNING;
-            return false;
+            setSuccessMessage("Backup Verification Completed with Errors");
           } else {
             log_level = LogLevel::INFO;
+            setSuccessMessage("Backup Verification Completed");
           }
 
           Logger::SystemLog(
               "GUI | Backup Verification Status: " + summary_.status,
               log_level);
-          setSuccessMessage("Backup Verification Completed");
 
           return true;
 
