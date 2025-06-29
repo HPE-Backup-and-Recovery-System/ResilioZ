@@ -182,6 +182,9 @@ QLabel {
             </property>
             <item>
              <widget class="QTableWidget" name="successFileTable">
+              <property name="layoutDirection">
+               <enum>Qt::LeftToRight</enum>
+              </property>
               <property name="styleSheet">
                <string notr="true">* {
     font-size: 12pt;

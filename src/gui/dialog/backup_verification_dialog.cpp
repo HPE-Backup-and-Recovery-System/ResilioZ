@@ -12,7 +12,6 @@ BackupVerificationDialog::BackupVerificationDialog(
       success_files_(success_files),
       corrupt_files_(corrupt_files),
       fail_files_(fail_files) {
-
   ui->setupUi(this);
 
   this->setWindowTitle(QString::fromStdString(window_title));
@@ -59,6 +58,10 @@ void BackupVerificationDialog::fillTables() {
   int corrupt_count = static_cast<int>(corrupt_files_.size());
   int fail_count = static_cast<int>(fail_files_.size());
 
+  ui->successFileTable->setColumnCount(1);
+  ui->corruptFileTable->setColumnCount(1);
+  ui->failFileTable->setColumnCount(1);
+
   if (!success_count) {
     ui->successFileTable->setRowCount(1);
     auto* noFile = new QTableWidgetItem("< No Files Succeeded >");
@@ -70,7 +73,8 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < success_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(success_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignRight);
+      fileItem->setTextAlignment(Qt::AlignLeft);
+      fileItem->setToolTip(QString::fromStdString(success_files_[row]));
       ui->successFileTable->setItem(row, 0, fileItem);
     }
   }
@@ -86,8 +90,8 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < corrupt_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(corrupt_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignRight);
-    
+      fileItem->setTextAlignment(Qt::AlignLeft);
+      fileItem->setToolTip(QString::fromStdString(corrupt_files_[row]));
       ui->corruptFileTable->setItem(row, 0, fileItem);
     }
   }
@@ -103,7 +107,8 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < fail_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(fail_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignRight);
+      fileItem->setTextAlignment(Qt::AlignLeft);
+      fileItem->setToolTip(QString::fromStdString(fail_files_[row]));
       ui->failFileTable->setItem(row, 0, fileItem);
     }
   }
