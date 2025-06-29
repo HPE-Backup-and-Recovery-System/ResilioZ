@@ -17,6 +17,7 @@
 #include "utils/error_util.h"
 #include "utils/logger.h"
 #include "utils/user_io.h"
+#include "utils/encryption_util.h"
 
 namespace fs = std::filesystem;
 
@@ -254,10 +255,14 @@ void Backup::SaveMetadata() {
   }
   metadata_json["files"] = files_json;
 
+  // Encrypt metadata using repository password
+  std::string json_string = metadata_json.dump(4);
+  std::vector<uint8_t> encrypted_data = EncryptionUtil::EncryptMetadata(json_string, repo_->GetPassword());
+  
   // Save metadata
   fs::path local_meta_path = temp_dir_ / "backup" / backup_name;
-  std::ofstream metadata_file(local_meta_path);
-  metadata_file << metadata_json.dump(4);
+  std::ofstream metadata_file(local_meta_path, std::ios::binary);
+  metadata_file.write(reinterpret_cast<const char*>(encrypted_data.data()), encrypted_data.size());
   metadata_file.close();
 
   repo_->UploadFile(local_meta_path.string(), "backup/");
@@ -339,9 +344,25 @@ BackupMetadata Backup::LoadPreviousMetadata(const std::string& backup_name) {
                           metadata_path.string());
   }
 
-  std::ifstream metadata_file(metadata_path);
-  nlohmann::json metadata_json;
-  metadata_file >> metadata_json;
+  std::ifstream metadata_file(metadata_path, std::ios::binary);
+  if (!metadata_file) {
+    ErrorUtil::ThrowError("Could not open metadata file: " + metadata_path.string());
+  }
+
+  // Read encrypted data
+  std::vector<uint8_t> encrypted_data(
+    (std::istreambuf_iterator<char>(metadata_file)),
+    std::istreambuf_iterator<char>()
+  );
+  metadata_file.close();
+
+  // Decrypt metadata using repository password
+  std::string json_string = EncryptionUtil::DecryptMetadata(encrypted_data, repo_->GetPassword());
+  if (json_string.empty()) {
+    ErrorUtil::ThrowError("Failed to decrypt metadata: " + backup_name);
+  }
+
+  nlohmann::json metadata_json = nlohmann::json::parse(json_string);
 
   BackupMetadata metadata;
   metadata.type = static_cast<BackupType>(metadata_json["type"].get<int>());
@@ -387,12 +408,31 @@ std::string Backup::GetLatestFullBackup() {
   auto backups = ListBackups();
   for (auto it = backups.begin(); it != backups.end(); ++it) {
     fs::path metadata_path = temp_dir_ / "backup" / *it;
-    std::ifstream metadata_file(metadata_path);
-    nlohmann::json metadata_json;
-    metadata_file >> metadata_json;
-    if (static_cast<BackupType>(metadata_json["type"].get<int>()) ==
-        BackupType::FULL) {
-      return *it;
+    std::ifstream metadata_file(metadata_path, std::ios::binary);
+    if (!metadata_file) {
+      continue;
+    }
+
+    // Read encrypted data
+    std::vector<uint8_t> encrypted_data(
+      (std::istreambuf_iterator<char>(metadata_file)),
+      std::istreambuf_iterator<char>()
+    );
+    metadata_file.close();
+
+    // Decrypt metadata using repository password
+    std::string json_string = EncryptionUtil::DecryptMetadata(encrypted_data, repo_->GetPassword());
+    if (json_string.empty()) {
+      continue; // Skip corrupted metadata
+    }
+
+    try {
+      nlohmann::json metadata_json = nlohmann::json::parse(json_string);
+      if (static_cast<BackupType>(metadata_json["type"].get<int>()) == BackupType::FULL) {
+        return *it;
+      }
+    } catch (...) {
+      continue; // Skip invalid JSON
     }
   }
   return "";
@@ -417,33 +457,53 @@ std::vector<BackupDetails> Backup::GetAllBackupDetails() {
   const auto backups = ListBackups();
   for (const auto& backup : backups) {
     fs::path metadata_path = temp_dir_ / "backup" / backup;
-    std::ifstream metadata_file(metadata_path);
-    nlohmann::json metadata_json;
-    metadata_file >> metadata_json;
-
-    auto type = static_cast<BackupType>(metadata_json["type"].get<int>());
-    auto timestamp = std::chrono::system_clock::from_time_t(
-        metadata_json["timestamp"].get<time_t>());
-    auto time = std::chrono::system_clock::to_time_t(timestamp);
-    std::stringstream timestamp_str;
-    timestamp_str << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
-
-    std::string type_str;
-    switch (type) {
-      case BackupType::FULL:
-        type_str = "FULL";
-        break;
-      case BackupType::INCREMENTAL:
-        type_str = "INCREMENTAL";
-        break;
-      case BackupType::DIFFERENTIAL:
-        type_str = "DIFFERENTIAL";
-        break;
+    std::ifstream metadata_file(metadata_path, std::ios::binary);
+    if (!metadata_file) {
+      continue;
     }
 
-    std::string remarks = metadata_json.value("remarks", "");
-    BackupDetails details(type_str, timestamp_str.str(), backup, remarks);
-    backupDetails.push_back(details);
+    // Read encrypted data
+    std::vector<uint8_t> encrypted_data(
+      (std::istreambuf_iterator<char>(metadata_file)),
+      std::istreambuf_iterator<char>()
+    );
+    metadata_file.close();
+
+    // Decrypt metadata using repository password
+    std::string json_string = EncryptionUtil::DecryptMetadata(encrypted_data, repo_->GetPassword());
+    if (json_string.empty()) {
+      continue; // Skip corrupted metadata
+    }
+
+    try {
+      nlohmann::json metadata_json = nlohmann::json::parse(json_string);
+
+      auto type = static_cast<BackupType>(metadata_json["type"].get<int>());
+      auto timestamp = std::chrono::system_clock::from_time_t(
+          metadata_json["timestamp"].get<time_t>());
+      auto time = std::chrono::system_clock::to_time_t(timestamp);
+      std::stringstream timestamp_str;
+      timestamp_str << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+
+      std::string type_str;
+      switch (type) {
+        case BackupType::FULL:
+          type_str = "FULL";
+          break;
+        case BackupType::INCREMENTAL:
+          type_str = "INCREMENTAL";
+          break;
+        case BackupType::DIFFERENTIAL:
+          type_str = "DIFFERENTIAL";
+          break;
+      }
+
+      std::string remarks = metadata_json.value("remarks", "");
+      BackupDetails details(type_str, timestamp_str.str(), backup, remarks);
+      backupDetails.push_back(details);
+    } catch (...) {
+      continue; // Skip invalid JSON
+    }
   }
   return backupDetails;
 }

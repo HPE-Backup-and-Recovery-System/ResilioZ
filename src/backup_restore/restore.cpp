@@ -47,9 +47,25 @@ void Restore::LoadMetadata(const std::string backup_name_) {
                             metadata_path.string());
     }
 
-    std::ifstream metadata_file(metadata_path);
-    nlohmann::json metadata_json;
-    metadata_file >> metadata_json;
+    std::ifstream metadata_file(metadata_path, std::ios::binary);
+    if (!metadata_file) {
+      ErrorUtil::ThrowError("Could not open metadata file: " + metadata_path.string());
+    }
+
+    // Read encrypted data
+    std::vector<uint8_t> encrypted_data(
+      (std::istreambuf_iterator<char>(metadata_file)),
+      std::istreambuf_iterator<char>()
+    );
+    metadata_file.close();
+
+    // Decrypt metadata using repository password
+    std::string json_string = EncryptionUtil::DecryptMetadata(encrypted_data, repo_->GetPassword());
+    if (json_string.empty()) {
+      ErrorUtil::ThrowError("Failed to decrypt metadata: " + backup_name_);
+    }
+
+    nlohmann::json metadata_json = nlohmann::json::parse(json_string);
 
     
     BackupType type = static_cast<BackupType>(metadata_json["type"].get<int>());
@@ -503,11 +519,39 @@ void Restore::CompareBackups(const std::string& backup1,
     ErrorUtil::ThrowError("One or both backup metadata files not found");
   }
 
-  std::ifstream metadata_file1(metadata_path1);
-  std::ifstream metadata_file2(metadata_path2);
-  nlohmann::json metadata_json1, metadata_json2;
-  metadata_file1 >> metadata_json1;
-  metadata_file2 >> metadata_json2;
+  // Read and decrypt first backup metadata
+  std::ifstream metadata_file1(metadata_path1, std::ios::binary);
+  if (!metadata_file1) {
+    ErrorUtil::ThrowError("Could not open metadata file: " + metadata_path1.string());
+  }
+  std::vector<uint8_t> encrypted_data1(
+    (std::istreambuf_iterator<char>(metadata_file1)),
+    std::istreambuf_iterator<char>()
+  );
+  metadata_file1.close();
+
+  std::string json_string1 = EncryptionUtil::DecryptMetadata(encrypted_data1, repo_->GetPassword());
+  if (json_string1.empty()) {
+    ErrorUtil::ThrowError("Failed to decrypt metadata: " + backup1);
+  }
+  nlohmann::json metadata_json1 = nlohmann::json::parse(json_string1);
+
+  // Read and decrypt second backup metadata
+  std::ifstream metadata_file2(metadata_path2, std::ios::binary);
+  if (!metadata_file2) {
+    ErrorUtil::ThrowError("Could not open metadata file: " + metadata_path2.string());
+  }
+  std::vector<uint8_t> encrypted_data2(
+    (std::istreambuf_iterator<char>(metadata_file2)),
+    std::istreambuf_iterator<char>()
+  );
+  metadata_file2.close();
+
+  std::string json_string2 = EncryptionUtil::DecryptMetadata(encrypted_data2, repo_->GetPassword());
+  if (json_string2.empty()) {
+    ErrorUtil::ThrowError("Failed to decrypt metadata: " + backup2);
+  }
+  nlohmann::json metadata_json2 = nlohmann::json::parse(json_string2);
 
   BackupMetadata metadata1, metadata2;
   metadata1.type = static_cast<BackupType>(metadata_json1["type"].get<int>());
