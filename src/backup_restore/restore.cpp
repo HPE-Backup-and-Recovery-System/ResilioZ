@@ -141,6 +141,10 @@ void Restore::RestoreFile(const std::filesystem::path & file_path, const fs::pat
       progress.Complete();
     }
     catch (const std::exception& e) {
+      // Reset chunk tracking state on error
+      current_chunk_ = 0;
+      processed_bytes_ = 0;
+      current_file_hash_ = "";
       ErrorUtil::ThrowError("Failed to combine chunks for file: " + file_path.string() + " - " + e.what());
       throw;
     }
@@ -163,7 +167,81 @@ void Restore::RestoreFile(const std::filesystem::path & file_path, const fs::pat
     successful_files_.push_back(output_file.string());
   }
   catch(const std::exception& e) {
+    // Reset chunk tracking state on error
+    current_chunk_ = 0;
+    processed_bytes_ = 0;
+    current_file_hash_ = "";
     ErrorUtil::ThrowError("Failed to restore file: " + file_path.string() + " - " + e.what());
+    throw;
+  }
+
+}
+
+void Restore::VerifyFile(const std::filesystem::path & file_path, const fs::path output_path_, const std::string backup_name_) {
+  try {
+      // Get file metadata
+    LoadMetadata(backup_name_);
+    auto file_metadata = FindFileMetadata(file_path.string());
+    if (!file_metadata) {
+      ErrorUtil::ThrowError("File not found in backup: " + file_path.string());
+    }
+
+    std::string filename = file_metadata->second.original_filename;
+    fs::path output_file = PrepareOutputPath(filename, file_path, output_path_);
+
+    // Handle symlinks
+    if (file_metadata->second.is_symlink) {
+      // No need to verify symlinks
+      Logger::TerminalLog("Verifying symlink: " + output_file.string() + " -> " + file_metadata->second.symlink_target);
+      successful_files_.push_back(file_path.string());
+      return;
+    }
+
+    ProgressBar progress(file_metadata->second.total_size,
+                        file_metadata->second.chunk_hashes.size(),
+                        "verifcation of " + filename);
+
+    // Use streaming chunk combining
+    try{
+      chunker_.StreamCombineChunks(
+        [&]() -> Chunk { 
+          try {
+            return GetNextChunk(file_metadata->second, progress);
+          } 
+          catch(const std::exception& e) {
+            ErrorUtil::ThrowError("Failed to get next chunk: " + std::string(e.what()));
+            throw;
+          }
+         },
+        output_file, file_metadata->second.total_size);
+
+      progress.Complete();
+    }
+    catch (const std::exception& e) {
+      // Reset chunk tracking state on error
+      current_chunk_ = 0;
+      processed_bytes_ = 0;
+      current_file_hash_ = "";
+      ErrorUtil::ThrowError("Failed to combine chunks for file: " + file_path.string() + " - " + e.what());
+      throw;
+    }
+
+    // Check file integrity
+    if (!CheckFileIntegrity(output_file, file_metadata->second.sha256_checksum)) {
+      Logger::Log("File integrity check failed for " + file_path.string(),LogLevel::WARNING);
+      integrity_failures_.push_back(file_path.string());
+      return;
+    }
+
+    fs::remove(output_file); // Remove file after verification
+    successful_files_.push_back(file_path.string());
+  }
+  catch(const std::exception& e) {
+    // Reset chunk tracking state on error
+    current_chunk_ = 0;
+    processed_bytes_ = 0;
+    current_file_hash_ = "";
+    ErrorUtil::ThrowError("Failed to verify file: " + file_path.string() + " - " + e.what());
     throw;
   }
 
@@ -234,6 +312,10 @@ Chunk Restore::GetNextChunk(const FileMetadata& file_metadata,
       return decompressed_chunk;
   }
   catch (const std::exception& e) {
+    // Reset state on error to prevent further issues
+    current_chunk_ = 0;
+    processed_bytes_ = 0;
+    current_file_hash_ = "";
     ErrorUtil::ThrowError("Failed to get next chunk: " + std::string(e.what()));
     throw;
   }
@@ -281,13 +363,64 @@ void Restore::RestoreAll(const fs::path output_path_,const std::string backup_na
   }
 }
 
+void Restore::VerifyBackup(const std::string backup_name_) {
+  try {
+      const fs::path output_path_ = temp_dir_ / "files";
+      // Ensure output path exists
+      if(!fs::exists(output_path_)) fs::create_directories(output_path_);
+      
+      // Clear previous integrity failures
+      integrity_failures_.clear();
+      failed_files_.clear();
+      successful_files_.clear();
+      
+      // Reset chunk tracking state
+      current_chunk_ = 0;
+      processed_bytes_ = 0;
+      current_file_hash_ = "";
+      
+      LoadMetadata(backup_name_);
+      
+      for (const auto& [file_path, metadata] : (*metadata_)->files) {
+        try {
+          VerifyFile(file_path, output_path_, backup_name_);
+
+        } catch (const std::exception& e) {
+          Logger::Log("Failed to verify file: " + file_path + " - " + e.what(), LogLevel::ERROR);
+          failed_files_.push_back(file_path);
+        }
+      }
+      // Report any integrity failures
+      auto result = ReportVerifyResults();
+      if(result.second == 2){
+          Logger::Log(result.first, LogLevel::ERROR);
+      }
+      else if (result.second==1) {
+          Logger::Log(result.first, LogLevel::WARNING);
+      }
+      else Logger::Log(result.first, LogLevel::INFO);
+
+  }
+  catch(const std::exception& e) {
+    ErrorUtil::ThrowError("Backup Verification failed: " + std::string(e.what()));
+  }
+}
+
 Chunk Restore::LoadChunk(const std::string& hash) {
   try {
     // Use first two hex digits as subdirectory
     std::string subdir = hash.substr(0, 2);
     fs::path chunk_path = temp_dir_/ "chunks" / subdir / (hash + ".chunk");
     if(!fs::exists(chunk_path.parent_path())) fs::create_directories(chunk_path.parent_path());
-    if(!fs::exists(chunk_path)) repo_->DownloadFile("chunks/" + subdir + "/" + hash + ".chunk", chunk_path.string());
+    if(!fs::exists(chunk_path)) {
+      // Try to download the chunk
+      repo_->DownloadFile("chunks/" + subdir + "/" + hash + ".chunk", chunk_path.string());
+      
+      // Check if the download was successful
+      if (!fs::exists(chunk_path)) {
+        ErrorUtil::ThrowError("Failed to download chunk file: " + hash + " - file not found after download attempt");
+      }
+    }
 
     std::ifstream chunk_file(chunk_path, std::ios::binary);
     if (!chunk_file) {
@@ -527,6 +660,52 @@ std::pair<std::string,int> Restore::ReportResults() {
 
   if(integrity_failures_count > 0) {
     out << " - Integrity failures \n";
+    for (std::string file_name_ : integrity_failures_) {
+      out << " --  " << file_name_ << " \n";
+    }
+  }
+
+  return {out.str(), status};
+
+}
+
+std::pair<std::string,int> Restore::ReportVerifyResults() {
+  int status = 0; // 0 = OK, 1 = Integrity failures, 2 = Failed files
+
+
+  int total_files = (*metadata_)->files.size();
+  int processed_files = successful_files_.size() + failed_files_.size() + integrity_failures_.size();
+  int restored_files = successful_files_.size() + integrity_failures_.size();
+  int failed_files_count = failed_files_.size();
+  int integrity_failures_count = integrity_failures_.size();
+  
+  std::ostringstream out;
+  out << "Backup Verfication Summary:\n"
+      << " - Total files: " << total_files << "\n"
+      << " - Processed files: " << processed_files << "\n"
+      << " - Restored files: " << restored_files << "\n"
+      << " - Failed integrity checks: " << integrity_failures_count <<"\n"
+      << " - Failed to verify: " << failed_files_count << "\n";
+  
+  if (failed_files_count  > 0)  {
+    status = 2;
+    out << " - Status: Backup is damaged \n";
+  }
+  else if (integrity_failures_count > 0) {
+    status = 1;
+    out << " - Status: Backup has integrity violations\n";
+  }
+  else out << " - Status: Backup OK\n";
+
+  if (failed_files_count > 0) {
+      out << " - Failed files \n";
+      for (std::string file_name_ : failed_files_) {
+        out << " --  " << file_name_ << " \n";
+      }
+  }
+
+  if(integrity_failures_count > 0) {
+    out << " - Corrupted files (Failed Integrity Check) \n";
     for (std::string file_name_ : integrity_failures_) {
       out << " --  " << file_name_ << " \n";
     }

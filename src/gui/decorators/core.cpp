@@ -167,6 +167,143 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
       });
 }
 
+void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
+                            const std::string backup_name_) {
+  fs::path output_path_ = temp_dir_ / "files";
+  ProgressBoxDecorator::runProgressBoxDeterminate(
+      parent_,
+      [this, output_path_, backup_name_](
+          std::function<void(int)> setProgress,
+          std::function<void(const QString&)> setWaitMessage,
+          std::function<void(const QString&)> setSuccessMessage,
+          std::function<void(const QString&)> setFailureMessage) -> bool {
+        try {
+          setWaitMessage("Checking if repository exists...");
+          try {
+            if (!repo_->Exists()) {
+              setFailureMessage("Repository does not exist at location: " +
+                                QString::fromStdString(repo_->GetPath()));
+              Logger::SystemLog("GUI | Verify Backup | Failed to find repository",
+                                LogLevel::ERROR);
+              return false;
+            }
+          } catch (const std::exception& e) {
+            Logger::SystemLog("GUI | Verify Backup | Failed to initialize verification: " +
+                                  std::string(e.what()),
+                              LogLevel::ERROR);
+            setFailureMessage("Repository existence unconfirmed");
+            return false;
+          }
+
+          QString message = QString::fromStdString(
+              "Verifying Backup from " + repo_->GetRepositoryInfoString() +
+              " With Name: " + backup_name_);
+          setWaitMessage(message);
+
+          setWaitMessage("Preparing Destination...");
+          if (!fs::exists(output_path_)) {
+            try {
+              fs::create_directories(output_path_);
+              setWaitMessage(
+                  QString::fromStdString(output_path_.string() + " created"));
+            } catch (const std::filesystem::filesystem_error& e) {
+              setFailureMessage(QString::fromStdString(
+                  "Failed to create directory: " + std::string(e.what())));
+              return false;
+            }
+          } else {
+            setWaitMessage(
+                QString::fromStdString(output_path_.string() + " exists"));
+          }
+
+          try {
+            LoadMetadata(backup_name_);
+          } catch (const std::exception& e) {
+            setFailureMessage(QString::fromStdString(
+                "Backup metadata not found: " + std::string(e.what())));
+            return false;
+          }
+
+
+
+          if (!metadata_ || !(*metadata_)) {
+            setFailureMessage("Metadata unavailable for backup.");
+            Logger::SystemLog("GUI | Verify Backup | Metadata pointer is null",
+                              LogLevel::ERROR);
+            return false;
+          }
+
+          int total_files = (*metadata_)->files.size(), processed_files = 0;
+
+          if (total_files == 0) {
+            setFailureMessage("No files to verify in the selected backup.");
+            Logger::SystemLog("GUI | Verify Backup | No files in backup metadata",
+                              LogLevel::WARNING);
+            return false;
+          }
+
+          // Clear previous integrity failures
+          integrity_failures_.clear();
+          failed_files_.clear();
+          successful_files_.clear();
+
+          for (const auto& [file_path, metadata] : (*metadata_)->files) {
+            try {
+              setWaitMessage(QString::fromStdString("Restoring " + file_path));
+              VerifyFile(file_path, output_path_, backup_name_);
+              setWaitMessage(
+                  QString::fromStdString("Verified " + file_path));
+            } catch (const std::exception& e) {
+              setWaitMessage(
+                  QString::fromStdString("Verify failed for " + file_path));
+              failed_files_.push_back(file_path);
+              Logger::SystemLog(
+                  "GUI | Verify Backup | Failed to verify backup: " + file_path,
+                  LogLevel::ERROR);
+            }
+
+            processed_files++;
+            setProgress(
+                static_cast<int>((processed_files * 100) / total_files));
+          }
+          auto result = ReportVerifyResults();
+          if(result.second == 2){
+            Logger::Log(result.first, LogLevel::ERROR);
+            setFailureMessage(QString::fromStdString(result.first));
+            return false;
+          }
+          else if (result.second == 1) {
+            Logger::Log(result.first, LogLevel::WARNING);
+            setFailureMessage(QString::fromStdString(result.first));
+            return false;
+          }
+          else {
+            Logger::Log(result.first, LogLevel::INFO);
+            setSuccessMessage(QString::fromStdString(result.first));
+          }
+          
+          return true;
+
+        } catch (const std::exception& e) {
+          Logger::SystemLog(
+              "GUI | Verify Backup | Cannot Verify Backup: " + std::string(e.what()),
+              LogLevel::ERROR);
+
+          setFailureMessage("Verify Backup operation failed: " +
+                            QString::fromStdString(e.what()));
+          return false;
+        }
+      },
+      "Attempting verify ...", "Verify Backup operation successful.",
+      "Verify Backup operation failed.",
+      [this, onFinishCallback](bool success) {
+        if (onFinishCallback) {
+          onFinishCallback(success);
+        }
+      });
+}
+
+
 BackupGUI::BackupGUI(QWidget* parent, Repository* repo,
                      const fs::path& input_path, BackupType type,
                      const std::string& remarks)

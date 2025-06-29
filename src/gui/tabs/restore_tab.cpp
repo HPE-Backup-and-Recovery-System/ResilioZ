@@ -360,7 +360,7 @@ void RestoreTab::restoreBackup() {
   }
 
   try {
-    restore_->RestoreAll(
+    restore_->VerifyBackup(
         [this](bool success) {
           if (success) {
             ui->stackedWidget_attemptRestore->setCurrentIndex(0);
@@ -369,8 +369,7 @@ void RestoreTab::restoreBackup() {
           } else {
             ui->nextButton->setEnabled(true);
           }
-        },
-        backup_destination, backup_file);
+        }, backup_file);
   } catch (const std::exception& e) {
     MessageBoxDecorator::showMessageBox(this, "Backup Finalization Failure",
                                         QString::fromStdString(e.what()),

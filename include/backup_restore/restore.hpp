@@ -22,9 +22,12 @@ class Restore {
   ~Restore();
   // Restore a single file
   void RestoreFile(const fs::path & file_path,const fs::path output_path_, const std::string backup_name_);
-
+  void VerifyFile(const fs::path & file_path,const fs::path output_path_, const std::string backup_name_);
   // Restore all files from backup
   void RestoreAll(const fs::path output_path_, const std::string backup_name_);
+
+  // Verify Backup Integrity
+  void VerifyBackup(const std::string backup_name_);
 
   // List available backups
   std::vector<std::string> ListBackups();
@@ -38,6 +41,7 @@ class Restore {
   void LoadMetadata(const std::string backup_name_);
   bool CheckFileIntegrity(const fs::path& file_path, const std::string& expected_checksum);
   std::pair<std::string,int> ReportResults();
+  std::pair<std::string,int> ReportVerifyResults();
   Repository* repo_;
   std::optional<BackupMetadata*> metadata_ = nullptr;
   fs::path temp_dir_;
