@@ -56,6 +56,14 @@ void DeleteRepositoryDialog::resizeEvent(QResizeEvent* event) {
   setColSize(ui->repoTable->viewport()->width());
 }
 
+void DeleteRepositoryDialog::setRepository(Repository* repository) {
+  if (repository_ != nullptr) {
+    delete repository_;
+    repository_ = nullptr;
+  }
+  repository_ = repository;
+}
+
 void DeleteRepositoryDialog::checkSelection() {
   QModelIndexList selected = ui->repoTable->selectionModel()->selectedRows();
 
@@ -142,14 +150,14 @@ void DeleteRepositoryDialog::deleteRepository(int row) {
   }
 
   if (type == "local") {
-    repository_ =
-        new LocalRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new LocalRepository(path, name, password.toStdString(), created_at));
   } else if (type == "nfs") {
-    repository_ =
-        new NFSRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new NFSRepository(path, name, password.toStdString(), created_at));
   } else if (type == "remote") {
-    repository_ =
-        new RemoteRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new RemoteRepository(path, name, password.toStdString(), created_at));
   } else {
     MessageBoxDecorator::showMessageBox(
         this, "Failure", "Could not delete repository due to invalid type.",

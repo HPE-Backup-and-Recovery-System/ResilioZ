@@ -12,12 +12,13 @@
 BackupSystem::BackupSystem() {
   repo_service_ = new RepositoryService();
   scheduler_service_ = new SchedulerService();
+  repository_ = nullptr;
 }
 
 BackupSystem::~BackupSystem() {
   delete repo_service_;
   delete scheduler_service_;
-  repository_ = nullptr;
+  if (repository_ != nullptr) delete repository_;
 }
 
 void BackupSystem::Run() {
@@ -26,10 +27,9 @@ void BackupSystem::Run() {
                                         "List Backups", "Compare Backups"};
   while (true) {
     try {
-      // if (repository_ != nullptr) {
-      //   delete repository_;
-      //   repository_ = nullptr;
-      // }
+      if (repository_ != nullptr) {
+        repository_ = nullptr;
+      }
 
       int choice = UserIO::HandleMenuWithSelect(title, main_menu);
 
@@ -64,10 +64,9 @@ void BackupSystem::CreateBackup() {
   bool loop = true;
   try {
     do {
-      // if (repository_ != nullptr) {
-      //   delete repository_;
-      //   repository_ = nullptr;
-      // }
+      if (repository_ != nullptr) {
+        repository_ = nullptr;
+      }
 
       menu = {"Go BACK... ", "Create New Repository",
               "Use Existing Repository"};
@@ -133,7 +132,7 @@ void BackupSystem::ListBackups() {
     if (repository_ == nullptr) {
       return;
     }
-    
+
     Backup backup(repository_, source, BackupType::FULL, "");
     backup.DisplayAllBackupDetails();
 

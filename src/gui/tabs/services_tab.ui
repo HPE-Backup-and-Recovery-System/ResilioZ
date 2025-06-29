@@ -15,16 +15,16 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="topMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="rightMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="bottomMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <item row="0" column="0">
     <widget class="QFrame" name="frame">
@@ -89,15 +89,15 @@ QPushButton {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="chooseSvcPage">
          <property name="autoFillBackground">
           <bool>true</bool>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="spacing">
-           <number>30</number>
+           <number>60</number>
           </property>
           <property name="leftMargin">
            <number>90</number>
@@ -114,7 +114,7 @@ QPushButton {
           <item>
            <widget class="QPushButton" name="repoSvcBtn">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -126,9 +126,11 @@ QPushButton {
              </size>
             </property>
             <property name="text">
-             <string>1. 
-Repository
-Service</string>
+             <string> Repository Service</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../resources/assets.qrc">
+              <normaloff>:/assets/icons/icons/folder-open.svg</normaloff>:/assets/icons/icons/folder-open.svg</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -156,7 +158,7 @@ Service</string>
           <item>
            <widget class="QPushButton" name="schSvcBtn">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -168,9 +170,11 @@ Service</string>
              </size>
             </property>
             <property name="text">
-             <string>2. 
-Scheduler 
-Service</string>
+             <string>  Scheduler Service</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../resources/assets.qrc">
+              <normaloff>:/assets/icons/icons/hourglass-end.svg</normaloff>:/assets/icons/icons/hourglass-end.svg</iconset>
             </property>
            </widget>
           </item>
@@ -193,7 +197,7 @@ Service</string>
           <item row="0" column="0">
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
-             <number>30</number>
+             <number>45</number>
             </property>
             <property name="leftMargin">
              <number>30</number>
@@ -326,7 +330,7 @@ QPushButton#nextButton:disabled {
           <item row="0" column="0">
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="spacing">
-             <number>30</number>
+             <number>45</number>
             </property>
             <property name="leftMargin">
              <number>30</number>
@@ -467,6 +471,8 @@ QPushButton#backButton_2:disabled {
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resources/assets.qrc"/>
+ </resources>
  <connections/>
 </ui>

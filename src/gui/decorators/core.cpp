@@ -10,6 +10,18 @@
 RestoreGUI::RestoreGUI(QWidget* parent, Repository* repo)
     : Restore(repo), parent_(parent) {}
 
+std::vector<std::string> RestoreGUI::GetSuccessFiles() const {
+  return successful_files_;
+}
+
+std::vector<std::string> RestoreGUI::GetCorruptFiles() const {
+  return integrity_failures_;
+}
+
+std::vector<std::string> RestoreGUI::GetFailedFiles() const {
+  return failed_files_;
+}
+
 void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
                             const fs::path output_path_,
                             const std::string backup_name_) {
@@ -61,7 +73,7 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
 
           QString message = QString::fromStdString(
               "Attempting restore from " + repo_->GetRepositoryInfoString() +
-              " File: " + backup_name_);
+              " with Backup: " + backup_name_);
           setWaitMessage(message);
 
           setWaitMessage("Preparing Destination...");
@@ -88,8 +100,6 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             return false;
           }
 
-
-
           if (!metadata_ || !(*metadata_)) {
             setFailureMessage("Metadata unavailable for backup.");
             Logger::SystemLog("GUI | Restore | Metadata pointer is null",
@@ -115,11 +125,7 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             try {
               setWaitMessage(QString::fromStdString("Restoring " + file_path));
               RestoreFile(file_path, output_path_, backup_name_);
-              setWaitMessage(
-                  QString::fromStdString("Restored " + file_path));
             } catch (const std::exception& e) {
-              setWaitMessage(
-                  QString::fromStdString("Restore failed for " + file_path));
               failed_files_.push_back(file_path);
               Logger::SystemLog(
                   "GUI | Restore | Failed to restore: " + file_path,
@@ -130,22 +136,23 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             setProgress(
                 static_cast<int>((processed_files * 100) / total_files));
           }
-          auto result = ReportResults();
-          if(result.second == 2){
-            Logger::Log(result.first, LogLevel::ERROR);
-            setFailureMessage(QString::fromStdString(result.first));
+
+          SetRestoreSummary();
+          LogLevel log_level;
+          if (summary_.status_code == 2) {
+            log_level = LogLevel::ERROR;
             return false;
-          }
-          else if (result.second == 1) {
-            Logger::Log(result.first, LogLevel::WARNING);
-            setFailureMessage(QString::fromStdString(result.first));
+          } else if (summary_.status_code == 1) {
+            log_level = LogLevel::WARNING;
             return false;
+          } else {
+            log_level = LogLevel::INFO;
           }
-          else {
-            Logger::Log(result.first, LogLevel::INFO);
-            setSuccessMessage(QString::fromStdString(result.first));
-          }
-          
+
+          Logger::SystemLog("GUI | Restore Attempt Status: " + summary_.status,
+                            log_level);
+          setSuccessMessage("Restore Attempt Completed");
+
           return true;
 
         } catch (const std::exception& e) {
@@ -168,7 +175,7 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
 }
 
 void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
-                            const std::string backup_name_) {
+                              const std::string backup_name_) {
   fs::path output_path_ = temp_dir_ / "files";
   ProgressBoxDecorator::runProgressBoxDeterminate(
       parent_,
@@ -183,14 +190,16 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
             if (!repo_->Exists()) {
               setFailureMessage("Repository does not exist at location: " +
                                 QString::fromStdString(repo_->GetPath()));
-              Logger::SystemLog("GUI | Verify Backup | Failed to find repository",
-                                LogLevel::ERROR);
+              Logger::SystemLog(
+                  "GUI | Verify Backup | Failed to find repository",
+                  LogLevel::ERROR);
               return false;
             }
           } catch (const std::exception& e) {
-            Logger::SystemLog("GUI | Verify Backup | Failed to initialize verification: " +
-                                  std::string(e.what()),
-                              LogLevel::ERROR);
+            Logger::SystemLog(
+                "GUI | Verify Backup | Failed to initialize verification: " +
+                    std::string(e.what()),
+                LogLevel::ERROR);
             setFailureMessage("Repository existence unconfirmed");
             return false;
           }
@@ -224,8 +233,6 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
             return false;
           }
 
-
-
           if (!metadata_ || !(*metadata_)) {
             setFailureMessage("Metadata unavailable for backup.");
             Logger::SystemLog("GUI | Verify Backup | Metadata pointer is null",
@@ -237,8 +244,9 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
 
           if (total_files == 0) {
             setFailureMessage("No files to verify in the selected backup.");
-            Logger::SystemLog("GUI | Verify Backup | No files in backup metadata",
-                              LogLevel::WARNING);
+            Logger::SystemLog(
+                "GUI | Verify Backup | No files in backup metadata",
+                LogLevel::WARNING);
             return false;
           }
 
@@ -249,13 +257,10 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
 
           for (const auto& [file_path, metadata] : (*metadata_)->files) {
             try {
-              setWaitMessage(QString::fromStdString("Restoring " + file_path));
+              setWaitMessage(
+                  QString::fromStdString("Verifying file: " + file_path));
               VerifyFile(file_path, output_path_, backup_name_);
-              setWaitMessage(
-                  QString::fromStdString("Verified " + file_path));
             } catch (const std::exception& e) {
-              setWaitMessage(
-                  QString::fromStdString("Verify failed for " + file_path));
               failed_files_.push_back(file_path);
               Logger::SystemLog(
                   "GUI | Verify Backup | Failed to verify backup: " + file_path,
@@ -266,28 +271,30 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
             setProgress(
                 static_cast<int>((processed_files * 100) / total_files));
           }
-          auto result = ReportVerifyResults();
-          if(result.second == 2){
-            Logger::Log(result.first, LogLevel::ERROR);
-            setFailureMessage(QString::fromStdString(result.first));
+
+          SetRestoreSummary();
+          LogLevel log_level;
+          if (summary_.status_code == 2) {
+            log_level = LogLevel::ERROR;
             return false;
-          }
-          else if (result.second == 1) {
-            Logger::Log(result.first, LogLevel::WARNING);
-            setFailureMessage(QString::fromStdString(result.first));
+          } else if (summary_.status_code == 1) {
+            log_level = LogLevel::WARNING;
             return false;
+          } else {
+            log_level = LogLevel::INFO;
           }
-          else {
-            Logger::Log(result.first, LogLevel::INFO);
-            setSuccessMessage(QString::fromStdString(result.first));
-          }
-          
+
+          Logger::SystemLog(
+              "GUI | Backup Verification Status: " + summary_.status,
+              log_level);
+          setSuccessMessage("Backup Verification Completed");
+
           return true;
 
         } catch (const std::exception& e) {
-          Logger::SystemLog(
-              "GUI | Verify Backup | Cannot Verify Backup: " + std::string(e.what()),
-              LogLevel::ERROR);
+          Logger::SystemLog("GUI | Verify Backup | Cannot Verify Backup: " +
+                                std::string(e.what()),
+                            LogLevel::ERROR);
 
           setFailureMessage("Verify Backup operation failed: " +
                             QString::fromStdString(e.what()));
@@ -303,12 +310,60 @@ void RestoreGUI::VerifyBackup(std::function<void(bool)> onFinishCallback,
       });
 }
 
+RestoreSummary RestoreGUI::GetRestoreSummary() { return summary_; }
+
+void RestoreGUI::SetRestoreSummary() {
+  int status_code;  // 0 = OK, 1 = Integrity failures, 2 = Failed files
+
+  int total_files = (*metadata_)->files.size();
+  int processed_files = successful_files_.size() + failed_files_.size() +
+                        integrity_failures_.size();
+  int restored_files = successful_files_.size() + integrity_failures_.size();
+  int failed_files_count = failed_files_.size();
+  int integrity_failures_count = integrity_failures_.size();
+
+  if (failed_files_count > 0) {
+    status_code = 2;
+  } else if (integrity_failures_count > 0) {
+    status_code = 1;
+  } else {
+    status_code = 0;
+  }
+
+  std::string status;
+  switch (status_code) {
+    case 1:
+      status = "Backup has Integrity Violations";
+      break;
+    case 2:
+      status = "Backup is Damaged";
+      break;
+    default:
+      status = "Backup OK";
+      break;
+  }
+
+  summary_ = {total_files,
+              processed_files,
+              restored_files,
+              failed_files_count,
+              integrity_failures_count,
+              status_code,
+              status};
+}
+
+std::vector<std::string> BackupGUI::GetSuccessFiles() const {
+  return success_files_;
+}
+
+std::vector<std::string> BackupGUI::GetFailedFiles() const {
+  return failed_files_;
+}
 
 BackupGUI::BackupGUI(QWidget* parent, Repository* repo,
                      const fs::path& input_path, BackupType type,
                      const std::string& remarks)
     : Backup(repo, input_path, type, remarks), parent_(parent) {}
-
 
 void BackupGUI::BackupDirectory(std::function<void(bool)> onFinishCallback) {
   ProgressBoxDecorator::runProgressBoxDeterminate(
@@ -351,6 +406,8 @@ void BackupGUI::BackupDirectory(std::function<void(bool)> onFinishCallback) {
           }
 
           setWaitMessage("Preparing Backup...");
+          success_files_.clear();
+          failed_files_.clear();
 
           for (const auto& file_path : files_to_backup) {
             auto str_path = file_path.string();
@@ -358,14 +415,30 @@ void BackupGUI::BackupDirectory(std::function<void(bool)> onFinishCallback) {
 
             if (it == metadata_.files.end()) {
               added_files++;
-              BackupFile(file_path);
-              setWaitMessage("Backing up file: " +
-                             QString::fromStdString(str_path));
+              try {
+                BackupFile(file_path);
+                setWaitMessage("Backing up file: " +
+                               QString::fromStdString(str_path));
+                success_files_.push_back(str_path);
+              } catch (const std::exception& e) {
+                failed_files_.push_back(str_path);
+                Logger::SystemLog(
+                    "GUI | Backup | Failed to backup file: " + str_path,
+                    LogLevel::ERROR);
+              }
             } else if (CheckFileForChanges(file_path, it->second)) {
               changed_files++;
-              BackupFile(file_path);
-              setWaitMessage("Backing up file: " +
-                             QString::fromStdString(str_path));
+              try {
+                BackupFile(file_path);
+                setWaitMessage("Backing up file: " +
+                               QString::fromStdString(str_path));
+                success_files_.push_back(str_path);
+              } catch (const std::exception& e) {
+                failed_files_.push_back(str_path);
+                Logger::SystemLog(
+                    "GUI | Backup | Failed to backup file: " + str_path,
+                    LogLevel::ERROR);
+              }
             } else {
               unchanged_files++;
             }

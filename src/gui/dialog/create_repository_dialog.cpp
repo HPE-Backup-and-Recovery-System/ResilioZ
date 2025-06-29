@@ -34,6 +34,10 @@ CreateRepositoryDialog::~CreateRepositoryDialog() {
 }
 
 void CreateRepositoryDialog::setRepository(Repository* repository) {
+  if (repository_ != nullptr) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   repository_ = repository;
 }
 
