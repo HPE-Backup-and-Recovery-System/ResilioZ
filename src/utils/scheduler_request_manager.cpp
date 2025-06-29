@@ -38,7 +38,7 @@ std::string SchedulerRequestManager::SendRequest(const char *message){
     send(client_fd, message, strlen(message), 0);
 
     // Fetch server response and display
-    char server_msg[1024];
+    char server_msg[4096];
     if (recv(client_fd, server_msg, sizeof(server_msg), 0 ) < 0){
         ErrorUtil::ThrowError("Message from scheduler server not received!");
     }
