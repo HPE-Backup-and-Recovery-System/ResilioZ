@@ -10,8 +10,6 @@
 RestoreGUI::RestoreGUI(QWidget* parent, Repository* repo)
     : Restore(repo), parent_(parent) {}
 
-RestoreGUI::~RestoreGUI() {}
-
 void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
                             const fs::path output_path_,
                             const std::string backup_name_) {
@@ -174,7 +172,6 @@ BackupGUI::BackupGUI(QWidget* parent, Repository* repo,
                      const std::string& remarks)
     : Backup(repo, input_path, type, remarks), parent_(parent) {}
 
-BackupGUI::~BackupGUI() {}
 
 void BackupGUI::BackupDirectory(std::function<void(bool)> onFinishCallback) {
   ProgressBoxDecorator::runProgressBoxDeterminate(
