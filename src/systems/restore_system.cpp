@@ -30,6 +30,10 @@ void RestoreSystem::Run() {
 
   while (true) {
     try {
+      if (repository_ != nullptr) {
+        repository_ = nullptr;
+      }
+
       int choice = UserIO::HandleMenuWithSelect(title, main_menu);
 
       switch (choice) {
@@ -127,8 +131,6 @@ void RestoreSystem::VerifyBackup() {
     ErrorUtil::ThrowNested("Backup verification operation failed");
   }
 }
-
-
 
 void RestoreSystem::Log() {
   Logger::TerminalLog("Restore system is up and running... \n");

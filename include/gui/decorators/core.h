@@ -15,7 +15,7 @@ class RestoreGUI : public Restore {
                   const fs::path output_path_ = "",
                   const std::string backup_name_ = "");
   void VerifyBackup(std::function<void(bool)> onFinishCallback = nullptr,
-                const std::string backup_name_ = "");
+                    const std::string backup_name_ = "");
 
  private:
   QWidget* parent_;

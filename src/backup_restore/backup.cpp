@@ -94,7 +94,7 @@ void Backup::BackupFile(const fs::path& file_path) {
   }
 
   ProgressBar progress(file_metadata.total_size, 0,
-                       "backup of " + file_path.string());
+                       "Backup of " + file_path.string());
 
   size_t processed_bytes = 0;
   size_t processed_chunks = 0;

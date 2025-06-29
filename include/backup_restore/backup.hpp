@@ -1,6 +1,8 @@
 #ifndef BACKUP_HPP_
 #define BACKUP_HPP_
 
+#include <repositories/all.h>
+
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -10,7 +12,6 @@
 
 #include "chunker.hpp"
 #include "progress.hpp"
-#include <repositories/all.h>
 
 namespace fs = std::filesystem;
 
@@ -34,10 +35,15 @@ struct BackupMetadata {
   std::string previous_backup;
   std::string remarks;
   std::map<std::string, FileMetadata> files;
-  BackupMetadata(){};
-  BackupMetadata(BackupType type_,std::chrono::system_clock::time_point timestamp_,
-                std::string previous_backup_,std::map<std::string, FileMetadata> files_):
-                type(type_),timestamp(timestamp_),previous_backup(previous_backup_),files(files_) {};
+  BackupMetadata() {};
+  BackupMetadata(BackupType type_,
+                 std::chrono::system_clock::time_point timestamp_,
+                 std::string previous_backup_,
+                 std::map<std::string, FileMetadata> files_)
+      : type(type_),
+        timestamp(timestamp_),
+        previous_backup(previous_backup_),
+        files(files_) {};
 };
 
 struct BackupDetails {
@@ -61,8 +67,7 @@ class Backup {
   // Utility functions
   std::vector<std::string> ListBackups();
   void DisplayAllBackupDetails();
-  void CompareBackups(const std::string& backup1,
-                             const std::string& backup2);
+  void CompareBackups(const std::string& backup1, const std::string& backup2);
   std::vector<BackupDetails> GetAllBackupDetails();
 
  protected:
@@ -79,14 +84,14 @@ class Backup {
   std::string GetLatestBackup();
   std::string GetLatestFullBackup();
   bool CheckFileForChanges(const fs::path& file_path,
-                                  const FileMetadata& previous_metadata);
+                           const FileMetadata& previous_metadata);
 
   fs::path input_path_;
   fs::path temp_dir_;
   Repository* repo_;
   Chunker chunker_;
   BackupType backup_type_;
-  BackupMetadata metadata_ ;
+  BackupMetadata metadata_;
 
  private:
   std::string CalculateFileSHA256(const fs::path& file_path);
