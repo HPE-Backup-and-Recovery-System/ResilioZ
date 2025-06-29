@@ -84,7 +84,6 @@ void RestoreSystem::RestoreFromBackup() {
         location_options);
 
     fs::path restore_dir;
-    std::string timestamp = TimeUtil::GetCurrentTimestamp();
     if (location_choice == 0) {
       restore_dir = "/";
     } else {
@@ -92,7 +91,7 @@ void RestoreSystem::RestoreFromBackup() {
       std::string restore_path =
           Prompter::PromptLocalPath("Path to Restore Destination");
       // Create a restore directory with timestamp
-      restore_dir = fs::path(restore_path) / ("restore_" + timestamp);
+      restore_dir = fs::path(restore_path);
     }
 
     fs::create_directories(restore_dir);

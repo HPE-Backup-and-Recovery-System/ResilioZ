@@ -90,8 +90,7 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             return false;
           }
 
-          int processed_files = 0;
-          int restored_files = 0;
+
 
           if (!metadata_ || !(*metadata_)) {
             setFailureMessage("Metadata unavailable for backup.");
@@ -100,7 +99,7 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             return false;
           }
 
-          int total_files = (*metadata_)->files.size();
+          int total_files = (*metadata_)->files.size(), processed_files = 0;
 
           if (total_files == 0) {
             setFailureMessage("No files to restore in the selected backup.");
@@ -109,48 +108,46 @@ void RestoreGUI::RestoreAll(std::function<void(bool)> onFinishCallback,
             return false;
           }
 
-          std::vector<std::string> failed_files;
+          // Clear previous integrity failures
+          integrity_failures_.clear();
+          failed_files_.clear();
+          successful_files_.clear();
+
           for (const auto& [file_path, metadata] : (*metadata_)->files) {
             try {
               setWaitMessage(QString::fromStdString("Restoring " + file_path));
               RestoreFile(file_path, output_path_, backup_name_);
-              restored_files++;
               setWaitMessage(
-                  QString::fromStdString("Restore success for " + file_path));
+                  QString::fromStdString("Restored " + file_path));
             } catch (const std::exception& e) {
               setWaitMessage(
                   QString::fromStdString("Restore failed for " + file_path));
+              failed_files_.push_back(file_path);
               Logger::SystemLog(
                   "GUI | Restore | Failed to restore: " + file_path,
                   LogLevel::ERROR);
-              failed_files.push_back(file_path);
             }
 
             processed_files++;
             setProgress(
                 static_cast<int>((processed_files * 100) / total_files));
           }
-
-          std::ostringstream out;
-          out << "Restore Summary:\n"
-              << " - Total files: " << total_files << "\n"
-              << " - Processed files: " << processed_files << "\n"
-              << " - Restored files: " << restored_files << "\n";
-
-          if (total_files != restored_files) {
-            out << " - Status: Restore incomplete\n";
-
-            out << " - Missing files \n";
-            for (std::string file_name_ : failed_files) {
-              out << " --  " << file_name_ << " \n";
-            }
-            setFailureMessage(QString::fromStdString(out.str()));
+          auto result = ReportResults();
+          if(result.second == 2){
+            Logger::Log(result.first, LogLevel::ERROR);
+            setFailureMessage(QString::fromStdString(result.first));
             return false;
           }
-
-          out << " - Status: Restore OK\n";
-          setSuccessMessage(QString::fromStdString(out.str()));
-
+          else if (result.second == 1) {
+            Logger::Log(result.first, LogLevel::WARNING);
+            setFailureMessage(QString::fromStdString(result.first));
+            return false;
+          }
+          else {
+            Logger::Log(result.first, LogLevel::INFO);
+            setSuccessMessage(QString::fromStdString(result.first));
+          }
+          
           return true;
 
         } catch (const std::exception& e) {
