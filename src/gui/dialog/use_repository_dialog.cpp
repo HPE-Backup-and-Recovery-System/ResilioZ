@@ -221,8 +221,6 @@ void UseRepositoryDialog::useRepository(int row) {
         if (success) {
           accept();
         } else {
-          repodata_mgr_->DeleteEntry(repository_->GetName(),
-                                     repository_->GetPath());
           ui->nextButton->setEnabled(true);
         }
       });
