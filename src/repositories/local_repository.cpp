@@ -183,6 +183,7 @@ bool LocalRepository::DownloadFile(const std::string& local_file,
   } catch (...) {
     ErrorUtil::ThrowNested("Cannot download file from local repository: " +
                            repo_full_path);
+    throw;
   }
   return false;
 }
@@ -231,6 +232,7 @@ bool LocalRepository::DownloadDirectory(const std::string& local_dir,
   } catch (...) {
     ErrorUtil::ThrowNested("Cannot download directory from local repository: " +
                            repo_root);
+    throw;
   }
   return false;
 }

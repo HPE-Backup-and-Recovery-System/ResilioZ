@@ -8,7 +8,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-#include "utils/error_util.h"
+#include "utils/utils.h"
 
 namespace fs = std::filesystem;
 
@@ -51,20 +51,17 @@ bool NFSRepository::UploadFile(const std::string& local_file,
   try {
     if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
       std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Mount failed: " + err);
     }
     std::ifstream file(local_file, std::ios::binary);
     if (!file) {
       nfs_umount(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Cannot open local file: " + local_file);
     }
     struct nfsfh* fh;
     if (nfs_creat(nfs, remote_file_path.c_str(), 0644, &fh) < 0) {
       std::string err = nfs_get_error(nfs);
       nfs_umount(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Remote file create failed: " + remote_file_path +
                             " - " + err);
     }
@@ -85,10 +82,11 @@ bool NFSRepository::UploadFile(const std::string& local_file,
     nfs_umount(nfs);
     nfs_destroy_context(nfs);
     return true;
-  } catch (...) {
+  } catch (const std::exception& e) {
     nfs_destroy_context(nfs);
     ErrorUtil::ThrowNested("Cannot upload file to remote NFS path: " +
                            remote_file_path);
+    throw;
   }
 }
 
@@ -101,7 +99,6 @@ bool NFSRepository::UploadDirectory(const std::string& local_dir,
   try {
     if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
       std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Mount failed: " + err);
     }
     std::function<void(const fs::path&, const std::string&)> upload_recursive;
@@ -142,10 +139,11 @@ bool NFSRepository::UploadDirectory(const std::string& local_dir,
     nfs_umount(nfs);
     nfs_destroy_context(nfs);
     return true;
-  } catch (...) {
+  } catch (const std::exception& e) {
     nfs_destroy_context(nfs);
     ErrorUtil::ThrowNested("Cannot upload directory to remote NFS path: " +
                            remote_base);
+    throw;                       
   }
 }
 
@@ -173,7 +171,6 @@ void NFSRepository::CreateNFSDirectory() const {
     if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
     if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
       std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Mount failed: " + err);
     }
     // Create directory for this repo (relative to export root)
@@ -251,7 +248,6 @@ void NFSRepository::RemoveNFSDirectory() const {
   if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
   if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
     std::string err = nfs_get_error(nfs);
-    nfs_destroy_context(nfs);
     ErrorUtil::ThrowError("Mount failed: " + err);
   }
   std::string repo_dir = "/" + name_;
@@ -324,7 +320,6 @@ std::vector<std::string> NFSRepository::ListFiles(
   if (!nfs) ErrorUtil::ThrowError("Failed to init NFS context");
   if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
     std::string err = nfs_get_error(nfs);
-    nfs_destroy_context(nfs);
     ErrorUtil::ThrowError("Mount failed: " + err);
   }
   struct nfsdir* dir;
@@ -373,14 +368,14 @@ bool NFSRepository::DownloadFile(const std::string& remote_file,
 
     if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
       std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Mount failed: " + err);
     }
 
     struct nfsfh* fh;
     if (nfs_open(nfs, remote_full_path.c_str(), O_RDONLY, &fh) < 0) {
+      Logger::Log("Failed to open remote file: " + remote_full_path,
+                  LogLevel::ERROR);
       nfs_umount(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Unable to open remote file for reading: " +
                             remote_full_path);
     }
@@ -389,7 +384,6 @@ bool NFSRepository::DownloadFile(const std::string& remote_file,
     if (!output) {
       nfs_close(nfs, fh);
       nfs_umount(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Failed to open local file for writing: " +
                             local_full_path);
     }
@@ -403,7 +397,6 @@ bool NFSRepository::DownloadFile(const std::string& remote_file,
     if (n < 0) {
       nfs_close(nfs, fh);
       nfs_umount(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Error reading from remote file: " +
                             remote_full_path);
     }
@@ -413,10 +406,11 @@ bool NFSRepository::DownloadFile(const std::string& remote_file,
     nfs_destroy_context(nfs);
     return true;
 
-  } catch (...) {
+  } catch (const std::exception& e) {
     nfs_destroy_context(nfs);
     ErrorUtil::ThrowNested("Cannot download file from remote NFS path: " +
                            remote_full_path);
+    throw;                       
   }
 }
 
@@ -435,7 +429,6 @@ bool NFSRepository::DownloadDirectory(const std::string& remote_dir,
 
     if (nfs_mount(nfs, server_ip_.c_str(), server_backup_path_.c_str()) < 0) {
       std::string err = nfs_get_error(nfs);
-      nfs_destroy_context(nfs);
       ErrorUtil::ThrowError("Mount failed: " + err);
     }
 
@@ -496,9 +489,10 @@ bool NFSRepository::DownloadDirectory(const std::string& remote_dir,
     nfs_destroy_context(nfs);
     return true;
 
-  } catch (...) {
+  } catch (const std::exception& e) {
     nfs_destroy_context(nfs);
     ErrorUtil::ThrowNested("Cannot download directory from remote NFS path: " +
                            remote_root);
+    throw;
   }
 }

@@ -9,5 +9,6 @@
 #include "utils/time_util.h"
 #include "utils/user_io.h"
 #include "utils/validator.h"
+#include "utils/encryption_util.h"
 
 #endif  // UTILS_H_

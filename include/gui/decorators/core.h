@@ -11,11 +11,11 @@ class RestoreGUI : public Restore {
  public:
   RestoreGUI(QWidget* parent, Repository* repo);
 
-  ~RestoreGUI();
-
   void RestoreAll(std::function<void(bool)> onFinishCallback = nullptr,
                   const fs::path output_path_ = "",
                   const std::string backup_name_ = "");
+  void VerifyBackup(std::function<void(bool)> onFinishCallback = nullptr,
+                const std::string backup_name_ = "");
 
  private:
   QWidget* parent_;
@@ -26,7 +26,6 @@ class BackupGUI : public Backup {
   BackupGUI(QWidget* parent, Repository* repo, const fs::path& input_path,
             BackupType type = BackupType::FULL,
             const std::string& remarks = "");
-  ~BackupGUI();
 
   void BackupDirectory(std::function<void(bool)> onFinishCallback = nullptr);
   std::string CompareBackups(std::string first_backup,
