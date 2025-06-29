@@ -14,7 +14,7 @@
 #include "utils/logger.h"
 
 SchedulerRequestManager::SchedulerRequestManager(){
-    int port = 8080;
+    int port = 55055;
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
