@@ -283,36 +283,39 @@ void Chunker::StreamSplitFile(
 void Chunker::StreamCombineChunks(std::function<Chunk()> chunk_provider,
                                   const fs::path& output_path,
                                   size_t original_size) {
-  std::ofstream file(output_path, std::ios::binary);
-  if (!file) {
-    ErrorUtil::ThrowError("Could not create output file: " +
-                          output_path.string());
+  try{
+      std::ofstream file(output_path, std::ios::binary);
+      if (!file) {
+        ErrorUtil::ThrowError("Could not create output file: " +
+                              output_path.string());
+      }
+
+        size_t total_bytes_written = 0;
+
+        while (true) {
+          Chunk chunk = chunk_provider();
+          if (chunk.data.empty()) break;  // End of chunks
+
+          // Calculate how many bytes we can write
+          size_t bytes_to_write =
+              std::min(chunk.size, original_size - total_bytes_written);
+
+          if (bytes_to_write > 0) {
+            file.write(reinterpret_cast<const char*>(chunk.data.data()),
+                      bytes_to_write);
+            total_bytes_written += bytes_to_write;
+          }
+        }
+
+        // Ensure the file is exactly the original size
+        file.close();
+
   }
+  catch (const std::exception& e) {
+    ErrorUtil::ThrowError("Failed to stream combine chunks: " + std::string(e.what()));
+    throw;
+  }                                
 
-  size_t total_bytes_written = 0;
-
-  while (true) {
-    Chunk chunk = chunk_provider();
-    if (chunk.data.empty()) break;  // End of chunks
-
-    // Calculate how many bytes we can write
-    size_t bytes_to_write =
-        std::min(chunk.size, original_size - total_bytes_written);
-
-    if (bytes_to_write > 0) {
-      file.write(reinterpret_cast<const char*>(chunk.data.data()),
-                 bytes_to_write);
-      total_bytes_written += bytes_to_write;
-    }
-
-    // if (total_bytes_written >= original_size) {
-    //     break;
-    // }
-  }
-
-  // Ensure the file is exactly the original size
-  file.close();
-  // fs::resize_file(output_path, original_size);
 }
 
 void Chunker::ProcessChunk(const std::vector<uint8_t>& chunk_data,

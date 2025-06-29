@@ -23,6 +23,8 @@ struct FileMetadata {
   fs::file_time_type mtime;
   bool is_symlink = false;
   std::string symlink_target;
+  std::string permissions;  // File permissions in octal format (e.g., "0644")
+  std::string sha256_checksum;  // SHA256 hash of the entire file
 };
 
 struct BackupMetadata {
@@ -86,6 +88,9 @@ class Backup {
   BackupType backup_type_;
   BackupMetadata metadata_ ;
 
+ private:
+  std::string CalculateFileSHA256(const fs::path& file_path);
+  std::string GetFilePermissions(const fs::path& file_path);
 };
 
 #endif  // BACKUP_HPP_
