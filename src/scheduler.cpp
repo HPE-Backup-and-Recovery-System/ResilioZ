@@ -19,7 +19,7 @@ int main() {
   std::signal(SIGTERM, signal_handler);
   std::signal(SIGINT, signal_handler);
 
-  Logger::Log("Starting up scheduler server at Port 8080...");
+  Logger::Log("Starting up scheduler server at Port 55055...");
   scheduler.Run();
   Logger::Log("Scheduler server terminated.");
 
