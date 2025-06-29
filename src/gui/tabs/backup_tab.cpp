@@ -526,6 +526,7 @@ void BackupTab::on_chooseRepoButton_list_clicked() {
     delete repository_;
     repository_ = nullptr;
   }
+  
   UseRepositoryDialog dialog(this);
   dialog.setWindowTitle("Choose Repository for Listing Backups");
   if (dialog.exec() == QDialog::Accepted) {

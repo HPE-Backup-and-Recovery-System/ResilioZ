@@ -385,7 +385,7 @@ QLabel {
                    <string notr="true">text-align:center;</string>
                   </property>
                   <property name="currentIndex">
-                   <number>1</number>
+                   <number>0</number>
                   </property>
                   <widget class="QWidget" name="page_5">
                    <layout class="QGridLayout" name="gridLayout_9">
@@ -1095,7 +1095,7 @@ QPushButton#nextButton:disabled {
                        <item row="1" column="0">
                         <widget class="QWidget" name="horizontalWidget_2" native="true">
                          <property name="styleSheet">
-                          <string notr="true">QLabel#repoInfoLabel {
+                          <string notr="true">QLabel#repoInfoLabel_2 {
 	font-weight: 700;
 	color: rgb(6, 134, 103);
 }
@@ -1373,7 +1373,7 @@ QPushButton#nextButton_2:disabled {
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>Verification Report</string>
+                      <string>Result Summary</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignCenter</set>
@@ -1474,6 +1474,13 @@ QLineEdit:disabled {
                      <property name="spacing">
                       <number>30</number>
                      </property>
+                     <item row="3" column="1">
+                      <widget class="QLabel" name="corruptFiles">
+                       <property name="text">
+                        <string>TextLabel</string>
+                       </property>
+                      </widget>
+                     </item>
                      <item row="2" column="1">
                       <widget class="QLabel" name="successFiles">
                        <property name="text">
@@ -1481,10 +1488,10 @@ QLineEdit:disabled {
                        </property>
                       </widget>
                      </item>
-                     <item row="2" column="0">
-                      <widget class="QLabel" name="successLabel">
+                     <item row="3" column="0">
+                      <widget class="QLabel" name="corruptLabel">
                        <property name="text">
-                        <string>Success Files</string>
+                        <string>Corrupt Files</string>
                        </property>
                        <property name="alignment">
                         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1501,13 +1508,6 @@ QLineEdit:disabled {
                        </property>
                       </widget>
                      </item>
-                     <item row="0" column="1">
-                      <widget class="QLabel" name="totalFiles">
-                       <property name="text">
-                        <string>TextLabel</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item row="1" column="0">
                       <widget class="QLabel" name="processedLabel">
                        <property name="tabletTracking">
@@ -1515,6 +1515,21 @@ QLineEdit:disabled {
                        </property>
                        <property name="text">
                         <string>Processed Files</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="6" column="0">
+                      <widget class="QLabel" name="statusLabel">
+                       <property name="styleSheet">
+                        <string notr="true">QLabel {
+	font-weight: 700;
+}</string>
+                       </property>
+                       <property name="text">
+                        <string>STATUS</string>
                        </property>
                        <property name="alignment">
                         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1535,24 +1550,30 @@ QLineEdit:disabled {
                        </property>
                       </widget>
                      </item>
-                     <item row="3" column="0">
-                      <widget class="QLabel" name="corruptLabel">
+                     <item row="6" column="1">
+                      <widget class="QLineEdit" name="statusField">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="readOnly">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="successLabel">
                        <property name="text">
-                        <string>Corrupt Files</string>
+                        <string>Success Files</string>
                        </property>
                        <property name="alignment">
                         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item row="3" column="1">
-                      <widget class="QLabel" name="corruptFiles">
-                       <property name="text">
-                        <string>TextLabel</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="0" column="0">
+                     <item row="5" column="0">
                       <widget class="QLabel" name="totalLabel">
                        <property name="styleSheet">
                         <string notr="true">QLabel {
@@ -1568,31 +1589,10 @@ QLineEdit:disabled {
                        </property>
                       </widget>
                      </item>
-                     <item row="5" column="0">
-                      <widget class="QLabel" name="statusLabel">
-                       <property name="styleSheet">
-                        <string notr="true">QLabel {
-	font-weight: 700;
-}</string>
-                       </property>
-                       <property name="text">
-                        <string>STATUS</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                       </property>
-                      </widget>
-                     </item>
                      <item row="5" column="1">
-                      <widget class="QLineEdit" name="statusField">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="readOnly">
-                        <bool>true</bool>
+                      <widget class="QLabel" name="totalFiles">
+                       <property name="text">
+                        <string>TextLabel</string>
                        </property>
                       </widget>
                      </item>

@@ -5,13 +5,18 @@
 BackupVerificationDialog::BackupVerificationDialog(
     QWidget* parent, const std::vector<std::string>& success_files,
     const std::vector<std::string>& corrupt_files,
-    const std::vector<std::string>& fail_files)
+    const std::vector<std::string>& fail_files, const std::string& window_title,
+    const std::string& title_label)
     : QDialog(parent),
       ui(new Ui::BackupVerificationDialog),
       success_files_(success_files),
       corrupt_files_(corrupt_files),
       fail_files_(fail_files) {
+
   ui->setupUi(this);
+
+  this->setWindowTitle(QString::fromStdString(window_title));
+  ui->titleLabel->setText(QString::fromStdString(title_label));
 
   fillTables();
 
@@ -65,7 +70,7 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < success_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(success_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignCenter);
+      fileItem->setTextAlignment(Qt::AlignRight);
       ui->successFileTable->setItem(row, 0, fileItem);
     }
   }
@@ -81,7 +86,8 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < corrupt_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(corrupt_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignCenter);
+      fileItem->setTextAlignment(Qt::AlignRight);
+    
       ui->corruptFileTable->setItem(row, 0, fileItem);
     }
   }
@@ -97,7 +103,7 @@ void BackupVerificationDialog::fillTables() {
     for (int row = 0; row < fail_count; ++row) {
       auto* fileItem =
           new QTableWidgetItem(QString::fromStdString(fail_files_[row]));
-      fileItem->setTextAlignment(Qt::AlignCenter);
+      fileItem->setTextAlignment(Qt::AlignRight);
       ui->failFileTable->setItem(row, 0, fileItem);
     }
   }

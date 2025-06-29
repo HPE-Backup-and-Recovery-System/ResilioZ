@@ -17,7 +17,9 @@ class BackupVerificationDialog : public QDialog {
       QWidget* parent = nullptr,
       const std::vector<std::string>& success_files = {},
       const std::vector<std::string>& corrupt_files = {},
-      const std::vector<std::string>& fail_files = {});
+      const std::vector<std::string>& fail_files = {}, 
+      const std::string& window_title = "Backup Verification Results",
+      const std::string& title_label = "Backup Verification Results");
   ~BackupVerificationDialog();
 
  private slots:

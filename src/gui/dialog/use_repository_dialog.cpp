@@ -48,11 +48,15 @@ UseRepositoryDialog::UseRepositoryDialog(QWidget* parent)
 UseRepositoryDialog::~UseRepositoryDialog() {
   delete ui;
   delete repodata_mgr_;
-  
+
   repository_ = nullptr;
 }
 
 void UseRepositoryDialog::setRepository(Repository* repository) {
+  if (repository != nullptr) {
+    delete repository_;
+    repository_ = nullptr;
+  }
   repository_ = repository;
 }
 
@@ -149,14 +153,14 @@ void UseRepositoryDialog::useRepository(int row) {
   }
 
   if (type == "local") {
-    repository_ =
-        new LocalRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new LocalRepository(path, name, password.toStdString(), created_at));
   } else if (type == "nfs") {
-    repository_ =
-        new NFSRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new NFSRepository(path, name, password.toStdString(), created_at));
   } else if (type == "remote") {
-    repository_ =
-        new RemoteRepository(path, name, password.toStdString(), created_at);
+    setRepository(
+        new RemoteRepository(path, name, password.toStdString(), created_at));
   } else {
     MessageBoxDecorator::showMessageBox(
         this, "Failure", "Could not select repository due to invalid type.",

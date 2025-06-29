@@ -17,8 +17,16 @@ class RestoreGUI : public Restore {
   void VerifyBackup(std::function<void(bool)> onFinishCallback = nullptr,
                     const std::string backup_name_ = "");
 
+  std::vector<std::string> GetSuccessFiles() const;
+  std::vector<std::string> GetCorruptFiles() const;
+  std::vector<std::string> GetFailedFiles() const;
+
+  RestoreSummary GetRestoreSummary();
+  void SetRestoreSummary();
+
  private:
   QWidget* parent_;
+  RestoreSummary summary_;
 };
 
 class BackupGUI : public Backup {
@@ -31,8 +39,13 @@ class BackupGUI : public Backup {
   std::string CompareBackups(std::string first_backup,
                              std::string second_backup);
 
+  std::vector<std::string> GetSuccessFiles() const;
+  std::vector<std::string> GetFailedFiles() const;
+
  private:
   QWidget* parent_;
+  std::vector<std::string> success_files_;
+  std::vector<std::string> failed_files_;
 };
 
 #endif  // CORE_DECORATOR_H

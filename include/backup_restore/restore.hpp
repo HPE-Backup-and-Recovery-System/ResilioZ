@@ -16,6 +16,16 @@
 
 namespace fs = std::filesystem;
 
+struct RestoreSummary {
+  int total_files = 0;
+  int processed_files = 0;
+  int success_files = 0;
+  int failed_files = 0;
+  int corrupt_files = 0;
+  int status_code = 0;
+  std::string status = "Backup OK";
+};
+
 class Restore {
  public:
   Restore(Repository* repo);

@@ -34,7 +34,9 @@ void ServicesTab::on_backButton_2_clicked() {
 
 void ServicesTab::on_createRepo_clicked() {
   CreateRepositoryDialog dialog(this);
-  dialog.exec();
+  if (dialog.exec() == QDialog::Accepted) {
+    delete dialog.getRepository();
+  }
 }
 
 void ServicesTab::on_listRepo_clicked() {

@@ -28,6 +28,7 @@ class DeleteRepositoryDialog : public QDialog {
   std::vector<RepoEntry> repos;
 
   void resizeEvent(QResizeEvent *event) override;
+  void setRepository(Repository *repository);
   void checkSelection();
 
   void setColSize(int tableWidth);

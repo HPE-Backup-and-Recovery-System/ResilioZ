@@ -150,8 +150,11 @@ QLabel {
                 <property name="bottomMargin">
                  <number>90</number>
                 </property>
-                <property name="spacing">
+                <property name="horizontalSpacing">
                  <number>60</number>
+                </property>
+                <property name="verticalSpacing">
+                 <number>30</number>
                 </property>
                 <item row="1" column="0">
                  <widget class="QPushButton" name="listBackupButton">

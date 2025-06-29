@@ -15,16 +15,16 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="topMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="rightMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <property name="bottomMargin">
-    <number>0</number>
+    <number>9</number>
    </property>
    <item row="0" column="0">
     <widget class="QFrame" name="frame">
@@ -100,16 +100,16 @@ QPushButton {
            <number>60</number>
           </property>
           <property name="leftMargin">
-           <number>120</number>
+           <number>90</number>
           </property>
           <property name="topMargin">
-           <number>120</number>
+           <number>90</number>
           </property>
           <property name="rightMargin">
-           <number>120</number>
+           <number>90</number>
           </property>
           <property name="bottomMargin">
-           <number>120</number>
+           <number>90</number>
           </property>
           <item>
            <widget class="QPushButton" name="repoSvcBtn">
