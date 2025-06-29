@@ -7,6 +7,8 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <sys/select.h>
+#include <sys/time.h>  
 
 #include <nlohmann/json.hpp>
 
@@ -125,6 +127,7 @@ std::string Scheduler::AddSchedule(nlohmann::json reqBody){
     taskContext["schedule_id"] = schedule_id;
     
     // Adding the scheduled function
+    Logger::TerminalLog("Attempting creation of " + schedule_name + "...",LogLevel::INFO);
     cron.add_schedule(schedule_name, schedule_string, [this, taskContext = taskContext](auto&) {
         std::string schedule_id_ = taskContext["schedule_id"].get<std::string>();
         
@@ -137,13 +140,34 @@ std::string Scheduler::AddSchedule(nlohmann::json reqBody){
         Repository *repo = it->second;
         std::string timestamp = TimeUtil::GetCurrentTimestamp();
 
-        Backup backup(repo, taskContext["source"], taskContext["backup_type"], taskContext["remarks"]);
-        backup.BackupDirectory();
+        Logger::TerminalLog("Attempting scheduled backup of Schedule " + schedule_id_ + " at " + timestamp, LogLevel::INFO);
+
+        bool success = false;
+        try {
+            Backup backup(repo, taskContext["source"], taskContext["backup_type"], taskContext["remarks"]);
+            backup.BackupDirectory();
+            success = true;
+            
+        } catch (const std::exception& e) {
+            std::cerr << "Scheduler | Backup exception: " << e.what() << '\n';
+            
+            Logger::TerminalLog("Scheduler | Scheduled backup " + schedule_id_ + " : Exception : " + std::string(e.what()), LogLevel::ERROR);
+
+        } catch (...) {
+            Logger::TerminalLog("Scheduler | Scheduled backup " + schedule_id_ + " : Unknown exception caught", LogLevel::ERROR);
+        }
         
-        Logger::Log("Backup success: " + timestamp);
-        Logger::Log(GenerateScheduleInfoString(schedule_id_));
+        if (success){
+            Logger::TerminalLog("Scheduler | Backup success: " , LogLevel::INFO);
+            Logger::TerminalLog(GenerateScheduleInfoString(schedule_id_), LogLevel::INFO);
+        }
+        else{
+            Logger::TerminalLog("Scheduler | Scheduled backup " + schedule_id_ + " failed" , LogLevel::ERROR);
+        }
 
     }); 
+
+    Logger::TerminalLog("Creation of " + schedule_name + " successful.",LogLevel::INFO);
     
     return schedule_id;
 }
@@ -200,35 +224,39 @@ std::string Scheduler::RemoveSchedule(nlohmann::json reqBody){
     return schedule_id;
 }
 
+void Scheduler::RequestShutdown() { running = false; }
+
 void Scheduler::Run(){
     // Socket creation
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == 0){
-        std::cout << "Socket failed!\n";
+        Logger::TerminalLog("Socket failed!" , LogLevel::ERROR);
+        ErrorUtil::ThrowError("Socket failed!");
         return;
     }
 
     // To prevent address from being unavailale for a while
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0){
-        std::cout << "setsockopt failed\n";
+        Logger::TerminalLog("setsockopt failed!" , LogLevel::ERROR);
+        ErrorUtil::ThrowError("setsockopt failed!");
         return;
     }
 
     // Socket binding
     int addrlen = sizeof(address);
     if (bind(server_fd, (struct sockaddr*)&address, addrlen) < 0) {
-        std::cout << "Bind failed\n";
+        Logger::TerminalLog("Bind failed!" , LogLevel::ERROR);
+        ErrorUtil::ThrowError("Bind failed!");
         return;
     }
 
     // Socket listening (backlog - 3)
     if (listen(server_fd, 3) < 0) {
-        std::cout << "Listen failed\n";
+        Logger::TerminalLog("Listen failed" , LogLevel::ERROR);
+        ErrorUtil::ThrowError("Listen failed");
         return;
     }
-
-    std::atomic<bool> running(true);
 
     // Running loop for scheduler
     std::thread scheduler_thread([&]() {
@@ -238,21 +266,43 @@ void Scheduler::Run(){
         }
     });
 
-    std::cout << "Scheduler server active.\n";
+    Logger::TerminalLog("Scheduler server active" , LogLevel::INFO);
     
     while (running){
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(server_fd, &fds);
+
+        struct timeval tv;
+        tv.tv_sec = 1;  // 1 second timeout
+        tv.tv_usec = 0;
+
+        int activity = select(server_fd + 1, &fds, nullptr, nullptr, &tv);
+
+        if (!running) break; 
+
+        if (activity < 0 && errno != EINTR) {
+            Logger::TerminalLog("select failed" , LogLevel::ERROR);
+            break;
+        }
+        if (activity == 0) {
+            // Timeout, no connection, just loop again
+            continue;
+        }
+
         // Accept incoming connection
+        Logger::TerminalLog("Accept pending" , LogLevel::INFO);
         int acceptor_fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         if (acceptor_fd < 0) {
-            std::cout << "Accept failed\n";
+            Logger::TerminalLog("Accept failed" , LogLevel::WARNING);
             continue;
         }
         
         // Reading client sent content
-        char buffer[1024] = {0};
+        char buffer[4096] = {0};
         
-        if (read(acceptor_fd, buffer, 1024) < 0){
-            std::cout << "Read failed!";
+        if (read(acceptor_fd, buffer, 4096) < 0){
+            Logger::TerminalLog("Read failed" , LogLevel::WARNING);
             close(acceptor_fd);
             continue;
         }
@@ -278,12 +328,14 @@ void Scheduler::Run(){
 
         else{
             message = "Undefined request!";
+            Logger::TerminalLog("Undefined request made!" , LogLevel::WARNING);
         }
 
         const char *c_message = message.c_str();
         send(acceptor_fd, c_message, strlen(c_message) + 1, 0);
         close(acceptor_fd);
 
+        // In case, client driven stop is needed in future.
         if (reqBody["action"] == "exit"){
             running = false;
             break;
@@ -295,7 +347,7 @@ void Scheduler::Run(){
 
     // Stop the scheduler
     scheduler_thread.join(); 
-    std::cout << "Shutting down scheduler server...\n";
+    Logger::TerminalLog("Shutting down scheduler server..." , LogLevel::INFO);
     
     return;
 } 
