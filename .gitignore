@@ -180,3 +180,5 @@ CMakeLists.txt.user*
 # Ignore directories
 /data/
 /logs/
+
+uninstall.sh

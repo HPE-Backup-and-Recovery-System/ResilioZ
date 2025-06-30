@@ -242,7 +242,7 @@ QRadioButton:checked {
                  <bool>false</bool>
                 </property>
                 <property name="placeholderText">
-                 <string>Ex. 0 0 12 * * * (Every Day at 12:00:00)</string>
+                 <string>Ex. 0 0 12 * * ? (Every Day at 12:00:00)</string>
                 </property>
                </widget>
               </item>
