@@ -36,7 +36,7 @@ std::string PromptIpAddress(const std::string& prompt_msg = "IP Address");
 std::string PromptInput(const std::string& prompt_msg = "Input");
 
 std::string PromptCronString(
-    const std::string& prompt_msg = "Cron String (Ex. 0/5 * * * * ?)");
+    const std::string& prompt_msg = "Cron String (Ex. 0 0 12 * * ? - Every Day at 12:00:00)\n    Format: Second Minute Hour Day Month Weekday");
 
 std::string PromptScheduleId(
     const std::string& prompt_msg = "Schedule ID (Ex. #4)");
