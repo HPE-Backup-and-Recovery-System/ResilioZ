@@ -98,10 +98,19 @@ void ProgressBoxDecorator::runProgressBoxDeterminate(
     auto setSuccessMsg = [&](const QString& msg) { success_message = msg; };
     auto setFailureMsg = [&](const QString& msg) { failure_message = msg; };
 
-    result = task(setProgress, setWaitMsg, setSuccessMsg, setFailureMsg);
+    try {
+     result = task(setProgress, setWaitMsg, setSuccessMsg, setFailureMsg);
+    } catch (const std::exception& e) {
+      failure_message = QString("Exception: ") + e.what();
+      result = false;
+    } catch (...) {
+      failure_message = "Unknown error occurred.";
+      result = false;
+    }
 
     QMetaObject::invokeMethod(dialog, [=]() {
       dialog->accept();
+      dialog->deleteLater();
       if (result) {
         MessageBoxDecorator::showMessageBox(parent, "Success", success_message,
                                             QMessageBox::Information);
@@ -138,10 +147,19 @@ void ProgressBoxDecorator::runProgressBoxIndeterminate(
     auto setSuccessMsg = [&](const QString& msg) { success_message = msg; };
     auto setFailureMsg = [&](const QString& msg) { failure_message = msg; };
 
-    result = task(setWaitMsg, setSuccessMsg, setFailureMsg);
+    try {
+     result = task(setWaitMsg, setSuccessMsg, setFailureMsg);
+    } catch (const std::exception& e) {
+      failure_message = QString("Exception: ") + e.what();
+      result = false;
+    } catch (...) {
+      failure_message = "Unknown error occurred.";
+      result = false;
+    }
 
     QMetaObject::invokeMethod(dialog, [=]() {
-      dialog->accept();
+      dialog->accept(); // Then dialog never accepts?
+      dialog->deleteLater();
       if (result) {
         MessageBoxDecorator::showMessageBox(parent, "Success", success_message,
                                             QMessageBox::Information);
