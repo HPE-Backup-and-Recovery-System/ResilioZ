@@ -1,229 +1,219 @@
-# HPE Linux Backup and Recovery System
 
-<div align="center"> <img src="assets/images/HPE_banner.jpeg" alt="HPE Linux Backup and Recovery" width="100%" /> <p align="center"> <strong>Enterprise-grade backup and recovery solution for Linux environments</strong> </p> <p align="center"> A comprehensive, research-driven backup system featuring advanced deduplication, intelligent compression, and automated recovery processes designed for modern Linux deployments. </p> <p align="center"> <a href="https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/releases/latest"> <img alt="Latest Release" src="https://img.shields.io/github/v/release/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery?style=for-the-badge&logo=github&color=blue"> </a> <a href="https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/actions/workflows/cmake.yml"> <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/cmake.yml?style=for-the-badge&logo=github"> </a> <a href="https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/blob/main/LICENSE"> <img alt="License" src="https://img.shields.io/github/license/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery?style=for-the-badge&color=green"> </a> </p> <p align="center"> <img alt="C++" src="https://img.shields.io/badge/C%2B%2B-17-blue.svg?style=flat-square&logo=c%2B%2B"> <img alt="Platform" src="https://img.shields.io/badge/Platform-Linux-orange.svg?style=flat-square&logo=linux"> <img alt="Project ID" src="https://img.shields.io/badge/HPE%20Project-ID%2062-purple.svg?style=flat-square"> </p> </div>
+# ResilioZ: A Backup and Restore System for Linux
 
----
-## Problem Statement
+**ResilioZ** is a file-level backup and recovery system for Linux, engineered to provide secure, space-efficient, and reliable data protection in enterprise environments. The system supports full, incremental, and differential backup strategies through content-defined chunking (FastCDC), deduplication, Zstandard compression, and AES-256 encryption. The solution is designed to work seamlessly across local filesystems and remote servers, allowing flexible deployment in diverse environments.
 
-In Linux-based enterprise environments, organizations face critical challenges with data protection:
+Built as a part of HPE CPP 2025 (Project ID: 62)
 
-### **Key Pain Points Addressed**
+<div style="background-color: white; padding: 16px;"> <img src="assets/images/Logo.png" alt="HPE" width="100%" /> </div>
 
-| Challenge                    | Impact                                   | Our Solution                                 |
-| ---------------------------- | ---------------------------------------- | -------------------------------------------- |
-| **Manual Backup Processes**  | Operational inefficiencies, human errors | Automated scheduling with cron integration   |
-| **Slow Recovery Times**      | Extended downtimes during failures       | Metadata-driven fast restoration             |
-| **Backup Verification Gaps** | Silent backup failures, data corruption  | Integrated verification and integrity checks |
+## Installation
 
+### Prerequisites
 
-### **Who Benefits**
-
-- **IT Teams** responsible for server uptime and data security
-- **DevOps Engineers** managing large-scale critical infrastructure
-- **System Administrators** requiring reliable, automated backup solutions
-- **Enterprises** needing compliance-ready disaster recovery strategies
-
-## Core Features
-
-### **Backup Methodologies**
-
-- **Full Backups**: Complete filesystem snapshots for baseline protection
-- **Incremental Backups**: Store only changes since last backup (any type)
--  **Differential Backups**: Store changes since last full backup
-- **Automated Scheduling**: Cron-based scheduling with flexible intervals
-
-### **Advanced Storage Optimization**
-
-- **Zstandard Compression**: Optimal speed/ratio balance 
-- **Intelligent Deduplication**: SHA-256 hashed chunks, store only unique data
-- **Metadata Management**: JSON-based file tracking with PostgreSQL backend
-
-### **Security & Integrity**
-
-- **AES-256 Encryption**: Optional post-compression encryption
-- **Backup Verification**: Automated integrity checks during and after backup
-- **Change Detection**: Multi-factor comparison (mtime, ctime, size, inode)
-- **Error Handling**: Rollback mechanisms for failed operations
-
-
-## System Architecture
-
-### **Workflow**
-<div> <img src="assets/images/SystemWorkflow.jpeg" alt="HPE Linux Backup and Recovery" width="100%" /> </div>
-
-### **Technical Architecture**
-
-| Layer          | Components                             | Technology Stack    |
-| -------------- | -------------------------------------- | ------------------- |
-| **Interface**  | CLI, Configuration Management          | C/C++, Bash Scripts |
-| **Automation** | Scheduling                             | Cron Daemon         |
-| **Processing** | Deduplication, Compression, Encryption | ZSTD, AES-256       |
-| **Storage**    | Metadata, Chunks, Logs                 | Local               |
-
-## Research-Backed Technology Choices
-
-### **Compression Algorithm Analysis**
-
-Our research evaluated multiple compression algorithms for optimal backup performance:
-
-| Algorithm        | Compression Speed | Ratio                 | Decompression Speed | Selected  |
-| ---------------- | ----------------- | --------------------- | ------------------- | --------- |
-| **ZSTD Level 1** | 338 MB/s          | 3.4x faster than zlib | 1000+ MB/s          | ✅ **Yes** |
-| LZ4              | Fast              | Lower ratio           | Fast                | ❌ No      |
-| ZLIB             | Moderate          | Good ratio            | Moderate            | ❌ No      |
-| LZMA             | Slow              | High ratio            | Slow                | ❌ No      |
-
-### **Zstandard (ZSTD) Advantages**
-
-- **Flexibility**: 22 compression levels (338 MB/s at level 1 to 2.6 MB/s at level 22)
-- **Speed**: ~3.4x faster than zlib level 1 with better compression than zlib level 9
-- **Decompression**: 1000+ MB/s output, ~4x faster than zlib
-- **Network Optimization**: Well above 1 Gbps throughput, avoiding network bottlenecks
-- **Multi-threading**: zstdmt support without performance penalties
-
-### **Deduplication Strategy**
-
-**Content-Defined Chunking (CDC) with Rabin Fingerprinting**
-
-- **Variable Chunk Size**: Adaptive chunking with maximum size limit (few MBs)
-- **Rolling Hash**: Irreducible polynomial-based hash calculation
-- **Target Pattern**: Intelligent split points based on hash patterns
-- **SHA-256 Naming**: Chunks identified by cryptographic hash
-- **Sliding Window**: Fixed-size window (e.g., 64KB) for consistent chunking
-
-## Performance Metrics
-
-### **Deduplication Efficiency**
-
-|Data Type|Original Size|After Deduplication|Space Savings|
-|---|---|---|---|
-|Source Code Repositories|10 GB|2.1 GB|**79%**|
-|Virtual Machine Images|50 GB|8.3 GB|**83%**|
-|Database Backups|25 GB|4.7 GB|**81%**|
-|System Log Files|15 GB|1.2 GB|**92%**|
-
-### **Compression Performance**
-
-|ZSTD Level|Speed (MB/s)|Compression Ratio|Use Case|
-|---|---|---|---|
-|1 (Fastest)|338|2.8x|Real-time backups|
-|3 (Balanced)|180|3.2x|Regular scheduled backups|
-|6 (Default)|95|3.8x|Overnight backups|
-|9 (High)|45|4.2x|Archive storage|
-
-## Installation & Setup
-
-### **Prerequisites**
-
-#### **System Requirements**
-
-- **OS**: Linux (Ubuntu 18.04+, RHEL 7+, SUSE 12+)
-- **Architecture**: x86_64 or ARM64
-- **Memory**: 2GB RAM minimum, 4GB recommended
-- **Storage**: Variable based on data volume
-
-### **Build Instructions**
+First, ensure your system has the required build tools and development libraries. On a Debian-based system (like Ubuntu), you can install them with:
 
 ```bash
-# Clone repository
-git clone https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery.git
-cd Linux-Backup-and-Recovery
-
-# Configure build
-mkdir build 
-cd build
-cmake ..
-make 
-
+sudo apt update
+sudo apt install cmake g++ build-essential git pkg-config \
+    libssl-dev libzstd-dev zlib1g-dev \
+    libnfs-dev libssh-dev \
+    qt6-base-dev libxkbcommon-dev
 ```
 
-# OR
+### Build from Source
 
-```bash
-cd Linux-Backup-and-Recovery
-chmod +x 775 run.sh
-sudo ./run.sh
-```
+- Clone the repository and build the project using CMake.
 
-## System Workflow
+    ```bash
+    # Clone the repository
+    git clone <your-repo-url>
+    ```
 
-The HPE Linux Backup and Recovery System follows a comprehensive workflow:
+- Use the provided shell script to automate the build and run process:
+    ```bash
+    chmod +x run.sh
+    sudo ./run.sh
+    ```
 
-### **Backup Process Flow**
+The compiled binaries will be located in the `build/` directory.
 
-1. **Configuration Phase**
-    
-    - User selects backup type (full/incremental/differential)
-    - Configures scheduling, encryption, and local storage sync options
-    - System validates repository and dependencies
-    
-2. **Metadata Preparation**
-    
-    - Filesystem scan and metadata collection
-    - Comparison with previous backup metadata (for incremental/differential)
-    - File change detection using mtime, ctime, size, and inode
-    
-3. **Backup Execution**
-    
-    - Cron-scheduled execution
-    - Content-defined chunking 
-    - Deduplication using SHA-256 chunk identification
-    - ZSTD compression with configurable levels
-    
-4. **Security Processing**
-    
-    - Optional AES-256 encryption of compressed chunks
-    - Secure key management and authentication
-    
-5. **Storage 
-    
-    - Local storage in repositories (NFS, remote, local)
-    - Metadata updates 
-    
-6. **Verification & Logging**
-    
-    - Backup integrity verification
-    - Comprehensive logging and monitoring
-    - Error handling with rollback capabilities
+## Getting Started: Basic Usage
 
-### **Recovery Process Flow**
+ResilioZ operates through an interactive, menu-driven CLI or a GUI. The following commands launch the interactive session.
 
-1. **Recovery Initiation**
-    
-    - Metadata-driven file location and chunk identification
-    - Optional decryption of encrypted chunks
-    - Parallel chunk retrieval and assembly
-    
-2. **Data Reconstruction**
-    
-    - ZSTD decompression at 1000+ MB/s
-    - File reconstruction from chunk metadata
-    - Integrity verification during restore
-    
-3. **Destination Delivery**
-    
-    - File system restoration with preserved permissions
-    - Verification of restored data integrity
-    - Recovery logging and audit trail
+1.  **Initialize a Repository**
+    A repository is where your backup data is stored. You only need to do this once. The command will launch the interactive menu to guide you through selecting a repository type (Local, NFS, or Remote) and setting a password.
 
-## Scalability & Future Enhancements
+    ```bash
+    # Launch the application to access the CLI or GUI
+    sudo ./build/main [--cli (or) --gui]
+    ```
+    *From the menu, select "Others" -> "Repository Service" -> "Create New Repository".*
 
-### **Development Standards**
+2.  **Create a Backup**
+    Once a repository is selected, you can back up files or directories.
 
-- Follow C++17 best practices and coding standards
-- Maintain comprehensive test coverage (>90%)
-- Use conventional commit messages
-- Ensure backward compatibility
+    *From the main menu, select "Backup System" and follow the prompts to choose a source path, backup type (Full, Incremental, Differential), and add optional remarks.*
 
+3.  **List and View Backups**
+    You can browse existing backups to see their timestamps, types, and contents.
 
-## Acknowledgments
+    *From the main menu, select "Restore System" -> "List available backups".*
 
-This project represents extensive research and development in enterprise backup technologies:
+4.  **Restore Data from a Backup**
+    Restore your files to their original location or a new directory.
 
-- **HPE Storage and Data Protection Team** for technical guidance
-- **Linux Filesystem Community** for standards and best practices
-- **Academic Research** in content-defined chunking and deduplication algorithms
+    *From the "Restore System" menu, select a backup to restore from and choose a destination path. The system will reconstruct the files and verify their integrity.*
+
+## External Repository Setup
+
+### NFS Repository
+
+#### NFS Server Setup:
+
+1. Install the NFS Server:  
+   ```bash
+   sudo apt install nfs-kernel-server
+    ```
+
+2. Edit the exports file to define shared directories:
+
+   ```bash
+   sudo nano /etc/exports
+   ```
+
+3. Add a line for the directory you want to share:
+
+   ```
+   /path/to/backup [IP Address or hostname or *(for all IPs)](rw,sync,no_subtree_check,no_root_squash)
+   ```
+
+4. Apply the new export rules:
+
+   ```bash
+   sudo exportfs -ra
+   ```
+
+5. Set permissions on the shared directory:
+
+   ```bash
+   sudo chmod -R 777 /path/to/backup
+   ```
+
+#### NFS Client Setup:
+
+1. Install client utilities:
+
+   ```bash
+   sudo apt install nfs-common
+   ```
 
 ---
 
-<div align="center"> <p> <strong>Built by HPE • Engineered for Enterprise • Optimized for Performance</strong> </p> <p> <a href="https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/stargazers">⭐ Star us on GitHub</a> • <a href="https://github.com/HPE-Backup-and-Recovery-System/Linux-Backup-and-Recovery/issues">🐛 Report Issues</a> </p> <p align="center"> <img src="https://img.shields.io/badge/HPE-Project%20ID%2062-blue?style=flat-square" alt="HPE Project Badge"/> </p> </div>
+### Remote Repository
+
+#### SSH Server Setup:
+
+1. Install SSH Server:
+
+   ```bash
+   sudo apt install openssh-server
+   ```
+
+2. Enable the SSH Server:
+
+   ```bash
+   sudo systemctl enable ssh
+   ```
+
+3. Edit the configuration file `/etc/ssh/sshd_config` and ensure the following lines are present:
+
+   ```plaintext
+   PubkeyAuthentication yes
+   AuthorizedKeysFile .ssh/authorized_keys
+   ```
+
+4. Restart the SSH Server:
+
+   ```bash
+   sudo systemctl restart ssh
+   ```
+
+#### SSH Client Setup:
+
+1. Install SSH Client:
+
+   ```bash
+   sudo apt install openssh-client
+   ```
+
+2. Ensure the `.ssh` directory exists and has appropriate permissions:
+
+   ```
+   /home/[username]/.ssh
+   ```
+
+3. Generate an SSH key on your client system:
+
+   ```bash
+   ssh-keygen -t rsa -b 4096 -C "identifier"
+   ```
+
+4. Copy the public key to the server's `authorized_keys` file:
+
+   ```bash
+   ssh-copy-id username@[server IP or hostname]
+   ```
+
+
+
+
+## Features
+
+*   **Multiple Backup Types**: Full, incremental, and differential backup strategies with intelligent change detection based on file size and modification time.
+*   **Advanced Deduplication**: Employs the FastCDC algorithm to split files into variable-sized chunks based on content, maximizing data deduplication across all backups in a repository.
+*   **High-Speed Compression**: Integrates Zstandard (ZSTD) for a superior balance of compression speed and ratio, significantly reducing the size of stored data.
+*   **Robust Encryption**: Secures all backup metadata with AES-256 encryption. The encryption key is derived from the repository password using PBKDF2, protecting against unauthorized access.
+*   **Verifiable Data Integrity**: Uses SHA256 checksums at the file level to verify data integrity during restore operations, ensuring backups are trustworthy.
+*   **Flexible Repository Support**: Seamlessly works with multiple storage backends:
+    *   **Local**: For direct, high-performance on-disk backups.
+    *   **NFS**: For centralized backup storage on a LAN.
+    *   **SSH/SFTP**: For secure, remote, and off-site backups.
+*   **Automated Scheduling**: A client-server daemon uses `libcron` to run scheduled backups with full cron expression support, enabling reliable, automated data protection.
+*   **Dual User Interfaces**:
+    *   **CLI**: A powerful, menu-driven command-line interface for advanced users and scripting.
+    *   **GUI**: A full-featured, intuitive Graphical User Interface built with Qt for ease of use.
+*   **Streaming Restore**: Efficiently restores large files without requiring excessive memory by streaming data chunk by chunk.
+*   **Full Metadata Preservation**: Restores files with their original permissions, timestamps, and symbolic links.
+
+## Architecture and Workflow
+
+ResilioZ adopts a modular architecture, encompassing components for backup, restore, repository management, and automated scheduling. The Repository Service abstracts storage operations and enforces password-based access control. Complementing this, a centralized metadata registry improves performance during lookups and access verification. The scheduler operates as a background daemon using cron expressions to automate routine backups.
+
+### System Diagrams
+
+#### Class Diagram
+
+<div> <img src="assets/images/ClassDiagram.png" alt="HPE Linux Backup and Recovery" width="100%" /> </div>
+
+#### Sequence Diagram
+
+<div> <img src="assets/images/SequenceDiagram.png" alt="HPE Linux Backup and Recovery" width="100%" /> </div>*
+
+#### Workflow Diagram
+
+<div> <img src="assets/images/Workflow.png" alt="HPE Linux Backup and Recovery" width="100%" /> </div>
+
+## References
+
+ResilioZ is built on the shoulders of giants. We would like to acknowledge the excellent open-source libraries that make this project possible:
+
+*   **OpenSSL**: For cryptography (AES & SHA256).
+*   **Zstandard**: For real-time data compression.
+*   **libnfs**: For NFS client functionality.
+*   **libssh**: For SSH/SFTP client functionality.
+*   **libcron**: For cron-based job scheduling.
+*   **nlohmann/json**: For modern C++ JSON support.
+*   **Qt**: For the cross-platform Graphical User Interface.
+*   **FastCDC**: The basis for our content-defined chunking, as described in the [USENIX ATC '16 paper](https://www.usenix.org/system/files/conference/atc16/atc16-paper-xia.pdf).
