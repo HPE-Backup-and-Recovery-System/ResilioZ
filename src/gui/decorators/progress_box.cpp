@@ -158,7 +158,7 @@ void ProgressBoxDecorator::runProgressBoxIndeterminate(
     }
 
     QMetaObject::invokeMethod(dialog, [=]() {
-      dialog->accept(); // Then dialog never accepts?
+      dialog->accept();
       dialog->deleteLater();
       if (result) {
         MessageBoxDecorator::showMessageBox(parent, "Success", success_message,
